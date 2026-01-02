@@ -9,6 +9,8 @@ namespace SocketIOUnity.Transport
         void SendBinary(byte[] data);
         void Close();
 
+        void Dispatch();
+
         event Action OnOpen;
         event Action OnClose;
         event Action<string> OnTextMessage;
