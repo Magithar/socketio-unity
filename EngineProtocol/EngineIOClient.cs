@@ -62,6 +62,12 @@ namespace SocketIOUnity.EngineProtocol
             _transport.SendText(((int)EngineMessageType.Message) + payload);
         }
 
+        // ✅ REQUIRED for NativeWebSocket
+        public void Dispatch()
+        {
+            _transport.Dispatch();
+        }
+
         // --------------------------------------------------------------------
         // Transport bindings
         // --------------------------------------------------------------------
@@ -162,6 +168,11 @@ namespace SocketIOUnity.EngineProtocol
                 _heartbeat.Start(_handshake.pingTimeout);
 
                 _isConnected = true;
+
+                // 🔥 IMPORTANT: CONNECT TO SOCKET.IO DEFAULT NAMESPACE
+                // This sends the Socket.IO "CONNECT" packet
+                _transport.SendText("40");
+
                 OnOpen?.Invoke();
             }
             catch (Exception ex)
