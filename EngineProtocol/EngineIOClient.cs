@@ -1,6 +1,5 @@
-
 using System;
-using System.Text.Json;
+using UnityEngine;
 using SocketIOUnity.Transport;
 
 namespace SocketIOUnity.EngineProtocol
@@ -48,13 +47,15 @@ namespace SocketIOUnity.EngineProtocol
 
         public void Disconnect()
         {
+            if (!_isConnected)
+                return;
+
             _transport.Close();
-            Cleanup();
         }
 
         public void Send(string payload)
         {
-            if (!_isConnected)
+            if (!_isConnected || string.IsNullOrEmpty(payload))
                 return;
 
             // Engine.IO MESSAGE packet type = 4
@@ -88,7 +89,7 @@ namespace SocketIOUnity.EngineProtocol
 
         private void HandleTransportOpen()
         {
-            // Waiting for OPEN packet (type 0)
+            // Waiting for Engine.IO OPEN packet (type 0)
         }
 
         private void HandleTransportClose()
@@ -106,6 +107,12 @@ namespace SocketIOUnity.EngineProtocol
         {
             if (string.IsNullOrEmpty(raw))
                 return;
+
+            if (!char.IsDigit(raw[0]))
+            {
+                OnError?.Invoke($"Invalid Engine.IO packet: {raw}");
+                return;
+            }
 
             var type = (EngineMessageType)(raw[0] - '0');
             var payload = raw.Length > 1 ? raw.Substring(1) : null;
@@ -147,7 +154,11 @@ namespace SocketIOUnity.EngineProtocol
         {
             try
             {
-                _handshake = JsonSerializer.Deserialize<HandshakeInfo>(payload);
+                _handshake = JsonUtility.FromJson<HandshakeInfo>(payload);
+
+                if (_handshake == null)
+                    throw new Exception("Handshake JSON parsed as null");
+
                 _heartbeat.Start(_handshake.pingTimeout);
 
                 _isConnected = true;
