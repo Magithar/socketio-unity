@@ -23,6 +23,11 @@ namespace SocketIOUnity.Runtime
         {
             _engine.Connect(url);
         }
+        
+        public void Dispatch()
+        {
+            _engine.Dispatch();
+        }
 
         private void HandleEngineMessage(string raw)
         {
@@ -45,4 +50,3 @@ namespace SocketIOUnity.Runtime
         }
     }
 }
-
