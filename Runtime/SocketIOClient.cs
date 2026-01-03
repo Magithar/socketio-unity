@@ -11,6 +11,7 @@ namespace SocketIOUnity.Runtime
     {
         private readonly EngineIOClient _engine;
         private readonly EventRegistry _events = new();
+        private readonly AckRegistry _acks = new();
 
         public bool IsConnected => _engine.IsConnected;
 
@@ -42,6 +43,11 @@ namespace SocketIOUnity.Runtime
             _engine.Disconnect();
         }
 
+        public void Update()
+        {
+            _acks.RemoveExpired();
+        }
+
         public void On(string eventName, Action<string> handler)
         {
             _events.On(eventName, handler);
@@ -60,6 +66,25 @@ namespace SocketIOUnity.Runtime
 
             // Socket.IO EVENT = 2
             _engine.Send("2" + json);
+        }
+
+        public void Emit(
+            string eventName,
+            object payload,
+            Action<string> ack,
+            int timeoutMs = 5000)
+        {
+            var json = JsonConvert.SerializeObject(
+                new object[] { eventName, payload });
+
+            var ackId = _acks.Register(ack, TimeSpan.FromMilliseconds(timeoutMs));
+
+            var packet =
+                ((int)SocketPacketType.Event).ToString() +
+                ackId.ToString() +
+                json;
+
+            _engine.Send(packet);
         }
 
         // --------------------------------------------------
@@ -112,6 +137,10 @@ namespace SocketIOUnity.Runtime
 
                 case SocketPacketType.Error:
                     OnError?.Invoke(packet.JsonPayload);
+                    break;
+
+                case SocketPacketType.Ack:
+                    _acks.Resolve(packet.AckId.Value, packet.JsonPayload);
                     break;
             }
         }
