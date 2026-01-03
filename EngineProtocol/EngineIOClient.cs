@@ -1,5 +1,5 @@
 using System;
-using UnityEngine;
+using Newtonsoft.Json;
 using SocketIOUnity.Transport;
 
 namespace SocketIOUnity.EngineProtocol
@@ -15,12 +15,9 @@ namespace SocketIOUnity.EngineProtocol
         public bool IsConnected => _isConnected;
         public string SessionId => _handshake?.sid;
 
-        // Engine.IO lifecycle events
         public event Action OnOpen;
         public event Action OnClose;
         public event Action<string> OnError;
-
-        // Raw MESSAGE packets (Socket.IO layer will consume later)
         public event Action<string> OnMessage;
 
         public EngineIOClient(ITransport transport)
@@ -32,9 +29,9 @@ namespace SocketIOUnity.EngineProtocol
             BindHeartbeatEvents();
         }
 
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
         // Public API
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
 
         public void Connect(string baseUrl)
         {
@@ -47,30 +44,43 @@ namespace SocketIOUnity.EngineProtocol
 
         public void Disconnect()
         {
+            _transport.Close();
+            Cleanup();
+        }
+
+        /// <summary>
+        /// Engine.IO MESSAGE wrapper (4 + Socket.IO payload)
+        /// </summary>
+        public void Send(string socketIoPayload)
+        {
             if (!_isConnected)
                 return;
 
-            _transport.Close();
+            _transport.SendText("4" + socketIoPayload);
         }
 
-        public void Send(string payload)
+        /// <summary>
+        /// Raw Engine.IO packet (40, 41, etc.)
+        /// </summary>
+        public void SendRaw(string raw)
         {
-            if (!_isConnected || string.IsNullOrEmpty(payload))
+            if (!_isConnected)
                 return;
 
-            // Engine.IO MESSAGE packet type = 4
-            _transport.SendText(((int)EngineMessageType.Message) + payload);
+            _transport.SendText(raw);
         }
 
-        // ✅ REQUIRED for NativeWebSocket
-        public void Dispatch()
+        /// <summary>
+        /// MUST be called every Unity frame
+        /// </summary>
+        public void Update()
         {
-            _transport.Dispatch();
+            _heartbeat.Update();
         }
 
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
         // Transport bindings
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
 
         private void BindTransportEvents()
         {
@@ -89,13 +99,13 @@ namespace SocketIOUnity.EngineProtocol
             };
         }
 
-        // --------------------------------------------------------------------
-        // Transport event handlers
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
+        // Transport handlers
+        // --------------------------------------------------
 
         private void HandleTransportOpen()
         {
-            // Waiting for Engine.IO OPEN packet (type 0)
+            // Waiting for Engine.IO OPEN packet
         }
 
         private void HandleTransportClose()
@@ -114,21 +124,15 @@ namespace SocketIOUnity.EngineProtocol
             if (string.IsNullOrEmpty(raw))
                 return;
 
-            if (!char.IsDigit(raw[0]))
-            {
-                OnError?.Invoke($"Invalid Engine.IO packet: {raw}");
-                return;
-            }
-
             var type = (EngineMessageType)(raw[0] - '0');
             var payload = raw.Length > 1 ? raw.Substring(1) : null;
 
             HandleEngineMessage(new EngineMessage(type, payload));
         }
 
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
         // Engine.IO message handling
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
 
         private void HandleEngineMessage(EngineMessage message)
         {
@@ -139,11 +143,13 @@ namespace SocketIOUnity.EngineProtocol
                     break;
 
                 case EngineMessageType.Ping:
-                    HandlePing();
+                    // 🔥 REQUIRED: respond + reset timeout window
+                    _transport.SendText("3");   // PONG
+                    _heartbeat.Beat();          // reset heartbeat window
                     break;
 
                 case EngineMessageType.Pong:
-                    _heartbeat.Reset();
+                    // Engine.IO v4: server may never send this
                     break;
 
                 case EngineMessageType.Message:
@@ -160,19 +166,12 @@ namespace SocketIOUnity.EngineProtocol
         {
             try
             {
-                _handshake = JsonUtility.FromJson<HandshakeInfo>(payload);
+                _handshake = JsonConvert.DeserializeObject<HandshakeInfo>(payload);
 
-                if (_handshake == null)
-                    throw new Exception("Handshake JSON parsed as null");
-
+                // Use pingTimeout only (spec-correct)
                 _heartbeat.Start(_handshake.pingTimeout);
 
                 _isConnected = true;
-
-                // 🔥 IMPORTANT: CONNECT TO SOCKET.IO DEFAULT NAMESPACE
-                // This sends the Socket.IO "CONNECT" packet
-                _transport.SendText("40");
-
                 OnOpen?.Invoke();
             }
             catch (Exception ex)
@@ -184,19 +183,33 @@ namespace SocketIOUnity.EngineProtocol
 
         private void HandlePing()
         {
-            // Respond with PONG (type 3)
-            _transport.SendText(((int)EngineMessageType.Pong).ToString());
-            _heartbeat.Reset();
+            // Respond with Engine.IO PONG
+            _transport.SendText("3");
         }
 
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
         // Helpers
-        // --------------------------------------------------------------------
+        // --------------------------------------------------
 
         private static string BuildEngineIOUrl(string baseUrl)
         {
-            var separator = baseUrl.Contains("?") ? "&" : "?";
-            return $"{baseUrl}{separator}EIO=4&transport=websocket";
+            var uri = new Uri(baseUrl);
+
+            string scheme = uri.Scheme switch
+            {
+                "http" => "ws",
+                "https" => "wss",
+                "ws" => "ws",
+                "wss" => "wss",
+                _ => throw new ArgumentException($"Unsupported protocol: {uri.Scheme}")
+            };
+
+            var portPart = uri.IsDefaultPort ? "" : $":{uri.Port}";
+            var path = string.IsNullOrEmpty(uri.AbsolutePath) || uri.AbsolutePath == "/"
+                ? "/socket.io/"
+                : uri.AbsolutePath;
+
+            return $"{scheme}://{uri.Host}{portPart}{path}?EIO=4&transport=websocket";
         }
 
         private void Cleanup()
