@@ -1,105 +1,174 @@
 using System;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using SocketIOUnity.EngineProtocol;
 using SocketIOUnity.SocketProtocol;
 using SocketIOUnity.Transport;
+using SocketIOUnity.UnityIntegration;
 
 namespace SocketIOUnity.Runtime
 {
-    public class SocketIOClient
+    public sealed class SocketIOClient : ITickable
     {
-        private readonly EngineIOClient _engine;
-        private readonly EventRegistry _events = new();
-        private readonly AckRegistry _acks = new();
+        private EngineIOClient _engine;
+        private readonly NamespaceManager _namespaces;
+        private readonly NamespaceSocket _defaultNamespace;
+        private readonly ReconnectController _reconnect;
+        private readonly Func<ITransport> _transportFactory;
 
-        public bool IsConnected => _engine.IsConnected;
+        private string _lastUrl;
+        private bool _intentionalDisconnect;
+
+        public bool IsConnected => _engine != null && _engine.IsConnected;
 
         public event Action OnConnected;
         public event Action OnDisconnected;
         public event Action<string> OnError;
 
-        public SocketIOClient(ITransport transport)
-        {
-            _engine = new EngineIOClient(transport);
+        // --------------------------------------------------
+        // CONSTRUCTOR
+        // --------------------------------------------------
 
+        public SocketIOClient(Func<ITransport> transportFactory)
+        {
+            _transportFactory = transportFactory;
+
+            CreateEngine();
+
+            _namespaces = new NamespaceManager(this);
+            _defaultNamespace = _namespaces.Get("/");
+
+            _reconnect = new ReconnectController(() =>
+            {
+                if (!string.IsNullOrEmpty(_lastUrl))
+                {
+                    RecreateAndReconnect();
+                }
+            });
+
+            UnityTickDriver.Register(this);
+        }
+
+        // --------------------------------------------------
+        // ENGINE LIFECYCLE (CRITICAL)
+        // --------------------------------------------------
+
+        private void CreateEngine()
+        {
+            var transport = _transportFactory();
+
+            _engine = new EngineIOClient(transport);
             _engine.OnOpen += HandleEngineOpen;
             _engine.OnClose += HandleEngineClose;
             _engine.OnError += HandleEngineError;
             _engine.OnMessage += HandleEngineMessage;
         }
 
+        private void RecreateAndReconnect()
+        {
+            _engine?.Disconnect();
+            CreateEngine();
+            _engine.Connect(_lastUrl);
+        }
+
         // --------------------------------------------------
-        // Public API
+        // PUBLIC API
         // --------------------------------------------------
+
+        public NamespaceSocket Of(string ns) => _namespaces.Get(ns);
 
         public void Connect(string url)
         {
+            _lastUrl = url;
+            _intentionalDisconnect = false;
             _engine.Connect(url);
         }
 
         public void Disconnect()
         {
-            _engine.Disconnect();
+            _intentionalDisconnect = true;
+            _reconnect.Stop();
+            _engine?.Disconnect();
         }
 
-        public void Update()
+        public void Dispose()
         {
-            _acks.RemoveExpired();
+            Disconnect();
+        }
+
+        public void Tick()
+        {
+            foreach (var ns in _namespaces.All)
+                ns.Tick();
+
+            _reconnect.Tick();
+        }
+
+        // --------------------------------------------------
+        // DEFAULT NAMESPACE HELPERS
+        // --------------------------------------------------
+
+        public void Emit(string eventName, object payload)
+        {
+            _defaultNamespace.Emit(eventName, payload);
+        }
+
+        public void Emit(string eventName, object payload, Action<string> ack, int timeoutMs = 5000)
+        {
+            _defaultNamespace.Emit(eventName, payload, ack, timeoutMs);
         }
 
         public void On(string eventName, Action<string> handler)
         {
-            _events.On(eventName, handler);
-        }
-
-        public void Emit(string eventName, object payload)
-        {
-            if (!IsConnected)
-                return;
-
-            var json = JsonConvert.SerializeObject(new object[]
-            {
-                eventName,
-                payload
-            });
-
-            // Socket.IO EVENT = 2
-            _engine.Send("2" + json);
-        }
-
-        public void Emit(
-            string eventName,
-            object payload,
-            Action<string> ack,
-            int timeoutMs = 5000)
-        {
-            var json = JsonConvert.SerializeObject(
-                new object[] { eventName, payload });
-
-            var ackId = _acks.Register(ack, TimeSpan.FromMilliseconds(timeoutMs));
-
-            var packet =
-                ((int)SocketPacketType.Event).ToString() +
-                ackId.ToString() +
-                json;
-
-            _engine.Send(packet);
+            _defaultNamespace.On(eventName, handler);
         }
 
         // --------------------------------------------------
-        // Engine.IO handlers
+        // INTERNAL — SOCKET.IO PACKETS
+        // --------------------------------------------------
+
+        internal void EmitInternal(string ns, string eventName, object payload, int? ackId)
+        {
+            var json = JsonConvert.SerializeObject(new object[] { eventName, payload });
+
+            var packet =
+                ((int)SocketPacketType.Event) +
+                (ns != "/" ? ns + "," : "") +
+                (ackId.HasValue ? ackId.Value.ToString() : "") +
+                json;
+
+            _engine.SendRaw("4" + packet);
+        }
+
+        internal void ConnectNamespace(string ns)
+        {
+            if (ns == "/" || !_engine.IsConnected)
+                return;
+
+            _engine.SendRaw("40" + ns);
+        }
+
+        // --------------------------------------------------
+        // ENGINE.IO CALLBACKS
         // --------------------------------------------------
 
         private void HandleEngineOpen()
         {
-            // 🔥 Correct Socket.IO CONNECT framing
+            // Connect default namespace ONLY
             _engine.SendRaw("40");
         }
 
         private void HandleEngineClose()
         {
             OnDisconnected?.Invoke();
+
+            foreach (var ns in _namespaces.All)
+                ns.HandleDisconnect();
+
+            if (_intentionalDisconnect)
+                return;
+
+            if (!_reconnect.IsRunning)
+                _reconnect.Start();
         }
 
         private void HandleEngineError(string error)
@@ -121,56 +190,40 @@ namespace SocketIOUnity.Runtime
                 return;
             }
 
+            if (!_namespaces.TryGet(packet.Namespace, out var nsSocket))
+                nsSocket = _defaultNamespace;
+
             switch (packet.Type)
             {
                 case SocketPacketType.Connect:
-                    OnConnected?.Invoke();
+                    nsSocket.HandleConnect();
+
+                    if (packet.Namespace == "/")
+                    {
+                        _reconnect.Reset();
+                        OnConnected?.Invoke();
+
+                        foreach (var ns in _namespaces.All)
+                            if (ns.Namespace != "/")
+                                ConnectNamespace(ns.Namespace);
+                    }
                     break;
 
                 case SocketPacketType.Event:
-                    HandleEventPacket(packet);
+                    nsSocket.HandleEvent(packet.JsonPayload);
+                    break;
+
+                case SocketPacketType.Ack:
+                    nsSocket.HandleAck(packet.AckId.Value, packet.JsonPayload);
                     break;
 
                 case SocketPacketType.Disconnect:
-                    OnDisconnected?.Invoke();
+                    nsSocket.HandleDisconnect();
                     break;
 
                 case SocketPacketType.Error:
                     OnError?.Invoke(packet.JsonPayload);
                     break;
-
-                case SocketPacketType.Ack:
-                    _acks.Resolve(packet.AckId.Value, packet.JsonPayload);
-                    break;
-            }
-        }
-
-        // --------------------------------------------------
-        // Socket.IO helpers
-        // --------------------------------------------------
-
-        private void HandleEventPacket(SocketPacket packet)
-        {
-            if (string.IsNullOrEmpty(packet.JsonPayload))
-                return;
-
-            try
-            {
-                var arr = JArray.Parse(packet.JsonPayload);
-                if (arr.Count == 0)
-                    return;
-
-                var eventName = arr[0]?.ToString();
-                var payload = arr.Count > 1 ? arr[1]?.ToString() : null;
-
-                if (!string.IsNullOrEmpty(eventName))
-                {
-                    _events.Emit(eventName, payload);
-                }
-            }
-            catch (Exception ex)
-            {
-                OnError?.Invoke($"Event decode failed: {ex.Message}");
             }
         }
     }
