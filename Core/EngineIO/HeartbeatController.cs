@@ -2,42 +2,42 @@ using System;
 
 namespace SocketIOUnity.EngineProtocol
 {
-    public class HeartbeatController
+    /// <summary>
+    /// Engine.IO v4 heartbeat manager.
+    /// Timeout = pingInterval + pingTimeout
+    /// </summary>
+    public sealed class HeartbeatController
     {
-        private int _timeoutMs;
-        private DateTime _lastBeatTime;
+        private int _pingIntervalMs;
+        private int _pingTimeoutMs;
+
+        private DateTime _lastPingTime;
         private bool _active;
 
         public event Action OnTimeout;
 
         /// <summary>
-        /// Starts the heartbeat timeout window.
+        /// Start heartbeat tracking using Engine.IO handshake values.
         /// </summary>
-        public void Start(int pingTimeoutMs)
+        public void Start(int pingIntervalMs, int pingTimeoutMs)
         {
-            _timeoutMs = pingTimeoutMs;
-            _lastBeatTime = DateTime.UtcNow;
+            _pingIntervalMs = pingIntervalMs;
+            _pingTimeoutMs = pingTimeoutMs;
+
+            _lastPingTime = DateTime.UtcNow;
             _active = true;
         }
 
         /// <summary>
-        /// Call this when a PING is received.
+        /// Must be called when a PING frame is received from server.
         /// </summary>
-        public void Beat()
+        public void OnPing()
         {
-            _lastBeatTime = DateTime.UtcNow;
+            _lastPingTime = DateTime.UtcNow;
         }
 
         /// <summary>
-        /// Backward-compatible alias.
-        /// </summary>
-        public void Reset()
-        {
-            Beat();
-        }
-
-        /// <summary>
-        /// Stops heartbeat monitoring.
+        /// Stop heartbeat tracking.
         /// </summary>
         public void Stop()
         {
@@ -45,16 +45,18 @@ namespace SocketIOUnity.EngineProtocol
         }
 
         /// <summary>
-        /// Must be called regularly from Unity main thread.
+        /// Called every frame from UnityTickDriver.
         /// </summary>
-        public void Update()
+        public void Tick()
         {
             if (!_active)
                 return;
 
-            var elapsedMs = (DateTime.UtcNow - _lastBeatTime).TotalMilliseconds;
+            var now = DateTime.UtcNow;
+            var timeoutAt = _lastPingTime
+                .AddMilliseconds(_pingIntervalMs + _pingTimeoutMs);
 
-            if (elapsedMs >= _timeoutMs)
+            if (now > timeoutAt)
             {
                 _active = false;
                 OnTimeout?.Invoke();

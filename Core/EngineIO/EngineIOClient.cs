@@ -1,10 +1,12 @@
 using System;
 using Newtonsoft.Json;
 using SocketIOUnity.Transport;
+using SocketIOUnity.Runtime;
+using SocketIOUnity.UnityIntegration;
 
 namespace SocketIOUnity.EngineProtocol
 {
-    public class EngineIOClient
+    public sealed class EngineIOClient : ITickable
     {
         private readonly ITransport _transport;
         private readonly HeartbeatController _heartbeat;
@@ -27,6 +29,8 @@ namespace SocketIOUnity.EngineProtocol
 
             BindTransportEvents();
             BindHeartbeatEvents();
+
+            UnityTickDriver.Register(this);
         }
 
         // --------------------------------------------------
@@ -49,18 +53,7 @@ namespace SocketIOUnity.EngineProtocol
         }
 
         /// <summary>
-        /// Engine.IO MESSAGE wrapper (4 + Socket.IO payload)
-        /// </summary>
-        public void Send(string socketIoPayload)
-        {
-            if (!_isConnected)
-                return;
-
-            _transport.SendText("4" + socketIoPayload);
-        }
-
-        /// <summary>
-        /// Raw Engine.IO packet (40, 41, etc.)
+        /// Send RAW Engine.IO packet (caller handles framing)
         /// </summary>
         public void SendRaw(string raw)
         {
@@ -71,11 +64,12 @@ namespace SocketIOUnity.EngineProtocol
         }
 
         /// <summary>
-        /// MUST be called every Unity frame
+        /// Called every frame by UnityTickDriver
         /// </summary>
-        public void Update()
+        public void Tick()
         {
-            _heartbeat.Update();
+            _transport.Dispatch();
+            _heartbeat.Tick();
         }
 
         // --------------------------------------------------
@@ -105,7 +99,7 @@ namespace SocketIOUnity.EngineProtocol
 
         private void HandleTransportOpen()
         {
-            // Waiting for Engine.IO OPEN packet
+            // Waiting for Engine.IO OPEN packet (type 0)
         }
 
         private void HandleTransportClose()
@@ -143,13 +137,13 @@ namespace SocketIOUnity.EngineProtocol
                     break;
 
                 case EngineMessageType.Ping:
-                    // 🔥 REQUIRED: respond + reset timeout window
+                    // 🔥 REQUIRED BY ENGINE.IO v4 SPEC
                     _transport.SendText("3");   // PONG
-                    _heartbeat.Beat();          // reset heartbeat window
+                    _heartbeat.OnPing();        // reset heartbeat window
                     break;
 
                 case EngineMessageType.Pong:
-                    // Engine.IO v4: server may never send this
+                    // Optional in v4 — usually ignored
                     break;
 
                 case EngineMessageType.Message:
@@ -168,8 +162,11 @@ namespace SocketIOUnity.EngineProtocol
             {
                 _handshake = JsonConvert.DeserializeObject<HandshakeInfo>(payload);
 
-                // Use pingTimeout only (spec-correct)
-                _heartbeat.Start(_handshake.pingTimeout);
+                // ✅ Engine.IO v4 heartbeat config
+                _heartbeat.Start(
+                    _handshake.pingInterval,
+                    _handshake.pingTimeout
+                );
 
                 _isConnected = true;
                 OnOpen?.Invoke();
@@ -179,12 +176,6 @@ namespace SocketIOUnity.EngineProtocol
                 OnError?.Invoke($"Handshake parse failed: {ex.Message}");
                 Disconnect();
             }
-        }
-
-        private void HandlePing()
-        {
-            // Respond with Engine.IO PONG
-            _transport.SendText("3");
         }
 
         // --------------------------------------------------
@@ -214,6 +205,7 @@ namespace SocketIOUnity.EngineProtocol
 
         private void Cleanup()
         {
+            UnityTickDriver.Unregister(this);
             _isConnected = false;
             _heartbeat.Stop();
             _handshake = null;
