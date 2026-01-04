@@ -102,6 +102,19 @@ through the `ITransport` abstraction layer.
 
 ## 🧠 Usage (Current API)
 
+### Scene Setup
+
+1. **Create an empty GameObject** in your scene (e.g., `SocketIOManager`)
+2. **Attach the `SocketIOManager` script** to it
+3. **(Optional) For testing:**
+   - Attach `GameSocketTest` script to the same GameObject
+   - Attach `AdminNamespaceTest` script to the same GameObject
+4. **Configure the URL** in `SocketIOManager.cs` if needed (default: `ws://localhost:3000`)
+
+The `SocketIOManager` uses Unity's singleton pattern and persists across scenes.
+
+---
+
 ### Basic connection
 
 ```csharp
