@@ -1,0 +1,47 @@
+using System.Collections.Generic;
+using UnityEngine;
+using SocketIOUnity.Runtime;
+
+namespace SocketIOUnity.UnityIntegration
+{
+    internal sealed class UnityTickDriver : MonoBehaviour
+    {
+        private static UnityTickDriver _instance;
+        private readonly List<ITickable> _tickables = new();
+
+        public static void Register(ITickable tickable)
+        {
+            EnsureInstance();
+            if (!_instance._tickables.Contains(tickable))
+                _instance._tickables.Add(tickable);
+        }
+
+        public static void Unregister(ITickable tickable)
+        {
+            if (_instance == null) return;
+            _instance._tickables.Remove(tickable);
+        }
+
+        private static void EnsureInstance()
+        {
+            if (_instance != null) return;
+
+            var go = new GameObject("[SocketIOUnity Tick Driver]");
+            DontDestroyOnLoad(go);
+            _instance = go.AddComponent<UnityTickDriver>();
+        }
+
+        private void Update()
+        {
+            for (int i = _tickables.Count - 1; i >= 0; i--)
+                _tickables[i].Tick();
+        }
+
+#if UNITY_EDITOR
+        private void OnApplicationQuit()
+        {
+            _tickables.Clear();
+        }
+#endif
+    }
+}
