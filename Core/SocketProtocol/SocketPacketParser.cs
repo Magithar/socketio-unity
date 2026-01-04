@@ -1,36 +1,67 @@
 using System;
-using System.Text.RegularExpressions;
 
 namespace SocketIOUnity.SocketProtocol
 {
     public static class SocketPacketParser
     {
-        private static readonly Regex NamespaceRegex =
-            new Regex(@"^([0-6])(/[^,]*),?(.*)$");
-
         public static SocketPacket Parse(string raw)
         {
             if (string.IsNullOrEmpty(raw))
                 throw new ArgumentException("Empty Socket.IO packet");
 
-            var type = (SocketPacketType)(raw[0] - '0');
-            var remainder = raw.Substring(1);
+            int i = 0;
 
+            // --------------------------------------------------
+            // Engine.IO framing (WebSocket)
+            // --------------------------------------------------
+            // '4' = Engine.IO message
+            if (raw[i] == '4')
+                i++;
+
+            if (i >= raw.Length)
+                throw new ArgumentException("Invalid Socket.IO packet");
+
+            // --------------------------------------------------
+            // Socket.IO packet type
+            // --------------------------------------------------
+            var type = (SocketPacketType)(raw[i] - '0');
+            i++;
+
+            // --------------------------------------------------
+            // Namespace
+            // --------------------------------------------------
             string ns = "/";
-            string payload = remainder;
 
-            if (remainder.StartsWith("/"))
+            if (i < raw.Length && raw[i] == '/')
             {
-                var match = NamespaceRegex.Match(raw);
-                if (match.Success)
-                {
-                    ns = match.Groups[2].Value;
-                    payload = match.Groups[3].Value;
-                }
+                int nsStart = i;
+                while (i < raw.Length && raw[i] != ',')
+                    i++;
+
+                ns = raw.Substring(nsStart, i - nsStart);
+
+                if (i < raw.Length && raw[i] == ',')
+                    i++;
             }
 
-            return new SocketPacket(type, ns, null, payload);
+            // --------------------------------------------------
+            // ACK ID
+            // --------------------------------------------------
+            int? ackId = null;
+            int ackStart = i;
+
+            while (i < raw.Length && char.IsDigit(raw[i]))
+                i++;
+
+            if (i > ackStart)
+                ackId = int.Parse(raw.Substring(ackStart, i - ackStart));
+
+            // --------------------------------------------------
+            // Payload
+            // --------------------------------------------------
+            string payload = i < raw.Length ? raw.Substring(i) : null;
+
+            return new SocketPacket(type, ns, ackId, payload);
         }
     }
 }
-
