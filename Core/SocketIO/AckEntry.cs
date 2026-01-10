@@ -2,19 +2,23 @@ using System;
 
 namespace SocketIOUnity.Runtime
 {
-    internal class AckEntry
+    /// <summary>
+    /// Pooled ACK callback entry to eliminate closure allocations.
+    /// </summary>
+    internal sealed class AckEntry
     {
-        public int Id { get; }
-        public Action<string> Callback { get; }
-        public DateTime Expiry { get; }
+        public int Id;
+        public Action<string> Callback;
+        public float ExpireAt;
 
-        public AckEntry(int id, Action<string> callback, TimeSpan timeout)
+        /// <summary>
+        /// Reset state before returning to pool.
+        /// </summary>
+        public void Reset()
         {
-            Id = id;
-            Callback = callback;
-            Expiry = DateTime.UtcNow.Add(timeout);
+            Id = 0;
+            Callback = null;
+            ExpireAt = 0;
         }
-
-        public bool IsExpired => DateTime.UtcNow >= Expiry;
     }
 }
