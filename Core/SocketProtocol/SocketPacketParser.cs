@@ -28,6 +28,24 @@ namespace SocketIOUnity.SocketProtocol
             i++;
 
             // --------------------------------------------------
+            // Binary attachments (for BinaryEvent/BinaryAck)
+            // Format: "51-..." where 1 is attachment count
+            // --------------------------------------------------
+            int attachments = 0;
+            if (type == SocketPacketType.BinaryEvent || type == SocketPacketType.BinaryAck)
+            {
+                int attachStart = i;
+                while (i < raw.Length && raw[i] != '-')
+                    i++;
+
+                if (i > attachStart)
+                    int.TryParse(raw.Substring(attachStart, i - attachStart), out attachments);
+
+                if (i < raw.Length && raw[i] == '-')
+                    i++; // skip '-'
+            }
+
+            // --------------------------------------------------
             // Namespace
             // --------------------------------------------------
             string ns = "/";
@@ -61,7 +79,7 @@ namespace SocketIOUnity.SocketProtocol
             // --------------------------------------------------
             string payload = i < raw.Length ? raw.Substring(i) : null;
 
-            return new SocketPacket(type, ns, ackId, payload);
+            return new SocketPacket(type, ns, ackId, payload, attachments);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace SocketIOUnity.SocketProtocol
         Disconnect = 1,
         Event = 2,
         Ack = 3,
-        Error = 4,
+        ConnectError = 4,
         BinaryEvent = 5,
         BinaryAck = 6
     }
