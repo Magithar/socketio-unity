@@ -21,6 +21,7 @@ namespace SocketIOUnity.EngineProtocol
         public event Action OnClose;
         public event Action<string> OnError;
         public event Action<string> OnMessage;
+        public event Action<byte[]> OnBinary;
 
         public EngineIOClient(ITransport transport)
         {
@@ -81,6 +82,7 @@ namespace SocketIOUnity.EngineProtocol
             _transport.OnOpen += HandleTransportOpen;
             _transport.OnClose += HandleTransportClose;
             _transport.OnTextMessage += HandleTextMessage;
+            _transport.OnBinaryMessage += HandleBinaryMessage;
             _transport.OnError += HandleTransportError;
         }
 
@@ -111,6 +113,11 @@ namespace SocketIOUnity.EngineProtocol
         private void HandleTransportError(string error)
         {
             OnError?.Invoke(error);
+        }
+
+        private void HandleBinaryMessage(byte[] data)
+        {
+            OnBinary?.Invoke(data);
         }
 
         private void HandleTextMessage(string raw)
