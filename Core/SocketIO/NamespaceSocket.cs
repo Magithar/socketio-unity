@@ -9,16 +9,20 @@ namespace SocketIOUnity.Runtime
         private readonly SocketIOClient _root;
         private readonly EventRegistry _events = new();
         private readonly AckRegistry _acks = new();
+        private readonly object _authPayload;
+
+        private bool _connected;
 
         internal string Namespace => _namespace;
-        internal bool IsConnected { get; private set; }
+        internal bool IsConnected => _connected;
 
         public event Action OnConnected;
 
-        internal NamespaceSocket(string ns, SocketIOClient root)
+        internal NamespaceSocket(string ns, SocketIOClient root, object auth = null)
         {
             _namespace = ns;
             _root = root;
+            _authPayload = auth;
         }
 
         // ---------------- Public API ----------------
@@ -28,9 +32,14 @@ namespace SocketIOUnity.Runtime
             _events.On(eventName, handler);
         }
 
+        public void On(string eventName, Action<byte[]> handler)
+        {
+            _events.On(eventName, handler);
+        }
+
         public void Emit(string eventName, object payload)
         {
-            if (!IsConnected)
+            if (!_connected)
                 return;
 
             _root.EmitInternal(_namespace, eventName, payload, null);
@@ -42,7 +51,7 @@ namespace SocketIOUnity.Runtime
             Action<string> ack,
             int timeoutMs = 5000)
         {
-            if (!IsConnected)
+            if (!_connected)
                 return;
 
             var ackId = _acks.Register(
@@ -54,19 +63,47 @@ namespace SocketIOUnity.Runtime
 
         // ---------------- Internal ----------------
 
-        internal void HandleConnect()
+        internal void SendConnect()
         {
-            if (IsConnected)
+            if (_connected)
                 return;
 
-            IsConnected = true;
+            string packet = "0"; // CONNECT packet type
+
+            if (_namespace != "/")
+                packet += _namespace;
+
+            if (_authPayload != null)
+                packet += "," + Newtonsoft.Json.JsonConvert.SerializeObject(_authPayload);
+
+            _root.SendEnginePacket(packet);
+        }
+
+        internal void HandleConnect()
+        {
+            if (_connected)
+                return;
+
+            _connected = true;
             OnConnected?.Invoke();
+            _events.Emit("connect", null);
+        }
+
+        internal void HandleConnectError(string json)
+        {
+            _connected = false;
+            _events.Emit("connect_error", json);
         }
 
         internal void HandleDisconnect()
         {
-            IsConnected = false;
-            _acks.RemoveExpired(); // 🔥 avoid leaking pending ACKs
+            _connected = false;
+            _acks.Clear(); // 🔥 purge all pending ACKs on disconnect
+        }
+
+        internal void Reset()
+        {
+            _connected = false;
         }
 
         internal void HandleEvent(string payload)
@@ -98,6 +135,29 @@ namespace SocketIOUnity.Runtime
         internal void HandleAck(int ackId, string payload)
         {
             _acks.Resolve(ackId, payload);
+        }
+
+        internal void HandleBinaryEvent(string eventName, Newtonsoft.Json.Linq.JArray args)
+        {
+            if (string.IsNullOrEmpty(eventName))
+                return;
+
+            // Skip event name (args[0]), process remaining arguments
+            if (args.Count > 1)
+            {
+                var arg = args[1];
+
+                // If the argument is a byte[] (from JValue), dispatch to binary handlers
+                if (arg is Newtonsoft.Json.Linq.JValue jval && jval.Value is byte[] bytes)
+                {
+                    _events.EmitBinary(eventName, bytes);
+                }
+                else
+                {
+                    // Fall back to string handler
+                    _events.Emit(eventName, arg?.ToString());
+                }
+            }
         }
 
         public void Tick()

@@ -1,6 +1,7 @@
 using System;
 using Newtonsoft.Json;
 using SocketIOUnity.EngineProtocol;
+using SocketIOUnity.Serialization;
 using SocketIOUnity.SocketProtocol;
 using SocketIOUnity.Transport;
 using SocketIOUnity.UnityIntegration;
@@ -9,11 +10,13 @@ namespace SocketIOUnity.Runtime
 {
     public sealed class SocketIOClient : ITickable
     {
-        private EngineIOClient _engine;
-        private readonly NamespaceManager _namespaces;
-        private readonly NamespaceSocket _defaultNamespace;
+        private readonly TransportFactory _transportFactory;
         private readonly ReconnectController _reconnect;
-        private readonly Func<ITransport> _transportFactory;
+
+        private EngineIOClient _engine;
+        private NamespaceManager _namespaces;
+        private NamespaceSocket _defaultNamespace;
+        private BinaryPacketAssembler _binaryAssembler;
 
         private string _lastUrl;
         private bool _intentionalDisconnect;
@@ -28,45 +31,51 @@ namespace SocketIOUnity.Runtime
         // CONSTRUCTOR
         // --------------------------------------------------
 
-        public SocketIOClient(Func<ITransport> transportFactory)
+        public SocketIOClient(TransportFactory transportFactory)
         {
-            _transportFactory = transportFactory;
+            _transportFactory = transportFactory 
+                ?? throw new ArgumentNullException(nameof(transportFactory));
 
-            CreateEngine();
+            // 🔥 CRITICAL: Create ReconnectController ONCE (not on every reconnect)
+            _reconnect = new ReconnectController(AttemptReconnect);
 
-            _namespaces = new NamespaceManager(this);
-            _defaultNamespace = _namespaces.Get("/");
-
-            _reconnect = new ReconnectController(() =>
-            {
-                if (!string.IsNullOrEmpty(_lastUrl))
-                {
-                    RecreateAndReconnect();
-                }
-            });
+            CreateFreshEngine();
 
             UnityTickDriver.Register(this);
         }
 
         // --------------------------------------------------
-        // ENGINE LIFECYCLE (CRITICAL)
+        // ENGINE LIFECYCLE (🔥 THE FIX)
         // --------------------------------------------------
 
-        private void CreateEngine()
+        private void CreateFreshEngine()
         {
-            var transport = _transportFactory();
+            DestroyEngine();
+
+            var transport = _transportFactory.Invoke();
 
             _engine = new EngineIOClient(transport);
             _engine.OnOpen += HandleEngineOpen;
             _engine.OnClose += HandleEngineClose;
             _engine.OnError += HandleEngineError;
             _engine.OnMessage += HandleEngineMessage;
+            _engine.OnBinary += HandleEngineBinary;
+
+            // 🔥 CRITICAL: Recreate ALL state on reconnect
+            _namespaces = new NamespaceManager(this);
+            _defaultNamespace = _namespaces.Get("/");
+            _binaryAssembler = new BinaryPacketAssembler();
         }
 
-        private void RecreateAndReconnect()
+        private void DestroyEngine()
         {
             _engine?.Disconnect();
-            CreateEngine();
+            _engine = null;
+        }
+
+        private void AttemptReconnect()
+        {
+            CreateFreshEngine();
             _engine.Connect(_lastUrl);
         }
 
@@ -74,7 +83,7 @@ namespace SocketIOUnity.Runtime
         // PUBLIC API
         // --------------------------------------------------
 
-        public NamespaceSocket Of(string ns) => _namespaces.Get(ns);
+        public NamespaceSocket Of(string ns, object auth = null) => _namespaces.Get(ns, auth);
 
         public void Connect(string url)
         {
@@ -87,12 +96,20 @@ namespace SocketIOUnity.Runtime
         {
             _intentionalDisconnect = true;
             _reconnect.Stop();
-            _engine?.Disconnect();
+            DestroyEngine();
+        }
+
+        public void Shutdown()
+        {
+            _intentionalDisconnect = true;
+            _reconnect.Stop();
+            DestroyEngine();
+            UnityTickDriver.Unregister(this);
         }
 
         public void Dispose()
         {
-            Disconnect();
+            Shutdown();
         }
 
         public void Tick()
@@ -122,6 +139,11 @@ namespace SocketIOUnity.Runtime
             _defaultNamespace.On(eventName, handler);
         }
 
+        public void On(string eventName, Action<byte[]> handler)
+        {
+            _defaultNamespace.On(eventName, handler);
+        }
+
         // --------------------------------------------------
         // INTERNAL — SOCKET.IO PACKETS
         // --------------------------------------------------
@@ -139,12 +161,18 @@ namespace SocketIOUnity.Runtime
             _engine.SendRaw("4" + packet);
         }
 
+        internal void SendEnginePacket(string packet)
+        {
+            _engine.SendRaw("4" + packet);
+        }
+
         internal void ConnectNamespace(string ns)
         {
             if (ns == "/" || !_engine.IsConnected)
                 return;
 
-            _engine.SendRaw("40" + ns);
+            var namespaceSocket = _namespaces.Get(ns);
+            namespaceSocket.SendConnect();
         }
 
         // --------------------------------------------------
@@ -153,18 +181,26 @@ namespace SocketIOUnity.Runtime
 
         private void HandleEngineOpen()
         {
-            // Connect default namespace ONLY
-            _engine.SendRaw("40");
+            // Connect default namespace with auth support
+            _defaultNamespace.SendConnect();
         }
+
 
         private void HandleEngineClose()
         {
             OnDisconnected?.Invoke();
 
+            // Reset namespaces before disconnect handlers
+            _namespaces.ResetAll();
+
             foreach (var ns in _namespaces.All)
                 ns.HandleDisconnect();
 
             if (_intentionalDisconnect)
+                return;
+
+            // 🔥 SAFETY: Don't reconnect if already connected (race condition guard)
+            if (IsConnected)
                 return;
 
             if (!_reconnect.IsRunning)
@@ -205,8 +241,12 @@ namespace SocketIOUnity.Runtime
 
                         foreach (var ns in _namespaces.All)
                             if (ns.Namespace != "/")
-                                ConnectNamespace(ns.Namespace);
+                                ns.SendConnect();
                     }
+                    break;
+
+                case SocketPacketType.ConnectError:
+                    nsSocket.HandleConnectError(packet.JsonPayload);
                     break;
 
                 case SocketPacketType.Event:
@@ -221,9 +261,30 @@ namespace SocketIOUnity.Runtime
                     nsSocket.HandleDisconnect();
                     break;
 
-                case SocketPacketType.Error:
-                    OnError?.Invoke(packet.JsonPayload);
+                case SocketPacketType.BinaryEvent:
+                case SocketPacketType.BinaryAck:
+                    // Abort any in-progress assembly (overlapping packet protection)
+                    if (_binaryAssembler.IsWaiting)
+                        _binaryAssembler.Abort();
+                    _binaryAssembler.Start(packet);
+                    // TODO: Route BinaryAck to ack handler (currently only BinaryEvent is dispatched)
                     break;
+            }
+        }
+
+        private void HandleEngineBinary(byte[] data)
+        {
+            if (!_binaryAssembler.IsWaiting)
+                return;
+
+            if (_binaryAssembler.AddBinary(data))
+            {
+                var (eventName, args, ns) = _binaryAssembler.Build();
+
+                if (!_namespaces.TryGet(ns, out var nsSocket))
+                    nsSocket = _defaultNamespace;
+
+                nsSocket.HandleBinaryEvent(eventName, args);
             }
         }
     }

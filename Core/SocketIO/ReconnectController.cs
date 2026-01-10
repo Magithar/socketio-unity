@@ -57,6 +57,7 @@ namespace SocketIOUnity.Runtime
 
             if (Time.time >= _nextAttemptTime)
             {
+                Debug.Log($"⏰ Reconnect attempt {_attempt + 1} firing now");
                 _attempt++;
                 _reconnectAction.Invoke();
                 ScheduleNext();

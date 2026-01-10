@@ -12,12 +12,21 @@ namespace SocketIOUnity.Runtime
             _root = root;
         }
 
-        public NamespaceSocket Get(string ns)
+        public NamespaceSocket Get(string ns, object auth = null)
         {
             if (_namespaces.TryGetValue(ns, out var socket))
+            {
+                // 🔥 CRITICAL: Socket.IO forbids changing auth after connection
+                if (auth != null)
+                {
+                    UnityEngine.Debug.LogWarning(
+                        $"[SocketIO] Auth ignored for existing namespace '{ns}'. " +
+                        "Auth cannot be changed after namespace creation.");
+                }
                 return socket;
+            }
 
-            socket = new NamespaceSocket(ns, _root);
+            socket = new NamespaceSocket(ns, _root, auth);
             _namespaces[ns] = socket;
 
             // 🔥 CRITICAL FIX:
@@ -25,10 +34,16 @@ namespace SocketIOUnity.Runtime
             // immediately connect this namespace
             if (ns != "/" && _root.IsConnected)
             {
-                _root.ConnectNamespace(ns);
+                socket.SendConnect();
             }
 
             return socket;
+        }
+
+        public void ResetAll()
+        {
+            foreach (var ns in _namespaces.Values)
+                ns.Reset();
         }
 
         public bool TryGet(string ns, out NamespaceSocket socket)
