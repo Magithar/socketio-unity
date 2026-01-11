@@ -8,22 +8,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Documentation
+
+## [0.2.0-alpha] - 2026-01-11
+
+### Added
+- **WebGL Support**: Full WebGL transport implementation
+  - `WebGLWebSocketTransport` for browser-based WebSocket connections
+  - `WebGLSocketBridge` MonoBehaviour for JavaScript ↔ C# interop
+  - JavaScript `.jslib` plugin for native browser WebSocket handling
+- **Binary Data Support**: Complete Socket.IO v4 binary event handling
+  - `BinaryAssembler` for reconstructing multi-packet binary payloads
+  - `BinaryPacketBuilder` for emitting binary data to server
+  - Support for `byte[]` arguments in events and ACKs
+- **Memory Pooling**: Zero-GC optimizations for mobile/WebGL
+  - `ObjectPool<T>` generic pooling system
+  - `ListPool<T>` for temporary list allocations
+- **Main Thread Dispatcher**: `UnityMainThreadDispatcher` for thread-safe Unity API calls
+- **Transport Factory Pattern**: `TransportFactory` for clean transport instantiation and reconnect safety
+- **Engine.IO Heartbeat**: `HeartbeatController` for connection health monitoring
 - Comprehensive README.md with installation instructions, usage examples, and architecture overview
 - CHANGELOG.md for tracking version history
 - Development & Testing section in README with Node.js test server code
-- Clear project goals, non-goals, and platform support matrix
-- Installation instructions (Unity Package Manager + Manual)
 
 ### Changed
-- Improved README structure with better formatting and organization
-- Enhanced code examples with consistent formatting
+- Refactored transport layer to use factory pattern for WebGL compatibility
+- `ReconnectController` lifetime now persists across reconnects for proper exponential backoff
+- Improved namespace authentication with proper CONNECT packet formatting
+- Enhanced reconnect logic with clean state reset on each attempt
+
+### Fixed
+- Transport state leakage during reconnects
+- Constructor mismatches in transport layer
+- Event dispatch on non-main thread causing Unity API errors
+- Binary event handlers now correctly receive `byte[]` instead of `string`
 
 ### Documentation
 - Added detailed usage examples for basic connections, namespaces, and ACKs
 - Added architecture diagram showing component hierarchy
 - Added directory structure documentation
 - Documented reconnection behavior and strategy
-- Added WebGL status and roadmap information
+- Added WebGL status and implementation details
+- Added NativeWebSocket third-party attribution in WebSocket.cs
 
 ## [0.1.1-alpha] - 2026-01-05
 
@@ -86,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v0.1.1-alpha...HEAD
-[0.1.1-alpha]: https://github.com/Magithar/socketio-unity/releases/tag/v0.1.1-alpha
-[0.1.0-alpha]: https://github.com/Magithar/socketio-unity/releases/tag/v0.1.0-alpha
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v0.2.0-alpha...HEAD
+[0.2.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.1-alpha...v0.2.0-alpha
+[0.1.1-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.0-alpha...v0.1.1-alpha
+[0.1.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.0.1-prep...v0.1.0-alpha
 [0.0.1-prep]: https://github.com/Magithar/socketio-unity/releases/tag/v0.0.1-prep
