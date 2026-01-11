@@ -1,3 +1,20 @@
+/*
+ * Socket.IO Unity Client - WebSocket Transport
+ * 
+ * Portions of this file are derived from NativeWebSocket by Endel Dreyer
+ * https://github.com/endel/NativeWebSocket
+ * Copyright 2019 Endel Dreyer and contributors
+ * Licensed under the Apache License, Version 2.0
+ * 
+ * Modifications made for Socket.IO Unity integration:
+ * - Embedded into socketio-unity project
+ * - Adapted for Socket.IO protocol requirements  
+ * - Custom threading utilities added
+ * 
+ * See NOTICE.md for full license text
+ */
+ 
+
 using System;
 using System.Collections.Generic;
 using System.IO;
