@@ -21,13 +21,23 @@ public sealed class SocketIOManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        // ✅ CRITICAL FIX: pass transport FACTORY, not instance
-        Socket = new SocketIOClient(() => new WebSocketTransport());
+        // ✅ CRITICAL: Pass transport FACTORY, not instance
+        // Platform-specific: WebGL uses .jslib bridge, others use WebSocketSharp
+        Socket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
+
         Socket.Connect(Url);
     }
 
     private void OnDestroy()
     {
-        Socket?.Disconnect();
+        if (Instance == this)
+        {
+            Socket?.Shutdown();
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        Socket?.Shutdown();
     }
 }

@@ -7,8 +7,8 @@ public class AdminNamespaceTest : MonoBehaviour
     {
         var socket = SocketIOManager.Instance.Socket;
 
-        // Request namespace AFTER root is connected
-        var admin = socket.Of("/admin");
+        // Request namespace with authentication
+        var admin = socket.Of("/admin", new { token = "test-secret" });
 
         admin.OnConnected += () =>
         {
