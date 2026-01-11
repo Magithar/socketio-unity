@@ -76,34 +76,64 @@ Unity assets**.
 
 ## 🚀 Installation
 
-### Option 1: Unity Package Manager (Git URL)
+### Option 1: Unity Package Manager (Git URL) - Recommended
 
 1. Open Unity's Package Manager (`Window > Package Manager`)
 2. Click `+` → `Add package from git URL`
 3. Enter: `https://github.com/Magithar/socketio-unity.git`
+4. Unity will automatically install dependencies
 
-### Option 2: Manual Installation
+### Option 2: Manual Installation via manifest.json
+
+Add to your `Packages/manifest.json`:
+
+```json
+{
+  "dependencies": {
+    "com.magithar.socketio-unity": "https://github.com/Magithar/socketio-unity.git",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  }
+}
+```
+
+### Option 3: Clone into Assets Folder
 
 1. Download or clone this repository
-2. Copy the `SocketIOUnity` folder into your Unity project's `Assets` folder
+2. Copy the entire folder into your Unity project's `Assets` folder
+3. Manually install dependencies (see below)
 
 ---
 
 ## 📦 Dependencies
 
-This project uses a **pluggable transport abstraction** (`ITransport`).
+### Required External Package
 
-Depending on the target platform, it relies on:
+| Package | Version | License | Purpose |
+|---------|---------|---------|---------|
+| **Newtonsoft.Json** | 3.2.1+ | MIT | JSON serialization |
 
-* **System.Net.WebSockets** — Standalone / Desktop builds
-* **NativeWebSocket** — Editor / Standalone (and future WebGL bridge)
+**Installation:**
 
-All third-party dependencies are used **as-is** and accessed strictly
-through the `ITransport` abstraction layer.
+Newtonsoft.Json is included by default in Unity 2020.1+. For older versions, install via Package Manager.
+
+### Embedded Components
+
+| Component | License | Purpose |
+|-----------|---------|---------|
+| **WebSocket.cs** (from NativeWebSocket) | Apache 2.0 | Cross-platform WebSocket transport |
+
+This package includes a single file (`WebSocket.cs`) from the [NativeWebSocket](https://github.com/endel/NativeWebSocket) project (Apache 2.0 license) to provide WebSocket functionality. See [NOTICE.md](NOTICE.md) for full attribution.
+
+### Built-in Platform APIs
+
+| Component | Platform | Purpose |
+|-----------|----------|---------|
+| **System.Net.WebSockets** | Standalone / Editor | Native .NET WebSocket implementation |
+| **Browser WebSocket API** | WebGL | JavaScript WebSocket via custom bridge |
 
 ---
 
-## 🧠 Usage (Current API)
+## 🧠 Usage
 
 ### Scene Setup
 
@@ -297,6 +327,20 @@ SocketIOClient
 * **Tick-driven** — No background threads, Unity-safe execution
 * **Lifecycle safety** — Proper Unity lifecycle handling (Play/Stop/Quit)
 * **Separation of concerns** — Protocol logic isolated from Unity integration
+* **Transport abstraction** — Platform-agnostic via `ITransport` interface
+
+### Transport Layer
+
+The `Transport/` folder contains the WebSocket abstraction layer:
+
+* **`ITransport.cs`** — Interface for all transport implementations
+* **`TransportFactory.cs`** — Creates appropriate transport for current platform
+* **`WebSocket.cs`** — Cross-platform WebSocket implementation (from NativeWebSocket, Apache 2.0)
+* **`WebSocketTransport.cs`** — Standalone/Editor transport wrapper
+* **`WebGLWebSocketTransport.cs`** — WebGL transport using JavaScript bridge
+* **`WebGLSocketBridge.cs`** — MonoBehaviour for WebGL JS callbacks
+
+The `WebSocket.cs` file is embedded from the NativeWebSocket project and provides unified WebSocket support across all Unity platforms.
 
 ---
 
@@ -506,9 +550,15 @@ httpServer.listen(PORT, () => {
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
 ## 📄 License
 
-[MIT License](LICENSE) — Free for commercial and non-commercial use.
+This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
 
 ---
 
@@ -521,3 +571,12 @@ All behavior is implemented using:
 * Public protocol documentation
 * Observed network behavior
 * Independent engineering decisions
+
+---
+
+## 🔗 Links
+
+* **GitHub Repository**: https://github.com/Magithar/socketio-unity
+* **Socket.IO Protocol**: https://socket.io/docs/v4/
+* **NativeWebSocket**: https://github.com/endel/NativeWebSocket
+* **Issues & Support**: https://github.com/Magithar/socketio-unity/issues
