@@ -23,22 +23,25 @@ Unity assets**.
 * Socket.IO v4 packet framing & parsing
 * Event-based API (`On`, `Emit`)
 * Default namespace (`/`)
-* Custom namespaces (`/admin`, etc.)
+* Custom namespaces (`/admin`, `/public`, etc.)
 * Namespace multiplexing over a single connection
 * Acknowledgement callbacks (ACKs)
 * Automatic reconnect with exponential backoff
 * Intentional vs unintentional disconnect handling
 * Ping-timeout–triggered reconnect
 * Standalone (Editor / Desktop) support
+* **Binary payload support** (receive & emit)
+* **Auth per namespace** (handshake extensions)
 
 ### 🚧 In Progress
 
-* Binary payload support
-* WebGL JavaScript bridge hardening
-* Unity main-thread dispatch polish
-* Memory pooling & GC optimization
+* WebGL JavaScript bridge hardening (core implemented, needs testing)
 * Packet tracing / debug tooling
-* Auth per namespace (handshake extensions)
+
+### ✅ Recently Completed
+
+* Unity main-thread dispatch (`UnityMainThreadDispatcher`)
+* Memory pooling & GC optimization (`ListPool`, `ObjectPool`, `BinaryPacketBuilderPool`)
 
 > ⚠️ API surface may change before `v1.0.0`
 
@@ -115,7 +118,7 @@ The `SocketIOManager` uses Unity's singleton pattern and persists across scenes.
 
 ---
 
-### Basic connection
+### Basic Connection
 
 ```csharp
 var socket = SocketIOManager.Instance.Socket;
@@ -135,12 +138,54 @@ socket.Emit("chat", "Hello from Unity!");
 
 ---
 
-### Namespace usage
+### Binary Events
+
+Handle binary data (images, files, etc.) with typed handlers:
+
+```csharp
+// Receiving binary from server
+socket.On("file", (byte[] data) =>
+{
+    Debug.Log($"📦 Received {data.Length} bytes");
+    File.WriteAllBytes("received.bin", data);
+});
+
+// Receiving multiple binary attachments
+socket.On("multi", (byte[] buf1) =>
+{
+    Debug.Log($"📦 First buffer: {buf1.Length} bytes");
+});
+
+// Binary with acknowledgement
+socket.On("binary-ack", (byte[] data) =>
+{
+    Debug.Log($"📦 Binary ACK data: {data.Length} bytes");
+});
+
+// Emitting binary to server
+byte[] payload = File.ReadAllBytes("data.bin");
+socket.Emit("upload", payload, (response) =>
+{
+    Debug.Log($"✅ Server response: {response}");
+});
+```
+
+---
+
+### Namespace Usage
 
 ```csharp
 var socket = SocketIOManager.Instance.Socket;
-var admin = socket.Of("/admin");
 
+// Public namespace (no auth required)
+var publicNs = socket.Of("/public");
+publicNs.OnConnected += () =>
+{
+    Debug.Log("📢 /public connected");
+};
+
+// Admin namespace with authentication
+var admin = socket.Of("/admin", new { token = "test-secret" });
 admin.OnConnected += () =>
 {
     Debug.Log("🔐 /admin connected");
@@ -150,16 +195,23 @@ admin.OnConnected += () =>
         Debug.Log("🔐 admin ACK: " + res);
     });
 };
+
+// Handle auth failures (via event)
+admin.On("connect_error", (err) =>
+{
+    Debug.LogError($"❌ /admin auth failed: {err}");
+});
 ```
 
 **Features:**
 * Multiplexed over a single WebSocket connection
 * Connected only after the root namespace (`/`)
 * Automatically reconnected after disconnects
+* Auth payload sent during namespace handshake
 
 ---
 
-### Acknowledgement (ACK) callbacks
+### Acknowledgement (ACK) Callbacks
 
 ```csharp
 socket.Emit("getTime", null, response =>
@@ -175,7 +227,7 @@ socket.Emit("getTime", null, response =>
 
 ---
 
-### Reconnect behavior
+### Reconnect Behavior
 
 ```csharp
 // Automatic reconnection with exponential backoff
@@ -207,11 +259,18 @@ SocketIOUnity/
 ├── Core/
 │   ├── EngineIO/        # Engine.IO v4 handshake & heartbeat
 │   ├── SocketIO/        # Socket.IO client, namespaces, events, acks
-│   ├── SocketProtocol/  # Packet framing & parsing
-│   └── Transport/       # Transport abstraction (WebSocket)
+│   ├── Protocol/        # Packet framing & parsing
+│   └── Pooling/         # Memory pooling (ListPool, ObjectPool)
 │
+├── Serialization/       # Binary packet assembly & building
+├── Transport/           # Transport abstraction (WebSocket, WebGL)
 ├── UnityIntegration/    # Unity lifecycle & tick integration
-├── Samples/             # Example usage & test scenes
+│
+├── Plugins/
+│   └── WebGL/
+│       └── SocketIOWebGL.jslib  # JavaScript WebSocket bridge
+│
+└── Samples/             # Example scripts (SocketIOManager, tests)
 ```
 
 ### Component Hierarchy
@@ -219,12 +278,14 @@ SocketIOUnity/
 ```
 SocketIOClient
  ├── EngineIOClient
- │    ├── Handshake
- │    ├── Ping / Pong watchdog
- │    └── Transport
+ │    ├── HandshakeInfo
+ │    ├── HeartbeatController
+ │    └── ITransport (via TransportFactory)
  ├── NamespaceManager
  │    └── NamespaceSocket
- ├── AckRegistry
+ │         ├── EventRegistry
+ │         └── AckRegistry
+ ├── BinaryPacketAssembler
  ├── ReconnectController
  └── UnityTickDriver
 ```
@@ -241,13 +302,19 @@ SocketIOClient
 
 ## ⚠️ WebGL Status
 
-WebGL support is **architecture-ready** but **not yet complete**.
+WebGL support has **core implementation** but requires **production testing**.
 
-Planned:
+**✅ Implemented:**
 
-* `.jslib` WebSocket bridge
-* Browser lifecycle handling
-* Message marshaling between JS ↔ C#
+* `SocketIOWebGL.jslib` — JavaScript WebSocket bridge
+* `WebGLSocketBridge.cs` — Unity MonoBehaviour for JS callbacks
+* `WebGLWebSocketTransport.cs` — ITransport implementation
+
+**🚧 Needs Testing:**
+
+* Browser lifecycle edge cases
+* Binary message handling in WebGL
+* Reconnect behavior in browser
 
 > 🚧 WebGL builds are **not production-ready yet**
 
@@ -267,10 +334,28 @@ node server.js
 
 The test server runs on `http://localhost:3000` and provides:
 
-* **Default namespace (`/`)** with `ping-test`, `getTime`, and `neverReply` events
-* **Admin namespace (`/admin`)** with `ping` event
-* Full ACK support
-* CORS enabled for local testing
+* **Root namespace (`/`)** — No auth, binary events support
+* **Admin namespace (`/admin`)** — Requires `token: "test-secret"`
+* **Admin-bad namespace (`/admin-bad`)** — Always rejects auth (for testing)
+* **Public namespace (`/public`)** — No auth required
+
+### Available Test Scenarios
+
+| Namespace     | Auth Required | Description                          |
+| ------------- | ------------- | ------------------------------------ |
+| `/`           | ❌             | Text events, binary events, ACKs    |
+| `/admin`      | ✅ `test-secret` | Auth-protected namespace           |
+| `/admin-bad`  | ✅ (always fails) | Test auth rejection handling    |
+| `/public`     | ❌             | Simple no-auth namespace            |
+
+### Binary Events Timeline (Root Namespace)
+
+| Delay | Event        | Description                    |
+| ----- | ------------ | ------------------------------ |
+| 0s    | `hello`      | Text welcome message           |
+| 2s    | `file`       | Single binary buffer           |
+| 4s    | `multi`      | Two binary buffers             |
+| 6s    | `binary-ack` | Binary with ACK callback       |
 
 <details>
 <summary><strong>View server.js code</strong></summary>
@@ -281,7 +366,9 @@ const { Server } = require("socket.io");
 
 const PORT = 3000;
 
-// 🔥 Explicit HTTP server (REQUIRED for native WS clients)
+// ======================================================
+// HTTP SERVER (REQUIRED FOR UNITY / NATIVE WS)
+// ======================================================
 const httpServer = http.createServer();
 
 const io = new Server(httpServer, {
@@ -295,69 +382,123 @@ console.log(`🚀 Socket.IO server starting on port ${PORT}`);
 
 
 // ======================================================
-// DEFAULT NAMESPACE  ("/")
+// ROOT NAMESPACE  ("/") — NO AUTH
 // ======================================================
 io.on("connection", (socket) => {
-  console.log("✅ / CLIENT CONNECTED:", socket.id);
+  console.log("✅ / ROOT CONNECTED:", socket.id);
 
+  // ---- Text event
   socket.emit("hello", {
     message: "welcome",
     socketId: socket.id
   });
 
+  // ---- Single binary (2s)
+  setTimeout(() => {
+    const buffer = Buffer.from("Hello");
+    console.log("📤 / file (single binary)");
+    socket.emit("file", buffer);
+  }, 2000);
+
+  // ---- Multi binary (4s)
+  setTimeout(() => {
+    const buf1 = Buffer.from([1, 2, 3]);
+    const buf2 = Buffer.from([4, 5, 6]);
+    console.log("📤 / multi (2 binaries)");
+    socket.emit("multi", buf1, buf2);
+  }, 4000);
+
+  // ---- Binary + ACK (6s)
+  setTimeout(() => {
+    const payload = Buffer.from("ACK_TEST");
+    console.log("📤 / binary-ack");
+
+    socket.emit("binary-ack", payload, (ack) => {
+      console.log("📥 / ACK from client:", ack);
+    });
+  }, 6000);
+
+  // ---- Client → Server
   socket.on("ping-test", (msg) => {
     console.log("📩 / ping-test:", msg);
-
-    socket.emit("pong-test", {
-      message: "pong",
-      serverTime: Date.now()
-    });
+    socket.emit("pong-test", { serverTime: Date.now() });
   });
 
-  socket.on("neverReply", () => {
-    console.log("🧪 / neverReply received — intentionally ignoring");
-  });
-
-  socket.on("getTime", (data, ack) => {
-    console.log("🧪 / getTime received");
-
-    setTimeout(() => {
-      ack({
-        serverTime: Date.now()
-      });
-    }, 500);
+  socket.on("upload", (buffer, ack) => {
+    console.log("📩 / upload received:", buffer.length, "bytes");
+    if (ack) ack({ ok: true, size: buffer.length });
   });
 
   socket.on("disconnect", (reason) => {
-    console.log("❌ / CLIENT DISCONNECTED:", socket.id, "Reason:", reason);
+    console.log("❌ / ROOT DISCONNECTED:", socket.id, reason);
   });
 });
 
 
 // ======================================================
-// ADMIN NAMESPACE  ("/admin")
+// /admin — AUTH REQUIRED
 // ======================================================
+io.of("/admin").use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  console.log(`🔐 /admin auth token: "${token}"`);
+
+  if (token === "test-secret") {
+    console.log("✅ /admin AUTH OK");
+    next();
+  } else {
+    console.log("❌ /admin AUTH FAIL");
+    next(new Error("unauthorized"));
+  }
+});
+
 io.of("/admin").on("connection", (socket) => {
-  console.log("✅ /admin CLIENT CONNECTED:", socket.id);
+  console.log("✅ /admin CONNECTED:", socket.id);
 
-  socket.on("ping", (data, ack) => {
-    console.log("📩 /admin ping received");
-
-    ack({
-      ok: true,
-      adminTime: Date.now()
-    });
+  socket.on("ping", (payload, ack) => {
+    console.log("📩 /admin ping");
+    if (ack) ack({ ok: true, adminTime: Date.now() });
   });
 
   socket.on("disconnect", (reason) => {
-    console.log("❌ /admin CLIENT DISCONNECTED:", socket.id, "Reason:", reason);
+    console.log("❌ /admin DISCONNECTED:", socket.id, reason);
   });
 });
 
 
-// 🔥 START SERVER
+// ======================================================
+// /admin-bad — ALWAYS REJECT
+// ======================================================
+io.of("/admin-bad").use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  console.log(`🔐 /admin-bad token: "${token}"`);
+  console.log("❌ /admin-bad AUTH INTENTIONAL FAIL");
+  next(new Error("unauthorized"));
+});
+
+
+// ======================================================
+// /public — NO AUTH
+// ======================================================
+io.of("/public").on("connection", (socket) => {
+  console.log("✅ /public CONNECTED:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("❌ /public DISCONNECTED:", socket.id);
+  });
+});
+
+
+// ======================================================
+// START SERVER
+// ======================================================
 httpServer.listen(PORT, () => {
   console.log(`✅ HTTP + WebSocket listening on ${PORT}`);
+
+  console.log("\n📋 TEST SCENARIOS");
+  console.log("1️⃣ /            → no auth + binary");
+  console.log("2️⃣ /admin       → token='test-secret'");
+  console.log("3️⃣ /admin-bad   → always unauthorized");
+  console.log("4️⃣ /public      → no auth\n");
 });
 ```
 
