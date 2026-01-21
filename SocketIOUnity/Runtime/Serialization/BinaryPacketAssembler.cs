@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using SocketIOUnity.Debugging;
 using SocketIOUnity.SocketProtocol;
 
 namespace SocketIOUnity.Serialization
@@ -39,8 +40,11 @@ namespace SocketIOUnity.Serialization
         /// </summary>
         public bool AddBinary(byte[] data)
         {
-            _buffers.Add(data);
-            return _buffers.Count == _expected;
+            using (SocketIOProfiler.Binary_Assembly.Auto())
+            {
+                _buffers.Add(data);
+                return _buffers.Count == _expected;
+            }
         }
 
         /// <summary>
