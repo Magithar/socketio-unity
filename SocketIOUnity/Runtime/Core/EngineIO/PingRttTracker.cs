@@ -11,6 +11,7 @@ namespace SocketIOUnity.EngineProtocol
     internal sealed class PingRttTracker
     {
         float _lastPingReceiveTime;
+        float _pingInterval;
         float _rttMs;
         bool _hasReceivedPing;
 
