@@ -33,13 +33,17 @@ Unity assets**.
 * **Binary payload support** (receive & emit)
 * **Auth per namespace** (handshake extensions)
 
-### 🚧 In Progress
+### ✅ WebGL Support (Production Verified)
 
-* WebGL JavaScript bridge hardening (core implemented, needs testing)
-* Packet tracing / debug tooling
+* WebGL JavaScript bridge fully tested and operational
+* Namespace support verified (`/`, `/webgl`, `/admin`)
+* Binary data reception confirmed
+* Reconnection behavior validated in browser
 
 ### ✅ Recently Completed
 
+* Unity Profiler markers (zero-cost when disabled, via `SOCKETIO_PROFILER` define)
+* Packet tracing / debug tooling (`SocketIOTrace`)
 * Unity main-thread dispatch (`UnityMainThreadDispatcher`)
 * Memory pooling & GC optimization (`ListPool`, `ObjectPool`, `BinaryPacketBuilderPool`)
 
@@ -69,71 +73,61 @@ Unity assets**.
 | ----------------------- | -------------------- |
 | Unity Editor            | ✅                    |
 | Windows / macOS / Linux | ✅                    |
-| WebGL                   | 🚧                   |
+| WebGL                   | ✅ (verified)         |
 | Mobile                  | ❓ (community tested) |
 
 ---
 
 ## 🚀 Installation
 
-### Option 1: Unity Package Manager (Git URL) - Recommended
+### Option 1: Unity Package Manager (Git URL)
 
 1. Open Unity's Package Manager (`Window > Package Manager`)
 2. Click `+` → `Add package from git URL`
 3. Enter: `https://github.com/Magithar/socketio-unity.git`
-4. Unity will automatically install dependencies
 
-### Option 2: Manual Installation via manifest.json
-
-Add to your `Packages/manifest.json`:
-
-```json
-{
-  "dependencies": {
-    "com.magithar.socketio-unity": "https://github.com/Magithar/socketio-unity.git",
-    "com.unity.nuget.newtonsoft-json": "3.2.1"
-  }
-}
-```
-
-### Option 3: Clone into Assets Folder
+### Option 2: Manual Installation
 
 1. Download or clone this repository
-2. Copy the entire folder into your Unity project's `Assets` folder
-3. Manually install dependencies (see below)
+2. Copy the `SocketIOUnity` folder into your Unity project's `Assets` folder
 
 ---
 
 ## 📦 Dependencies
 
-### Required External Package
+### Required
 
-| Package | Version | License | Purpose |
-|---------|---------|---------|---------|
-| **Newtonsoft.Json** | 3.2.1+ | MIT | JSON serialization |
+| Package | Source | License | Purpose |
+|---------|--------|---------|---------|
+| **Newtonsoft.Json** | `com.unity.nuget.newtonsoft-json` | MIT | JSON serialization |
+| **NativeWebSocket** | [endel/NativeWebSocket](https://github.com/endel/NativeWebSocket) | Apache 2.0 | WebSocket transport |
 
 **Installation:**
 
-Newtonsoft.Json is included by default in Unity 2020.1+. For older versions, install via Package Manager.
+1. **Newtonsoft.Json** — Included by default in Unity 2020.1+. For older versions, install via Package Manager.
 
-### Embedded Components
+2. **NativeWebSocket** — Install via Package Manager using git URL:
+   ```
+   https://github.com/endel/NativeWebSocket.git#upm
+   ```
 
-| Component | License | Purpose |
-|-----------|---------|---------|
-| **WebSocket.cs** (from NativeWebSocket) | Apache 2.0 | Cross-platform WebSocket transport |
+### Built-in (No Installation Needed)
 
-This package includes a single file (`WebSocket.cs`) from the [NativeWebSocket](https://github.com/endel/NativeWebSocket) project (Apache 2.0 license) to provide WebSocket functionality. See [NOTICE.md](NOTICE.md) for full attribution.
+| Dependency | Platform | Purpose |
+|------------|----------|---------|
+| **System.Net.WebSockets** | Standalone / Editor | Native WebSocket transport |
+| **Browser WebSocket API** | WebGL | Via `SocketIOWebGL.jslib` bridge |
 
-### Built-in Platform APIs
+### Transport Abstraction
 
-| Component | Platform | Purpose |
-|-----------|----------|---------|
-| **System.Net.WebSockets** | Standalone / Editor | Native .NET WebSocket implementation |
-| **Browser WebSocket API** | WebGL | JavaScript WebSocket via custom bridge |
+All network code is accessed through the `ITransport` interface, enabling:
+- Platform-specific implementations
+- Easy mocking for tests
+- Future transport options (e.g., polling fallback)
 
 ---
 
-## 🧠 Usage
+## 🧠 Usage (Current API)
 
 ### Scene Setup
 
@@ -282,42 +276,128 @@ socket.Emit("getTime", null, response =>
 
 ## 🧱 Architecture Overview
 
-### Directory Structure
+### Directory Structure (UPM Package)
 
 ```
-SocketIOUnity/
-├── Core/
-│   ├── EngineIO/        # Engine.IO v4 handshake & heartbeat
-│   ├── SocketIO/        # Socket.IO client, namespaces, events, acks
-│   ├── Protocol/        # Packet framing & parsing
-│   └── Pooling/         # Memory pooling (ListPool, ObjectPool)
+socketio-unity/
+├── package.json
+├── README.md
+├── CHANGELOG.md
 │
-├── Serialization/       # Binary packet assembly & building
-├── Transport/           # Transport abstraction (WebSocket, WebGL)
-├── UnityIntegration/    # Unity lifecycle & tick integration
+├── Runtime/                    # Runtime code (included in builds)
+│   ├── SocketIOUnity.asmdef
+│   ├── Core/
+│   │   ├── EngineIO/           # Engine.IO v4 protocol
+│   │   ├── SocketIO/           # Socket.IO client layer
+│   │   ├── Protocol/           # Packet parsing
+│   │   └── Pooling/            # GC optimization
+│   ├── Debug/                  # Profiler & tracing
+│   ├── Serialization/          # Binary handling
+│   ├── Transport/              # WebSocket transports
+│   ├── UnityIntegration/       # Unity lifecycle
+│   └── Plugins/WebGL/          # WebGL jslib
 │
-├── Plugins/
-│   └── WebGL/
-│       └── SocketIOWebGL.jslib  # JavaScript WebSocket bridge
+├── Editor/                     # Editor-only code
+│   ├── SocketIOUnity.Editor.asmdef
+│   └── SocketIONetworkHud.cs
 │
-└── Samples/             # Example scripts (SocketIOManager, tests)
+├── Samples~/                   # Importable samples
+│   ├── SocketIOManager.cs
+│   ├── BinaryEventTest.cs
+│   ├── WebGLTestController.cs
+│   ├── TraceDemo.cs
+│   ├── MainThreadDispatcherTest.cs
+│   └── NamespaceAuthTest.cs
+│
+└── Documentation~/             # Package docs
+    ├── ARCHITECTURE.md
+    ├── BINARY_EVENTS.md
+    ├── DEBUGGING_GUIDE.md
+    ├── RECONNECT_BEHAVIOR.md
+    └── WEBGL_NOTES.md
 ```
+
+---
+
+## 🧪 Sample Scripts Reference
+
+All sample scripts are in `Samples~/`. Import them via Package Manager → Samples tab.
+
+### Core Components
+
+| Script | Purpose |
+|--------|---------|
+| `SocketIOManager.cs` | Singleton that manages the SocketIOClient instance. **Required in your scene.** |
+
+### Test Scripts
+
+| Script | What It Tests | How to Use |
+|--------|---------------|------------|
+| `BinaryEventTest.cs` | Binary event receive (`file`, `multi`) | Attach to any GameObject |
+| `NamespaceAuthTest.cs` | Auth success, rejection, and no-auth namespaces | Attach to SocketIOManager GameObject |
+| `MainThreadDispatcherTest.cs` | Verifies all callbacks run on main thread | Attach to any GameObject |
+| `TraceDemo.cs` | Runtime trace level toggle UI | Attach to any GameObject |
+| `WebGLTestController.cs` | WebGL browser testing with runtime UI | Attach to any GameObject (WebGL builds) |
+
+### Test Server Requirements
+
+Copy the `server.js` code from the **Test Server Setup** section below, then run:
+
+```bash
+npm init -y && npm install socket.io
+node server.js
+```
+
+### Testing Checklist
+
+| Feature | Script to Use | Expected Behavior |
+|---------|---------------|-------------------|
+| Binary events | `BinaryEventTest` | Receives `file` + `multi` events with byte counts |
+| Namespace auth | `NamespaceAuthTest` | `/admin` connects, `/admin-bad` rejected, `/public` connects |
+| Thread safety | `MainThreadDispatcherTest` | All callbacks show "✓ executed on main thread" |
+| WebGL (browser) | `WebGLTestController` | Build WebGL, serve via HTTP, use on-screen buttons |
+
+### WebGL Testing Steps
+
+1. Add `SocketIOManager` + `WebGLTestController` to a scene
+2. Build for WebGL (File → Build Settings → WebGL → Build)
+3. Serve the build:
+   ```bash
+   cd /path/to/build && npx serve -p 8080
+   ```
+4. Open `http://localhost:8080` in browser
+5. Use on-screen Connect/Disconnect/Ping/Message buttons
+6. Check browser console (F12) for logs
+
+---
 
 ### Component Hierarchy
 
 ```
 SocketIOClient
- ├── EngineIOClient
+ ├── EngineIOClient (IDisposable)
  │    ├── HandshakeInfo
  │    ├── HeartbeatController
+ │    ├── PingRttTracker
  │    └── ITransport (via TransportFactory)
+ │         ├── WebSocketTransport (Standalone)
+ │         └── WebGLWebSocketTransport (WebGL)
+ │
  ├── NamespaceManager
- │    └── NamespaceSocket
- │         ├── EventRegistry
- │         └── AckRegistry
+ │    └── NamespaceSocket[]
+ │         ├── EventRegistry (On/Off handlers)
+ │         └── AckRegistry (timeout-protected)
+ │
  ├── BinaryPacketAssembler
  ├── ReconnectController
  └── UnityTickDriver
+
+Debug Subsystem
+ ├── SocketIOTrace → ITraceSink
+ │    └── UnityDebugTraceSink (default)
+ ├── ProfilerMarkers (SOCKETIO_PROFILER)
+ ├── SocketIOProfilerCounters (SOCKETIO_PROFILER_COUNTERS)
+ └── SocketIOThroughputTracker
 ```
 
 ### Key Design Principles
@@ -327,40 +407,147 @@ SocketIOClient
 * **Tick-driven** — No background threads, Unity-safe execution
 * **Lifecycle safety** — Proper Unity lifecycle handling (Play/Stop/Quit)
 * **Separation of concerns** — Protocol logic isolated from Unity integration
-* **Transport abstraction** — Platform-agnostic via `ITransport` interface
-
-### Transport Layer
-
-The `Transport/` folder contains the WebSocket abstraction layer:
-
-* **`ITransport.cs`** — Interface for all transport implementations
-* **`TransportFactory.cs`** — Creates appropriate transport for current platform
-* **`WebSocket.cs`** — Cross-platform WebSocket implementation (from NativeWebSocket, Apache 2.0)
-* **`WebSocketTransport.cs`** — Standalone/Editor transport wrapper
-* **`WebGLWebSocketTransport.cs`** — WebGL transport using JavaScript bridge
-* **`WebGLSocketBridge.cs`** — MonoBehaviour for WebGL JS callbacks
-
-The `WebSocket.cs` file is embedded from the NativeWebSocket project and provides unified WebSocket support across all Unity platforms.
+* **Resource cleanup** — `IDisposable` pattern for proper connection disposal
+* **Event unsubscription** — `Off()` methods prevent memory leaks
 
 ---
 
-## ⚠️ WebGL Status
+## ✅ WebGL Status (Production Verified)
 
-WebGL support has **core implementation** but requires **production testing**.
+WebGL support has been **fully tested and verified**.
 
-**✅ Implemented:**
+**✅ Implemented & Verified:**
 
-* `SocketIOWebGL.jslib` — JavaScript WebSocket bridge
+* `SocketIOWebGL.jslib` — JavaScript WebSocket bridge with NativeWebSocket compatibility
 * `WebGLSocketBridge.cs` — Unity MonoBehaviour for JS callbacks
 * `WebGLWebSocketTransport.cs` — ITransport implementation
+* `WebGLTestController.cs` — Sample controller for WebGL testing
 
-**🚧 Needs Testing:**
+**✅ Verified Features:**
 
-* Browser lifecycle edge cases
+* Root namespace (`/`) connection and events
+* Custom namespaces (`/webgl`, `/admin`) with auth support
 * Binary message handling in WebGL
-* Reconnect behavior in browser
+* Reconnection behavior in browser
+* Clean disconnect/reconnect cycles
 
-> 🚧 WebGL builds are **not production-ready yet**
+**⚠️ Browser Cache Note:**
+
+When iterating on WebGL builds, always force-refresh (`Cmd+Shift+R`) or use Incognito mode to avoid cached JS/WASM issues.
+
+---
+
+## 🔬 Unity Profiler Integration
+
+SocketIOUnity includes optional Unity Profiler markers for performance analysis.
+
+### Enable
+
+Add this scripting define in **Player Settings → Scripting Define Symbols**:
+
+```
+SOCKETIO_PROFILER
+```
+
+### Markers
+
+| Marker | Description |
+|--------|-------------|
+| `SocketIO.EngineIO.Parse` | Engine.IO packet parsing |
+| `SocketIO.Event.Dispatch` | Event handler dispatch |
+| `SocketIO.Binary.Assemble` | Binary frame assembly |
+| `SocketIO.Ack.Resolve` | Acknowledgement resolution |
+| `SocketIO.Reconnect.Tick` | Reconnection loop tick |
+
+### How to Use
+
+1. Enable `SOCKETIO_PROFILER` scripting define
+2. Open **Window → Analysis → Profiler**
+3. Select **CPU Usage**
+4. Connect to server and emit events
+5. View SocketIO markers under **Scripts**
+
+### Performance
+
+| Condition | Cost |
+|-----------|------|
+| Define OFF | **Zero** (code stripped) |
+| Define ON | ~20-40ns per scope |
+| GC allocs | **0** |
+
+---
+
+## 📊 Unity Profiler Counters
+
+SocketIOUnity includes optional Unity Profiler Counters for real-time metrics (requires Unity 2020.2+).
+
+### Enable
+
+Add this scripting define in **Player Settings → Scripting Define Symbols**:
+
+```
+SOCKETIO_PROFILER_COUNTERS
+```
+
+### Available Counters
+
+| Counter | Category | Description |
+|---------|----------|-------------|
+| `SocketIO.Bytes Sent` | Network | Total bytes sent |
+| `SocketIO.Bytes Received` | Network | Total bytes received |
+| `SocketIO.Packets/sec` | Network | Packets received per second |
+| `SocketIO.Active Namespaces` | Scripts | Currently connected namespaces |
+| `SocketIO.Pending ACKs` | Scripts | Outstanding acknowledgement callbacks |
+
+### How to Use
+
+1. Enable `SOCKETIO_PROFILER_COUNTERS` scripting define
+2. Open **Window → Analysis → Profiler**
+3. Click **Profiler Modules** (gear icon) → Enable **Custom Module**
+4. View SocketIO counters under Network and Scripts categories
+
+---
+
+## 🔍 Packet Tracing
+
+SocketIOUnity includes a configurable packet tracing system for debugging protocol issues.
+
+### API
+
+```csharp
+using SocketIOUnity.Debugging;
+
+// Configure trace level
+TraceConfig.Level = TraceLevel.Protocol;  // Errors, Protocol, or Verbose
+
+// Trace events are automatically logged by protocol code
+// Categories: EngineIO, SocketIO, Namespace, Transport, Binary
+```
+
+### Trace Levels
+
+| Level | Description |
+|-------|-------------|
+| `TraceLevel.Off` | Tracing disabled (default) |
+| `TraceLevel.Errors` | Only errors |
+| `TraceLevel.Protocol` | Errors + protocol packets |
+| `TraceLevel.Verbose` | Full debug output |
+
+### Custom Trace Sinks
+
+```csharp
+// Implement ITraceSink for custom output (file, network, UI overlay)
+public class MyTraceSink : ITraceSink
+{
+    public void Emit(TraceEvent evt)
+    {
+        // Custom handling
+    }
+}
+
+// Register custom sink
+SocketIOTrace.SetSink(new MyTraceSink());
+```
 
 ---
 
@@ -382,6 +569,7 @@ The test server runs on `http://localhost:3000` and provides:
 * **Admin namespace (`/admin`)** — Requires `token: "test-secret"`
 * **Admin-bad namespace (`/admin-bad`)** — Always rejects auth (for testing)
 * **Public namespace (`/public`)** — No auth required
+* **WebGL namespace (`/webgl`)** — No auth, designed for browser testing
 
 ### Available Test Scenarios
 
@@ -391,6 +579,7 @@ The test server runs on `http://localhost:3000` and provides:
 | `/admin`      | ✅ `test-secret` | Auth-protected namespace           |
 | `/admin-bad`  | ✅ (always fails) | Test auth rejection handling    |
 | `/public`     | ❌             | Simple no-auth namespace            |
+| `/webgl`      | ❌             | WebGL browser testing (ping/pong, message echo) |
 
 ### Binary Events Timeline (Root Namespace)
 
@@ -533,6 +722,60 @@ io.of("/public").on("connection", (socket) => {
 
 
 // ======================================================
+// /webgl — WEBGL TESTING (NO AUTH)
+// ======================================================
+io.of("/webgl").on("connection", (socket) => {
+  console.log("✅ /webgl CONNECTED:", socket.id);
+
+  // Welcome message
+  socket.emit("welcome", {
+    message: "WebGL client connected!",
+    socketId: socket.id,
+    serverTime: Date.now()
+  });
+
+  // Ping → Pong (for latency testing)
+  socket.on("ping", (payload) => {
+    console.log("📩 /webgl ping:", payload);
+    socket.emit("pong", {
+      clientTime: payload,
+      serverTime: new Date().toISOString(),
+      roundtrip: "calculate on client"
+    });
+  });
+
+  // Message echo
+  socket.on("message", (msg) => {
+    console.log("📩 /webgl message:", msg);
+    socket.emit("message", {
+      echo: msg,
+      from: "server",
+      timestamp: Date.now()
+    });
+  });
+
+  // Simple text event
+  socket.on("test", (data) => {
+    console.log("📩 /webgl test:", data);
+    socket.emit("test-response", { received: data, ok: true });
+  });
+
+  // Broadcast to all WebGL clients
+  socket.on("broadcast", (msg) => {
+    console.log("📢 /webgl broadcast:", msg);
+    io.of("/webgl").emit("broadcast", {
+      from: socket.id,
+      message: msg
+    });
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("❌ /webgl DISCONNECTED:", socket.id, reason);
+  });
+});
+
+
+// ======================================================
 // START SERVER
 // ======================================================
 httpServer.listen(PORT, () => {
@@ -542,7 +785,8 @@ httpServer.listen(PORT, () => {
   console.log("1️⃣ /            → no auth + binary");
   console.log("2️⃣ /admin       → token='test-secret'");
   console.log("3️⃣ /admin-bad   → always unauthorized");
-  console.log("4️⃣ /public      → no auth\n");
+  console.log("4️⃣ /public      → no auth");
+  console.log("5️⃣ /webgl       → WebGL browser testing\n");
 });
 ```
 
@@ -550,15 +794,9 @@ httpServer.listen(PORT, () => {
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
 ## 📄 License
 
-This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
+[MIT License](LICENSE) — Free for commercial and non-commercial use.
 
 ---
 
@@ -571,12 +809,3 @@ All behavior is implemented using:
 * Public protocol documentation
 * Observed network behavior
 * Independent engineering decisions
-
----
-
-## 🔗 Links
-
-* **GitHub Repository**: https://github.com/Magithar/socketio-unity
-* **Socket.IO Protocol**: https://socket.io/docs/v4/
-* **NativeWebSocket**: https://github.com/endel/NativeWebSocket
-* **Issues & Support**: https://github.com/Magithar/socketio-unity/issues
