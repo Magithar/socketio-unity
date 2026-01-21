@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SocketIOUnity.Runtime;
+#if SOCKETIO_PROFILER_COUNTERS
+using SocketIOUnity.Debugging;
+#endif
 
 namespace SocketIOUnity.UnityIntegration
 {
@@ -33,6 +36,9 @@ namespace SocketIOUnity.UnityIntegration
 
         private void Update()
         {
+#if SOCKETIO_PROFILER_COUNTERS
+            SocketIOThroughputTracker.Tick();
+#endif
             for (int i = _tickables.Count - 1; i >= 0; i--)
                 _tickables[i].Tick();
         }
@@ -45,3 +51,4 @@ namespace SocketIOUnity.UnityIntegration
 #endif
     }
 }
+
