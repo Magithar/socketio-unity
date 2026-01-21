@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace SocketIOUnity.EngineProtocol
 {
@@ -11,7 +12,7 @@ namespace SocketIOUnity.EngineProtocol
         private int _pingIntervalMs;
         private int _pingTimeoutMs;
 
-        private DateTime _lastPingTime;
+        private float _lastPingTime;
         private bool _active;
 
         public event Action OnTimeout;
@@ -24,7 +25,7 @@ namespace SocketIOUnity.EngineProtocol
             _pingIntervalMs = pingIntervalMs;
             _pingTimeoutMs = pingTimeoutMs;
 
-            _lastPingTime = DateTime.UtcNow;
+            _lastPingTime = Time.time;
             _active = true;
         }
 
@@ -33,7 +34,7 @@ namespace SocketIOUnity.EngineProtocol
         /// </summary>
         public void OnPing()
         {
-            _lastPingTime = DateTime.UtcNow;
+            _lastPingTime = Time.time;
         }
 
         /// <summary>
@@ -52,9 +53,9 @@ namespace SocketIOUnity.EngineProtocol
             if (!_active)
                 return;
 
-            var now = DateTime.UtcNow;
-            var timeoutAt = _lastPingTime
-                .AddMilliseconds(_pingIntervalMs + _pingTimeoutMs);
+            float now = Time.time;
+            float timeoutSeconds = (_pingIntervalMs + _pingTimeoutMs) / 1000f;
+            float timeoutAt = _lastPingTime + timeoutSeconds;
 
             if (now > timeoutAt)
             {

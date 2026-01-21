@@ -1,21 +1,24 @@
 using System;
 using Newtonsoft.Json;
+using SocketIOUnity.Debugging;
 using SocketIOUnity.Transport;
 using SocketIOUnity.Runtime;
 using SocketIOUnity.UnityIntegration;
 
 namespace SocketIOUnity.EngineProtocol
 {
-    public sealed class EngineIOClient : ITickable
+    public sealed class EngineIOClient : ITickable, IDisposable
     {
         private readonly ITransport _transport;
         private readonly HeartbeatController _heartbeat;
+        private readonly PingRttTracker _rtt = new PingRttTracker();
 
         private bool _isConnected;
         private HandshakeInfo _handshake;
 
         public bool IsConnected => _isConnected;
         public string SessionId => _handshake?.sid;
+        public float PingRttMs => _rtt.RttMs;
 
         public event Action OnOpen;
         public event Action OnClose;
@@ -106,17 +109,20 @@ namespace SocketIOUnity.EngineProtocol
 
         private void HandleTransportClose()
         {
+            SocketIOTrace.Protocol(TraceCategory.EngineIO, "Transport closed");
             Cleanup();
             OnClose?.Invoke();
         }
 
         private void HandleTransportError(string error)
         {
+            SocketIOTrace.Error(TraceCategory.EngineIO, $"Transport error: {error}");
             OnError?.Invoke(error);
         }
 
         private void HandleBinaryMessage(byte[] data)
         {
+            SocketIOTrace.Verbose(TraceCategory.Binary, $"← BINARY {data.Length} bytes");
             OnBinary?.Invoke(data);
         }
 
@@ -125,10 +131,16 @@ namespace SocketIOUnity.EngineProtocol
             if (string.IsNullOrEmpty(raw))
                 return;
 
-            var type = (EngineMessageType)(raw[0] - '0');
-            var payload = raw.Length > 1 ? raw.Substring(1) : null;
+            using (SocketIOProfiler.EngineIO_PacketParse.Auto())
+            {
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+                SocketIOProfilerCounters.PacketReceived();
+#endif
+                var type = (EngineMessageType)(raw[0] - '0');
+                var payload = raw.Length > 1 ? raw.Substring(1) : null;
 
-            HandleEngineMessage(new EngineMessage(type, payload));
+                HandleEngineMessage(new EngineMessage(type, payload));
+            }
         }
 
         // --------------------------------------------------
@@ -144,13 +156,17 @@ namespace SocketIOUnity.EngineProtocol
                     break;
 
                 case EngineMessageType.Ping:
+                    SocketIOTrace.Verbose(TraceCategory.EngineIO, "PING received");
+                    _rtt.OnPingReceived();      // track ping timing for RTT estimate
                     // 🔥 REQUIRED BY ENGINE.IO v4 SPEC
                     _transport.SendText("3");   // PONG
+                    SocketIOTrace.Verbose(TraceCategory.EngineIO, "PONG sent");
                     _heartbeat.OnPing();        // reset heartbeat window
                     break;
 
                 case EngineMessageType.Pong:
-                    // Optional in v4 — usually ignored
+                    SocketIOTrace.Verbose(TraceCategory.EngineIO, "PONG received");
+                    // Note: In Engine.IO v4, server doesn't send PONG to clients
                     break;
 
                 case EngineMessageType.Message:
@@ -169,11 +185,19 @@ namespace SocketIOUnity.EngineProtocol
             {
                 _handshake = JsonConvert.DeserializeObject<HandshakeInfo>(payload);
 
+                SocketIOTrace.Protocol(
+                    TraceCategory.EngineIO,
+                    $"Handshake received (sid={_handshake.sid}, pingInterval={_handshake.pingInterval}ms, pingTimeout={_handshake.pingTimeout}ms)"
+                );
+
                 // ✅ Engine.IO v4 heartbeat config
                 _heartbeat.Start(
                     _handshake.pingInterval,
                     _handshake.pingTimeout
                 );
+
+                // Set RTT tracker's expected interval
+                _rtt.SetPingInterval(_handshake.pingInterval);
 
                 _isConnected = true;
                 OnOpen?.Invoke();
@@ -216,6 +240,14 @@ namespace SocketIOUnity.EngineProtocol
             _isConnected = false;
             _heartbeat.Stop();
             _handshake = null;
+        }
+
+        /// <summary>
+        /// Dispose and clean up all resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Disconnect();
         }
     }
 }
