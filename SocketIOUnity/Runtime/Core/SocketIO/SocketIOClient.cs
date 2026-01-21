@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using SocketIOUnity.Debugging;
 using SocketIOUnity.EngineProtocol;
 using SocketIOUnity.Serialization;
 using SocketIOUnity.SocketProtocol;
@@ -22,6 +23,11 @@ namespace SocketIOUnity.Runtime
         private bool _intentionalDisconnect;
 
         public bool IsConnected => _engine != null && _engine.IsConnected;
+
+        // Telemetry accessors for Editor HUD
+        public int NamespaceCount => _namespaces.Count;
+        public int PendingAckCount => _defaultNamespace?.PendingAckCount ?? 0;
+        public float PingRttMs => _engine?.PingRttMs ?? 0f;
 
         public event Action OnConnected;
         public event Action OnDisconnected;
@@ -87,6 +93,7 @@ namespace SocketIOUnity.Runtime
 
         public void Connect(string url)
         {
+            SocketIOTrace.Protocol(TraceCategory.SocketIO, $"Connecting to {url}");
             _lastUrl = url;
             _intentionalDisconnect = false;
             _engine.Connect(url);
@@ -94,6 +101,7 @@ namespace SocketIOUnity.Runtime
 
         public void Disconnect()
         {
+            SocketIOTrace.Protocol(TraceCategory.SocketIO, "Intentional disconnect");
             _intentionalDisconnect = true;
             _reconnect.Stop();
             DestroyEngine();
@@ -144,6 +152,22 @@ namespace SocketIOUnity.Runtime
             _defaultNamespace.On(eventName, handler);
         }
 
+        /// <summary>
+        /// Unsubscribe a string event handler from the default namespace.
+        /// </summary>
+        public void Off(string eventName, Action<string> handler)
+        {
+            _defaultNamespace.Off(eventName, handler);
+        }
+
+        /// <summary>
+        /// Unsubscribe a binary event handler from the default namespace.
+        /// </summary>
+        public void Off(string eventName, Action<byte[]> handler)
+        {
+            _defaultNamespace.Off(eventName, handler);
+        }
+
         // --------------------------------------------------
         // INTERNAL — SOCKET.IO PACKETS
         // --------------------------------------------------
@@ -158,6 +182,7 @@ namespace SocketIOUnity.Runtime
                 (ackId.HasValue ? ackId.Value.ToString() : "") +
                 json;
 
+            SocketIOTrace.Verbose(TraceCategory.SocketIO, $"→ Event '{eventName}' ns={ns} ackId={ackId}");
             _engine.SendRaw("4" + packet);
         }
 
@@ -181,6 +206,7 @@ namespace SocketIOUnity.Runtime
 
         private void HandleEngineOpen()
         {
+            SocketIOTrace.Protocol(TraceCategory.EngineIO, "Engine.IO connection opened");
             // Connect default namespace with auth support
             _defaultNamespace.SendConnect();
         }
@@ -209,6 +235,7 @@ namespace SocketIOUnity.Runtime
 
         private void HandleEngineError(string error)
         {
+            SocketIOTrace.Error(TraceCategory.SocketIO, $"Engine error: {error}");
             OnError?.Invoke(error);
         }
 
@@ -219,9 +246,11 @@ namespace SocketIOUnity.Runtime
             try
             {
                 packet = SocketPacketParser.Parse(raw);
+                SocketIOTrace.Verbose(TraceCategory.SocketIO, $"← Packet type={packet.Type} ns={packet.Namespace}");
             }
             catch (Exception ex)
             {
+                SocketIOTrace.Error(TraceCategory.SocketIO, $"Parse error: {ex.Message}");
                 OnError?.Invoke($"Socket.IO parse error: {ex.Message}");
                 return;
             }
@@ -232,6 +261,7 @@ namespace SocketIOUnity.Runtime
             switch (packet.Type)
             {
                 case SocketPacketType.Connect:
+                    SocketIOTrace.Protocol(TraceCategory.Namespace, $"Namespace connected: {packet.Namespace}");
                     nsSocket.HandleConnect();
 
                     if (packet.Namespace == "/")
@@ -254,6 +284,7 @@ namespace SocketIOUnity.Runtime
                     break;
 
                 case SocketPacketType.Ack:
+                    SocketIOTrace.Protocol(TraceCategory.Ack, $"ACK received id={packet.AckId}");
                     nsSocket.HandleAck(packet.AckId.Value, packet.JsonPayload);
                     break;
 
@@ -263,6 +294,7 @@ namespace SocketIOUnity.Runtime
 
                 case SocketPacketType.BinaryEvent:
                 case SocketPacketType.BinaryAck:
+                    SocketIOTrace.Verbose(TraceCategory.Binary, $"Binary packet started, attachments={packet.Attachments}");
                     // Abort any in-progress assembly (overlapping packet protection)
                     if (_binaryAssembler.IsWaiting)
                         _binaryAssembler.Abort();
@@ -277,9 +309,13 @@ namespace SocketIOUnity.Runtime
             if (!_binaryAssembler.IsWaiting)
                 return;
 
+            SocketIOTrace.Verbose(TraceCategory.Binary, $"Binary attachment received: {data.Length} bytes");
+
             if (_binaryAssembler.AddBinary(data))
             {
                 var (eventName, args, ns) = _binaryAssembler.Build();
+
+                SocketIOTrace.Protocol(TraceCategory.Binary, $"Binary event complete: '{eventName}' with {args.Count} args");
 
                 if (!_namespaces.TryGet(ns, out var nsSocket))
                     nsSocket = _defaultNamespace;

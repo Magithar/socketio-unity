@@ -1,4 +1,5 @@
 using System;
+using SocketIOUnity.Debugging;
 using UnityEngine;
 
 namespace SocketIOUnity.Runtime
@@ -52,15 +53,18 @@ namespace SocketIOUnity.Runtime
 
         public void Tick()
         {
-            if (!_enabled)
-                return;
-
-            if (Time.time >= _nextAttemptTime)
+            using (SocketIOProfiler.Reconnect_Loop.Auto())
             {
-                Debug.Log($"⏰ Reconnect attempt {_attempt + 1} firing now");
-                _attempt++;
-                _reconnectAction.Invoke();
-                ScheduleNext();
+                if (!_enabled)
+                    return;
+
+                if (Time.time >= _nextAttemptTime)
+                {
+                    SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Reconnect attempt {_attempt + 1} firing now");
+                    _attempt++;
+                    _reconnectAction.Invoke();
+                    ScheduleNext();
+                }
             }
         }
 
@@ -69,7 +73,7 @@ namespace SocketIOUnity.Runtime
             float delay = Mathf.Min(Mathf.Pow(2, _attempt), MaxDelay);
             _nextAttemptTime = Time.time + delay;
 
-            Debug.Log($"🔁 Reconnect attempt {_attempt} in {delay:0}s");
+            SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Next reconnect in {delay:0.0}s (attempt {_attempt + 1})");
         }
     }
 }

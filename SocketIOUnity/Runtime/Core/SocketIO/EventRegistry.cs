@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SocketIOUnity.Debugging;
 using SocketIOUnity.UnityIntegration;
 
 namespace SocketIOUnity.Runtime
@@ -33,30 +34,54 @@ namespace SocketIOUnity.Runtime
 
         public void Emit(string eventName, string payload)
         {
-            if (!_handlers.TryGetValue(eventName, out var list))
-                return;
-
-            foreach (var handler in list)
+            using (SocketIOProfiler.SocketIO_EventDispatch.Auto())
             {
-                UnityMainThreadDispatcher.Enqueue(() =>
+                if (!_handlers.TryGetValue(eventName, out var list))
+                    return;
+
+                foreach (var handler in list)
                 {
-                    handler.Invoke(payload);
-                });
+                    UnityMainThreadDispatcher.Enqueue(() =>
+                    {
+                        handler.Invoke(payload);
+                    });
+                }
             }
         }
 
         public void EmitBinary(string eventName, byte[] data)
         {
-            if (!_binaryHandlers.TryGetValue(eventName, out var list))
-                return;
-
-            foreach (var handler in list)
+            using (SocketIOProfiler.SocketIO_EventDispatch.Auto())
             {
-                UnityMainThreadDispatcher.Enqueue(() =>
+                if (!_binaryHandlers.TryGetValue(eventName, out var list))
+                    return;
+
+                foreach (var handler in list)
                 {
-                    handler.Invoke(data);
-                });
+                    UnityMainThreadDispatcher.Enqueue(() =>
+                    {
+                        handler.Invoke(data);
+                    });
+                }
             }
+        }
+
+        /// <summary>
+        /// Unsubscribe a string event handler.
+        /// </summary>
+        public void Off(string eventName, Action<string> handler)
+        {
+            if (_handlers.TryGetValue(eventName, out var list))
+                list.Remove(handler);
+        }
+
+        /// <summary>
+        /// Unsubscribe a binary event handler.
+        /// </summary>
+        public void Off(string eventName, Action<byte[]> handler)
+        {
+            if (_binaryHandlers.TryGetValue(eventName, out var list))
+                list.Remove(handler);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SocketIOUnity.Core;
+using SocketIOUnity.Debugging;
 using SocketIOUnity.UnityIntegration;
 using UnityEngine;
 
@@ -11,6 +12,8 @@ namespace SocketIOUnity.Runtime
         private readonly Dictionary<int, AckEntry> _pending = new();
         private readonly ObjectPool<AckEntry> _pool;
         private int _nextId = 0;
+
+        public int Count => _pending.Count;
 
         public AckRegistry()
         {
@@ -31,23 +34,41 @@ namespace SocketIOUnity.Runtime
             entry.ExpireAt = Time.time + (float)timeout.TotalSeconds;
             
             _pending[id] = entry;
+
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+            SocketIOProfilerCounters.SetPendingAcks(_pending.Count);
+#endif
+            
+            SocketIOTrace.Verbose(TraceCategory.Ack, $"ACK registered id={id} timeout={timeout.TotalSeconds}s");
             return id;
         }
 
         public bool Resolve(int id, string payload)
         {
-            if (!_pending.TryGetValue(id, out var entry))
-                return false;
-
-            _pending.Remove(id);
-            
-            UnityMainThreadDispatcher.Enqueue(() =>
+            using (SocketIOProfiler.Ack_Resolve.Auto())
             {
-                entry.Callback?.Invoke(payload);
-            });
-            
-            _pool.Return(entry);
-            return true;
+                if (!_pending.TryGetValue(id, out var entry))
+                {
+                    SocketIOTrace.Verbose(TraceCategory.Ack, $"ACK id={id} not found (expired or already resolved)");
+                    return false;
+                }
+
+                _pending.Remove(id);
+                
+                SocketIOTrace.Protocol(TraceCategory.Ack, $"ACK resolved id={id}");
+                
+                UnityMainThreadDispatcher.Enqueue(() =>
+                {
+                    entry.Callback?.Invoke(payload);
+                });
+
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+                SocketIOProfilerCounters.SetPendingAcks(_pending.Count);
+#endif
+                
+                _pool.Return(entry);
+                return true;
+            }
         }
 
         public void RemoveExpired()
@@ -69,7 +90,14 @@ namespace SocketIOUnity.Runtime
                 var entry = _pending[id];
                 _pending.Remove(id);
                 _pool.Return(entry);
+                
+                SocketIOTrace.Verbose(TraceCategory.Ack, $"ACK expired id={id}");
             }
+
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+            if (expired.Count > 0)
+                SocketIOProfilerCounters.SetPendingAcks(_pending.Count);
+#endif
 
             ListPool<int>.Return(expired);
         }
@@ -80,6 +108,10 @@ namespace SocketIOUnity.Runtime
                 _pool.Return(entry);
                 
             _pending.Clear();
+
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+            SocketIOProfilerCounters.SetPendingAcks(0);
+#endif
         }
     }
 }

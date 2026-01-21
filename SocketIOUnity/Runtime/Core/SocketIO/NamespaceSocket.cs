@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json.Linq;
+using SocketIOUnity.Debugging;
 
 namespace SocketIOUnity.Runtime
 {
@@ -15,6 +16,7 @@ namespace SocketIOUnity.Runtime
 
         internal string Namespace => _namespace;
         internal bool IsConnected => _connected;
+        public int PendingAckCount => _acks.Count;
 
         public event Action OnConnected;
 
@@ -35,6 +37,22 @@ namespace SocketIOUnity.Runtime
         public void On(string eventName, Action<byte[]> handler)
         {
             _events.On(eventName, handler);
+        }
+
+        /// <summary>
+        /// Unsubscribe a string event handler from this namespace.
+        /// </summary>
+        public void Off(string eventName, Action<string> handler)
+        {
+            _events.Off(eventName, handler);
+        }
+
+        /// <summary>
+        /// Unsubscribe a binary event handler from this namespace.
+        /// </summary>
+        public void Off(string eventName, Action<byte[]> handler)
+        {
+            _events.Off(eventName, handler);
         }
 
         public void Emit(string eventName, object payload)
@@ -76,6 +94,7 @@ namespace SocketIOUnity.Runtime
             if (_authPayload != null)
                 packet += "," + Newtonsoft.Json.JsonConvert.SerializeObject(_authPayload);
 
+            SocketIOTrace.Protocol(TraceCategory.Namespace, $"Connecting namespace '{_namespace}'");
             _root.SendEnginePacket(packet);
         }
 
@@ -91,6 +110,7 @@ namespace SocketIOUnity.Runtime
 
         internal void HandleConnectError(string json)
         {
+            SocketIOTrace.Error(TraceCategory.Namespace, $"Connect error on '{_namespace}': {json}");
             _connected = false;
             _events.Emit("connect_error", json);
         }
@@ -116,9 +136,10 @@ namespace SocketIOUnity.Runtime
             {
                 arr = JArray.Parse(payload);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore malformed payloads instead of crashing
+                // Log malformed payloads for debugging
+                SocketIOTrace.Error(TraceCategory.SocketIO, $"Malformed JSON payload on '{_namespace}': {ex.Message}");
                 return;
             }
 
@@ -127,6 +148,8 @@ namespace SocketIOUnity.Runtime
 
             var eventName = arr[0]?.ToString();
             var data = arr.Count > 1 ? arr[1]?.ToString() : null;
+
+            SocketIOTrace.Verbose(TraceCategory.SocketIO, $"Event '{eventName}' on '{_namespace}' data={data?.Length ?? 0} chars");
 
             if (!string.IsNullOrEmpty(eventName))
                 _events.Emit(eventName, data);

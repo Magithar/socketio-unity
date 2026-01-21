@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SocketIOUnity.Debugging;
 
 namespace SocketIOUnity.Runtime
 {
@@ -29,6 +30,10 @@ namespace SocketIOUnity.Runtime
             socket = new NamespaceSocket(ns, _root, auth);
             _namespaces[ns] = socket;
 
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+            SocketIOProfilerCounters.SetActiveNamespaces(_namespaces.Count);
+#endif
+
             // 🔥 CRITICAL FIX:
             // If root namespace already connected,
             // immediately connect this namespace
@@ -51,6 +56,7 @@ namespace SocketIOUnity.Runtime
             return _namespaces.TryGetValue(ns, out socket);
         }
 
+        public int Count => _namespaces.Count;
         public IEnumerable<NamespaceSocket> All => _namespaces.Values;
     }
 }
