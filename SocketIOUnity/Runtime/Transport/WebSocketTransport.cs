@@ -1,5 +1,6 @@
 using System;
 using NativeWebSocket;
+using SocketIOUnity.Debugging;
 using SocketIOUnity.Transport;
 using UnityEngine;
 
@@ -21,13 +22,31 @@ namespace SocketIOUnity.Transport
 
         public async void Connect(string url)
         {
+            SocketIOTrace.Protocol(TraceCategory.Transport, $"WebSocket connecting to {url}");
             _ws = new WebSocket(url);
 
-            _ws.OnOpen += () => OnOpen?.Invoke();
-            _ws.OnClose += _ => OnClose?.Invoke();
-            _ws.OnError += msg => OnError?.Invoke(msg);
+            _ws.OnOpen += () =>
+            {
+                SocketIOTrace.Protocol(TraceCategory.Transport, "WebSocket opened");
+                OnOpen?.Invoke();
+            };
+            _ws.OnClose += _ =>
+            {
+                SocketIOTrace.Protocol(TraceCategory.Transport, "WebSocket closed");
+                OnClose?.Invoke();
+            };
+            _ws.OnError += msg =>
+            {
+                SocketIOTrace.Error(TraceCategory.Transport, $"WebSocket error: {msg}");
+                OnError?.Invoke(msg);
+            };
             _ws.OnMessage += data =>
             {
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+                SocketIOProfilerCounters.AddBytesReceived(data.Length);
+                SocketIOProfilerCounters.PacketReceived();
+                SocketIOThroughputTracker.AddReceived(data.Length);
+#endif
                 // NativeWebSocket doesn't preserve text vs binary frame type.
                 // We use a heuristic: Engine.IO text packets start with ASCII '0'-'6' (0x30-0x36).
                 // Binary attachments from Socket.IO are raw binary and won't start with these.
@@ -35,16 +54,40 @@ namespace SocketIOUnity.Transport
                 bool isTextPacket = data.Length > 0 && data[0] >= 0x30 && data[0] <= 0x36;
                 
                 if (isTextPacket)
-                    OnTextMessage?.Invoke(System.Text.Encoding.UTF8.GetString(data));
+                {
+                    var text = System.Text.Encoding.UTF8.GetString(data);
+                    SocketIOTrace.Verbose(TraceCategory.Transport, $"← TEXT {data.Length} bytes");
+                    OnTextMessage?.Invoke(text);
+                }
                 else
+                {
+                    SocketIOTrace.Verbose(TraceCategory.Transport, $"← BINARY {data.Length} bytes");
                     OnBinaryMessage?.Invoke(data);
+                }
             };
 
             await _ws.Connect();
         }
 
-        public async void SendText(string message) => await _ws.SendText(message);
-        public async void SendBinary(byte[] data) => await _ws.Send(data);
+        public async void SendText(string message)
+        {
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+            SocketIOProfilerCounters.AddBytesSent(message.Length);
+            SocketIOThroughputTracker.AddSent(message.Length);
+#endif
+            SocketIOTrace.Verbose(TraceCategory.Transport, $"→ TEXT {message.Length} chars");
+            await _ws.SendText(message);
+        }
+
+        public async void SendBinary(byte[] data)
+        {
+#if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
+            SocketIOProfilerCounters.AddBytesSent(data.Length);
+            SocketIOThroughputTracker.AddSent(data.Length);
+#endif
+            SocketIOTrace.Verbose(TraceCategory.Transport, $"→ BINARY {data.Length} bytes");
+            await _ws.Send(data);
+        }
 
         public async void Close()
         {

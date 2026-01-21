@@ -16,8 +16,8 @@ namespace SocketIOUnity.Transport
 
         public event Action OnOpen;
         public event Action OnClose;
-        public event Action<string> OnMessage;
-        public event Action<byte[]> OnBinary;
+        public event Action<string> OnTextMessage;
+        public event Action<byte[]> OnBinaryMessage;
         public event Action<string> OnError;
 
         [DllImport("__Internal")]
@@ -37,25 +37,33 @@ namespace SocketIOUnity.Transport
             var bridge = EnsureBridge();
             bridge.OnOpen += () => OnOpen?.Invoke();
             bridge.OnClose += () => OnClose?.Invoke();
-            bridge.OnText += msg => OnMessage?.Invoke(msg);
-            bridge.OnBinary += data => OnBinary?.Invoke(data);
+            bridge.OnText += msg => OnTextMessage?.Invoke(msg);
+            bridge.OnBinary += data => OnBinaryMessage?.Invoke(data);
             bridge.OnError += () => OnError?.Invoke("WebGL socket error");
 
             SocketIO_WebSocket_Create(_id, url);
         }
 
-        public void Send(string text)
-            => SocketIO_WebSocket_SendText(_id, text);
+        public void SendText(string message)
+            => SocketIO_WebSocket_SendText(_id, message);
 
-        public void Send(byte[] binary)
+        public void SendBinary(byte[] data)
         {
-            var handle = GCHandle.Alloc(binary, GCHandleType.Pinned);
-            SocketIO_WebSocket_SendBinary(_id, handle.AddrOfPinnedObject(), binary.Length);
+            var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            SocketIO_WebSocket_SendBinary(_id, handle.AddrOfPinnedObject(), data.Length);
             handle.Free();
         }
 
-        public void Disconnect()
+        public void Close()
             => SocketIO_WebSocket_Close(_id);
+
+        /// <summary>
+        /// WebGL uses browser event loop, no manual dispatch needed.
+        /// </summary>
+        public void Dispatch()
+        {
+            // No-op for WebGL - browser handles message dispatch
+        }
 
         private static WebGLSocketBridge EnsureBridge()
         {
