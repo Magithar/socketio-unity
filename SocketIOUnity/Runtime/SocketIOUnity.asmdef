@@ -2,7 +2,8 @@
     "name": "SocketIOUnity",
     "rootNamespace": "SocketIOUnity",
     "references": [
-        "Unity.Newtonsoft.Json"
+        "Unity.Newtonsoft.Json",
+        "Unity.Profiling.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
