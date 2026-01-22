@@ -2,6 +2,8 @@
 
 > ⚠️ **Early development — API may change before v1.0.0**
 
+**Current:** v0.3.0-alpha | **Next:** v1.0.0 — Focused on stability and protocol hardening.
+
 An **open-source, clean-room implementation** of a **Socket.IO v4 client for Unity**.
 
 This project enables Unity applications to communicate with Socket.IO–powered backends
