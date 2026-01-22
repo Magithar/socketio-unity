@@ -1,21 +1,21 @@
 {
-  "name": "com.magithar.socketio-unity",
-  "version": "0.1.0",
-  "displayName": "Socket.IO Unity Client",
-  "description": "Open-source Socket.IO v4 client for Unity (Standalone & WebGL)",
-  "unity": "2020.1",
-  "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.2.1"
-  },
-  "keywords": [
-    "socketio",
-    "websocket",
-    "networking",
-    "realtime"
-  ],
-  "author": {
-    "name": "Magithar",
-    "url": "https://github.com/Magithar"
-  },
-  "license": "MIT"
+    "name": "com.magithar.socketio-unity",
+    "version": "0.3.0-alpha",
+    "displayName": "Socket.IO Unity Client",
+    "description": "Open-source Socket.IO v4 client for Unity (Standalone & WebGL)",
+    "unity": "2020.1",
+    "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
+    },
+    "keywords": [
+        "socketio",
+        "websocket",
+        "networking",
+        "realtime"
+    ],
+    "author": {
+        "name": "Magithar",
+        "url": "https://github.com/Magithar"
+    },
+    "license": "MIT"
 }
