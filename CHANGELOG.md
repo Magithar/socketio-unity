@@ -15,6 +15,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+## [0.3.0-alpha] - 2026-01-22
+
+### Added
+- **Debugging & Tracing System**: Comprehensive diagnostic tools for development
+  - `SocketIOTrace` static API with configurable trace levels (Off/Errors/Protocol/Verbose)
+  - `ITraceSink` interface for custom log destinations (file, UI overlay, network)
+  - `TraceConfig` for runtime trace level control
+  - `TraceCategory` enum: EngineIO, SocketIO, Namespace, Transport, Binary, Reconnect
+  - `UnityDebugTraceSink` default implementation for Unity Console output
+- **Unity Profiler Integration**: Zero-cost performance monitoring
+  - `ProfilerMarkers` for CPU profiling (enable via `SOCKETIO_PROFILER` define)
+    - `SocketIO.EngineIO.Parse`, `SocketIO.Event.Dispatch`, `SocketIO.Binary.Assemble`
+    - `SocketIO.Ack.Resolve`, `SocketIO.Reconnect.Tick`
+  - `SocketIOProfilerCounters` for live metrics (enable via `SOCKETIO_PROFILER_COUNTERS` define)
+    - Bytes Sent/Received, Packets/sec, Active Namespaces, Pending ACKs
+  - `SocketIOThroughputTracker` for bandwidth monitoring
+- **Editor Network HUD**: Real-time Scene View overlay (`Tools → SocketIO → Toggle Network HUD`)
+  - Displays connection status, RTT, namespace count, pending ACKs, throughput
+- **RTT Tracking**: `PingRttTracker` for round-trip latency measurement via Engine.IO PING timing
+- **ACK Timeout Support**: `AckRegistry` with configurable timeout and automatic expiration cleanup
+- **Sample Test Scripts**: Comprehensive test suite in `Samples/` folder
+  - `WebGLTestController` for testing WebGL builds
+  - `NamespaceAuthTest`, `BinaryEventTest`, `AdminNamespaceTest`
+  - `MainThreadDispatcherTest`, `TraceDemo`, `ProfilerCounterTest`
+- `/webgl` test namespace in server.js for WebGL-specific testing
+- `BinaryPacketBuilderPool` for zero-allocation binary packet construction
+- **Event Unsubscription**: `Off()` methods on `SocketIOClient` and `NamespaceSocket` for handler cleanup
+- **IDisposable Pattern**: `SocketIOClient` and `EngineIOClient` implement `IDisposable` for proper resource cleanup
+- **Shutdown() Method**: Clean disconnect with full state reset
+
+### Fixed
+- **WebGL jslib missing symbols**: Added all required NativeWebSocket functions to `SocketIOWebGL.jslib`
+- **WebGL namespace connection loops**: Fixed socket disposal and event handler cleanup in connection logic
+
+### Documentation
+- Added DEBUGGING_GUIDE.md with comprehensive troubleshooting guide
+- Documented all trace levels, categories, and custom sink examples
+- Documented Unity Profiler integration and available markers/counters
+- Updated WebGL status to production-verified
+
 ## [0.2.0-alpha] - 2026-01-11
 
 ### Added
@@ -117,7 +157,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v0.2.0-alpha...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v0.3.0-alpha...HEAD
+[0.3.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.2.0-alpha...v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.1-alpha...v0.2.0-alpha
 [0.1.1-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.0-alpha...v0.1.1-alpha
 [0.1.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.0.1-prep...v0.1.0-alpha
