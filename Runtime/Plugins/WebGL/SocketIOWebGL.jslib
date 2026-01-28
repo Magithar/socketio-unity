@@ -195,12 +195,14 @@ mergeInto(LibraryManager.library, {
 
     ws.onmessage = function(e) {
       if (typeof e.data === "string") {
-        SendMessage("WebGLSocketBridge", "JSOnText", e.data);
+        // Include socket ID prefix for routing
+        SendMessage("WebGLSocketBridge", "JSOnText", id + ":" + e.data);
       } else {
         var bytes = new Uint8Array(e.data);
         var ptr = _malloc(bytes.length);
         HEAPU8.set(bytes, ptr);
-        SendMessage("WebGLSocketBridge", "JSOnBinary", ptr + "," + bytes.length);
+        // Include socket ID for routing
+        SendMessage("WebGLSocketBridge", "JSOnBinary", id + "," + ptr + "," + bytes.length);
         _free(ptr);
       }
     };
