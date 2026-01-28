@@ -68,36 +68,46 @@ JavaScript library merged into WebGL build. Contains **two sets of functions**:
 
 ### WebGLSocketBridge.cs
 
-MonoBehaviour receiving callbacks from JavaScript:
+MonoBehaviour receiving callbacks from JavaScript and routing to transports:
 
 ```csharp
-public class WebGLSocketBridge : MonoBehaviour
+public sealed class WebGLSocketBridge : MonoBehaviour
 {
     public static WebGLSocketBridge Instance { get; private set; }
-    
+
+    // Register/unregister handlers per socket ID
+    public void Register(string socketId, Action onOpen, ...);
+    public void Unregister(string socketId);
+
     // Called by JavaScript via SendMessage
-    public void JSOnOpen(string id) { /* dispatch to transport */ }
-    public void JSOnClose(string id) { /* ... */ }
-    public void JSOnError(string id) { /* ... */ }
-    public void JSOnText(string message) { /* ... */ }
-    public void JSOnBinary(string ptrAndLen) { /* ... */ }
+    public void JSOnOpen(string socketId);
+    public void JSOnClose(string socketId);
+    public void JSOnError(string socketId);
+    public void JSOnText(string payload);   // Format: "socketId:message"
+    public void JSOnBinary(string payload); // Format: "socketId,ptr,length"
 }
 ```
 
 ### WebGLWebSocketTransport.cs
 
-`ITransport` implementation for WebGL:
+`ITransport` implementation for WebGL (only compiles in WebGL builds):
 
 ```csharp
-public class WebGLWebSocketTransport : ITransport
+internal sealed class WebGLWebSocketTransport : ITransport
 {
+    private readonly string _id = Guid.NewGuid().ToString();
+
     [DllImport("__Internal")]
     private static extern void SocketIO_WebSocket_Create(string id, string url);
-    
+
     [DllImport("__Internal")]
     private static extern void SocketIO_WebSocket_SendText(string id, string msg);
-    
-    // ...
+
+    [DllImport("__Internal")]
+    private static extern void SocketIO_WebSocket_SendBinary(string id, IntPtr data, int len);
+
+    [DllImport("__Internal")]
+    private static extern void SocketIO_WebSocket_Close(string id);
 }
 ```
 
@@ -120,18 +130,19 @@ public class WebGLTestController : MonoBehaviour
 
 ## Binary Message Handling
 
-JavaScript handles ArrayBuffer messages:
+JavaScript handles ArrayBuffer messages with socket ID routing:
 
 ```javascript
-ws.onmessage = (e) => {
+ws.onmessage = function(e) {
     if (typeof e.data === "string") {
-        SendMessage("WebGLSocketBridge", "JSOnText", e.data);
+        // Include socket ID prefix for routing
+        SendMessage("WebGLSocketBridge", "JSOnText", id + ":" + e.data);
     } else {
-        // Binary: allocate memory, copy, send pointer
-        const bytes = new Uint8Array(e.data);
-        const ptr = _malloc(bytes.length);
+        // Binary: allocate memory, copy, send pointer with socket ID
+        var bytes = new Uint8Array(e.data);
+        var ptr = _malloc(bytes.length);
         HEAPU8.set(bytes, ptr);
-        SendMessage("WebGLSocketBridge", "JSOnBinary", ptr + "," + bytes.length);
+        SendMessage("WebGLSocketBridge", "JSOnBinary", id + "," + ptr + "," + bytes.length);
         _free(ptr);
     }
 };
