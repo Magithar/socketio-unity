@@ -14,6 +14,7 @@ namespace SocketIOUnity.Serialization
     {
         private SocketPacketType _type;
         private string _namespace;
+        private int? _ackId;
         private int _expected;
         private JArray _json;
         private readonly List<byte[]> _buffers = new();
@@ -30,6 +31,7 @@ namespace SocketIOUnity.Serialization
         {
             _type = packet.Type;
             _namespace = packet.Namespace;
+            _ackId = packet.AckId;
             _expected = packet.Attachments;
             _json = JArray.Parse(packet.JsonPayload);
             _buffers.Clear();
@@ -49,13 +51,14 @@ namespace SocketIOUnity.Serialization
 
         /// <summary>
         /// Build the final event with placeholders replaced by actual binary data.
+        /// Returns the packet type, ACK ID (for BinaryAck), event name, args, and namespace.
         /// </summary>
-        public (string eventName, JArray args, string ns) Build()
+        public (SocketPacketType type, int? ackId, string eventName, JArray args, string ns) Build()
         {
             ReplacePlaceholders(_json);
 
             var eventName = _json[0]?.ToString();
-            var result = (eventName, _json, _namespace);
+            var result = (_type, _ackId, eventName, _json, _namespace);
 
             Reset();
             return result;
@@ -68,6 +71,8 @@ namespace SocketIOUnity.Serialization
 
         private void Reset()
         {
+            _type = default;
+            _ackId = null;
             _expected = 0;
             _json = null;
             _buffers.Clear();
