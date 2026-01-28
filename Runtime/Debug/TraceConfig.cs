@@ -4,6 +4,7 @@ namespace SocketIOUnity.Debugging
     /// Global configuration for packet tracing.
     /// Set Level at runtime to enable/disable tracing.
     /// </summary>
+    [System.Obsolete("Debugging APIs may change structure before v2.0.", false)]
     public static class TraceConfig
     {
         /// <summary>

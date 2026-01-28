@@ -6,6 +6,7 @@ namespace SocketIOUnity.Debugging
     /// Core tracing API. All protocol code calls these static methods.
     /// Uses AggressiveInlining for zero overhead when tracing is disabled.
     /// </summary>
+    [System.Obsolete("Debugging APIs may change structure before v2.0.", false)]
     public static class SocketIOTrace
     {
         private static ITraceSink _sink = new UnityDebugTraceSink();

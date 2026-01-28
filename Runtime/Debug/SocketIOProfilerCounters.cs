@@ -12,6 +12,7 @@ namespace SocketIOUnity.Debugging
     /// 
     /// View in: Profiler → Counters → Network / Scripts
     /// </summary>
+    [System.Obsolete("Profiler APIs may change before v2.0.", false)]
     internal static class SocketIOProfilerCounters
     {
         // -------------------- TRANSPORT (Network category) --------------------
