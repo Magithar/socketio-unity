@@ -19,22 +19,9 @@ namespace SocketIOUnity.SocketProtocol
 
             int i = 0;
 
-            // --------------------------------------------------
-            // Engine.IO packet type (must be '4' = MESSAGE)
-            // --------------------------------------------------
-            if (raw[i] != '4')
-            {
-                SocketIOTrace.Error(TraceCategory.SocketIO, $"Expected Engine.IO MESSAGE type '4', got '{raw[i]}' in '{raw}'");
-                return null;
-            }
-            i++;
-
-            // Must have at least one more character for Socket.IO type
-            if (i >= raw.Length)
-            {
-                SocketIOTrace.Error(TraceCategory.SocketIO, "Packet has Engine.IO type but no Socket.IO type");
-                return null;
-            }
+            // Note: Engine.IO framing ('4' prefix) is already stripped by
+            // EngineIOClient before reaching this parser.
+            // The raw string here is the Socket.IO packet payload only.
 
             // --------------------------------------------------
             // Socket.IO packet type (validate 0-6 range)
