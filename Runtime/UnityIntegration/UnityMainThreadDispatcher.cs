@@ -27,6 +27,17 @@ namespace SocketIOUnity.UnityIntegration
             _queue.Enqueue(action);
         }
 
+        /// <summary>
+        /// Called on domain reload to reset static state.
+        /// Prevents stale references when Play → Stop → Play.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+            while (_queue.TryDequeue(out _)) { } // Clear stale actions
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
         {

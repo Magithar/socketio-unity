@@ -25,6 +25,16 @@ namespace SocketIOUnity.UnityIntegration
             _instance._tickables.Remove(tickable);
         }
 
+        /// <summary>
+        /// Called on domain reload to reset static state.
+        /// Prevents stale references when Play → Stop → Play.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+        }
+
         private static void EnsureInstance()
         {
             if (_instance != null) return;
