@@ -3,7 +3,8 @@
     "rootNamespace": "SocketIOUnity",
     "references": [
         "Unity.Newtonsoft.Json",
-        "Unity.Profiling.Core"
+        "Unity.Profiling.Core",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
