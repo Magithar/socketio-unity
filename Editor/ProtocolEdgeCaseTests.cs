@@ -68,33 +68,39 @@ namespace SocketIOUnity.Editor
 
         private static void TestTypeOnlyPacket()
         {
-            // "4" alone (just Engine.IO frame, no Socket.IO type)
-            var result = SocketPacketParser.Parse("4");
-            AssertNull(result, "Type-only packet '4' should return null");
+            // Socket.IO type alone (e.g., "2" for EVENT) is valid - just no payload
+            // Note: Engine.IO '4' prefix is stripped before reaching parser
+            var result = SocketPacketParser.Parse("2");
+            AssertNotNull(result, "Type-only packet '2' should parse (EVENT with no payload)");
+            AssertEquals((int)result.Type, 2, "Type should be 2 (EVENT)");
         }
 
         private static void TestInvalidSocketIOType()
         {
-            // "49" = type 9 which is invalid (valid: 0-6)
-            var result = SocketPacketParser.Parse("49");
-            AssertNull(result, "Invalid type '49' should return null");
+            // Note: Engine.IO '4' prefix is stripped before reaching parser
+            // Parser receives pure Socket.IO packets like "0", "2[...]", etc.
 
-            // "4X" = non-numeric type
-            result = SocketPacketParser.Parse("4X");
-            AssertNull(result, "Non-numeric type '4X' should return null");
+            // "9" = type 9 which is invalid (valid: 0-6)
+            var result = SocketPacketParser.Parse("9");
+            AssertNull(result, "Invalid type '9' should return null");
 
-            // "47" = type 7 which is out of range
-            result = SocketPacketParser.Parse("47");
-            AssertNull(result, "Out-of-range type '47' should return null");
+            // "X" = non-numeric type
+            result = SocketPacketParser.Parse("X");
+            AssertNull(result, "Non-numeric type 'X' should return null");
+
+            // "7" = type 7 which is out of range
+            result = SocketPacketParser.Parse("7");
+            AssertNull(result, "Out-of-range type '7' should return null");
         }
 
         private static void TestValidSocketIOTypes()
         {
             // Test all valid Socket.IO types 0-6
+            // Note: Engine.IO '4' prefix is stripped before reaching parser
             for (int i = 0; i <= 6; i++)
             {
-                var result = SocketPacketParser.Parse($"4{i}");
-                AssertNotNull(result, $"Valid type '4{i}' should parse");
+                var result = SocketPacketParser.Parse($"{i}");
+                AssertNotNull(result, $"Valid type '{i}' should parse");
                 AssertEquals((int)result.Type, i, $"Type should be {i}");
             }
         }
@@ -102,7 +108,8 @@ namespace SocketIOUnity.Editor
         private static void TestHugeAckIdOverflow()
         {
             // ACK ID that would overflow int.Parse
-            var result = SocketPacketParser.Parse("42999999999999999999[]");
+            // "2" = EVENT, followed by huge number, then payload
+            var result = SocketPacketParser.Parse("2999999999999999999[]");
             // Should not crash - either returns null or parses without ACK
             if (result != null)
                 AssertNull(result.AckId, "Overflowing ACK ID should be null");
@@ -112,8 +119,9 @@ namespace SocketIOUnity.Editor
 
         private static void TestBinaryMissingSeparator()
         {
-            // Binary event without proper separator: "451" instead of "451-"
-            var result = SocketPacketParser.Parse("451");
+            // Binary event without proper separator: "51" instead of "51-"
+            // "5" = BINARY_EVENT, "1" = attachment count, missing "-"
+            var result = SocketPacketParser.Parse("51");
             // Parser should handle this gracefully (might fail on attachment parse)
             // Key: no crash
             Pass("Binary without separator did not crash");
@@ -121,21 +129,22 @@ namespace SocketIOUnity.Editor
 
         private static void TestBinaryWithSeparator()
         {
-            // Proper binary event: "451-/ns,[\"event\",{\"_placeholder\":true,\"num\":0}]"
-            var result = SocketPacketParser.Parse("451-[\"event\",{\"_placeholder\":true,\"num\":0}]");
+            // Proper binary event: "51-[\"event\",{\"_placeholder\":true,\"num\":0}]"
+            // "5" = BINARY_EVENT, "1" = 1 attachment, "-" = separator
+            var result = SocketPacketParser.Parse("51-[\"event\",{\"_placeholder\":true,\"num\":0}]");
             AssertNotNull(result, "Valid binary packet should parse");
             AssertEquals(result.Attachments, 1, "Should have 1 attachment");
         }
 
         private static void TestNamespaceParking()
         {
-            // Valid namespace
-            var result = SocketPacketParser.Parse("40/admin,");
+            // Valid namespace: "0/admin," = CONNECT to /admin namespace
+            var result = SocketPacketParser.Parse("0/admin,");
             AssertNotNull(result, "Namespace packet should parse");
             AssertEquals(result.Namespace, "/admin", "Namespace should be /admin");
 
-            // Default namespace
-            result = SocketPacketParser.Parse("40");
+            // Default namespace: "0" = CONNECT to root namespace
+            result = SocketPacketParser.Parse("0");
             AssertNotNull(result, "Default namespace packet should parse");
             AssertEquals(result.Namespace, "/", "Namespace should be /");
         }
@@ -143,7 +152,8 @@ namespace SocketIOUnity.Editor
         private static void TestMalformedJson()
         {
             // Malformed JSON payload - parser should still work (JSON parsing happens later)
-            var result = SocketPacketParser.Parse("42[\"event\",{invalid}]");
+            // "2" = EVENT
+            var result = SocketPacketParser.Parse("2[\"event\",{invalid}]");
             AssertNotNull(result, "Malformed JSON should still parse (validation is deferred)");
             AssertNotNull(result.JsonPayload, "Should have payload");
         }
@@ -154,20 +164,23 @@ namespace SocketIOUnity.Editor
 
         private static void TestDisconnectPacketParsing()
         {
-            // Root namespace disconnect: "41"
-            var result = SocketPacketParser.Parse("41");
+            // Note: Engine.IO '4' prefix is stripped before reaching parser
+            // "1" = Socket.IO DISCONNECT type
+
+            // Root namespace disconnect: "1"
+            var result = SocketPacketParser.Parse("1");
             AssertNotNull(result, "Root disconnect should parse");
             AssertEquals((int)result.Type, 1, "Type should be 1 (Disconnect)");
             AssertEquals(result.Namespace, "/", "Namespace should be /");
 
-            // Custom namespace disconnect: "41/admin,"
-            result = SocketPacketParser.Parse("41/admin,");
+            // Custom namespace disconnect: "1/admin,"
+            result = SocketPacketParser.Parse("1/admin,");
             AssertNotNull(result, "Namespace disconnect should parse");
             AssertEquals((int)result.Type, 1, "Type should be 1 (Disconnect)");
             AssertEquals(result.Namespace, "/admin", "Namespace should be /admin");
 
             // Disconnect without trailing comma (edge case)
-            result = SocketPacketParser.Parse("41/chat");
+            result = SocketPacketParser.Parse("1/chat");
             AssertNotNull(result, "Disconnect without comma should parse");
             AssertEquals(result.Namespace, "/chat", "Namespace should be /chat");
         }
