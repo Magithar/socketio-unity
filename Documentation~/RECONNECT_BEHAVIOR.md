@@ -129,10 +129,10 @@ var admin = socket.Of("/admin", new { token = "secret" });
 Enable `TraceLevel.Protocol` to see reconnect activity:
 
 ```
-[Reconnect] Reconnect attempt 1 firing now
-[Reconnect] Next reconnect in 1.0s (attempt 2)
-[Reconnect] Reconnect attempt 2 firing now
-[EngineIO] Handshake received (sid=abc123, pingInterval=25000ms)
+[SocketIO:Reconnect] Reconnect attempt 1 firing now
+[SocketIO:Reconnect] Next reconnect in 1.0s (attempt 2)
+[SocketIO:Reconnect] Reconnect attempt 2 firing now
+[SocketIO:EngineIO] Handshake received (sid=abc123, pingInterval=25000ms)
 ```
 
 ---
@@ -156,11 +156,14 @@ public void Start()
 ### Reset on Success
 
 ```csharp
-private void HandleEngineOpen()
-{
-    _reconnect.Reset(); // Clears enabled flag and attempt count
-    // ...
-}
+// In HandleEngineMessage, when root namespace connects:
+case SocketPacketType.Connect:
+    if (packet.Namespace == "/")
+    {
+        _reconnect.Reset(); // Clears enabled flag and attempt count
+        OnConnected?.Invoke();
+    }
+    break;
 ```
 
 ### Time-Based Ticks

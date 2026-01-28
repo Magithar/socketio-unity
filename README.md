@@ -1,14 +1,16 @@
 # socketio-unity
 
-> ⚠️ **Early development — API may change before v1.0.0**
+> ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v0.3.0-alpha | **Next:** v1.0.0 — Focused on stability and protocol hardening.
+**Current:** v1.0.0 (2026-01-29) — Protocol hardening complete, API stability guaranteed.
+
+**Next:** v1.1.0 — Developer experience, testing infrastructure, and performance transparency.
 
 An **open-source, clean-room implementation** of a **Socket.IO v4 client for Unity**.
 
-This project enables Unity applications to communicate with Socket.IO–powered backends
-(e.g. Node.js services) using a familiar **event-based `On` / `Emit` API**, with support for
-**Standalone and WebGL builds**.
+This project enables Unity applications to communicate with Socket.IO–powered backends 
+(e.g. Node.js services) using a familiar **event-based `On` / `Emit` API**, with support 
+for **Standalone and WebGL builds**.
 
 The implementation is written **from scratch**, based solely on **public protocol
 documentation** and **observed network behavior**, with **no dependency on paid or closed-source
@@ -34,6 +36,18 @@ Unity assets**.
 * Standalone (Editor / Desktop) support
 * **Binary payload support** (receive & emit)
 * **Auth per namespace** (handshake extensions)
+* **Unity Profiler markers** (zero-cost when disabled, via `SOCKETIO_PROFILER` define)
+* **Unity Profiler counters** (live metrics, via `SOCKETIO_PROFILER_COUNTERS` define)
+* **Packet tracing / debug tooling** (`SocketIOTrace`)
+* **Unity main-thread dispatch** (`UnityMainThreadDispatcher`)
+* **Memory pooling & GC optimization** (`ListPool`, `ObjectPool`, `BinaryPacketBuilderPool`)
+* **RTT tracking** (`PingRttTracker` for round-trip latency measurement)
+* **ACK timeout support** (configurable timeout with automatic expiration cleanup)
+* **Event unsubscription** (`Off()` methods for handler cleanup)
+* **IDisposable pattern** (`SocketIOClient`, `EngineIOClient` for proper resource cleanup)
+* **Shutdown() method** (clean disconnect with full state reset)
+* **Editor Network HUD** (real-time Scene View overlay via `SocketIO → Toggle Network HUD`)
+* **Throughput tracking** (`SocketIOThroughputTracker` for bandwidth monitoring)
 
 ### ✅ WebGL Support (Production Verified)
 
@@ -42,14 +56,13 @@ Unity assets**.
 * Binary data reception confirmed
 * Reconnection behavior validated in browser
 
-### ✅ Recently Completed
+### ✅ v1.0.0 Milestone (2026-01-29)
 
-* Unity Profiler markers (zero-cost when disabled, via `SOCKETIO_PROFILER` define)
-* Packet tracing / debug tooling (`SocketIOTrace`)
-* Unity main-thread dispatch (`UnityMainThreadDispatcher`)
-* Memory pooling & GC optimization (`ListPool`, `ObjectPool`, `BinaryPacketBuilderPool`)
-
-> ⚠️ API surface may change before `v1.0.0`
+* **API Stability Contract** - Public API frozen for v1.x releases
+* **Basic Chat Sample** - Production-ready Hello World onboarding experience
+* **Protocol Hardening** - Edge case handling and malformed packet protection
+* **Namespace Disconnect Correctness** - Reliable multi-namespace lifecycle management
+* **Scene/Domain Reload Safety** - Unity Editor workflow compatibility
 
 ---
 
@@ -77,6 +90,26 @@ Unity assets**.
 | Windows / macOS / Linux | ✅                    |
 | WebGL                   | ✅ (verified)         |
 | Mobile                  | ❓ (community tested) |
+
+### Minimum Unity Version
+
+| Feature | Minimum Version |
+|---------|-----------------|
+| Core functionality | Unity 2019.4 LTS |
+| Newtonsoft.Json (built-in) | Unity 2020.1+ |
+| Profiler Counters | Unity 2020.2+ |
+
+---
+
+## 🔒 API Stability
+
+✅ **Stable for v1.0.0+**  
+Core APIs (`Connect`, `Emit`, `On`, `Off`, `Of`, `Disconnect`) are **guaranteed stable** and won't break in v1.x releases.
+
+⚠️ **May change in minor releases**  
+Debugging tools (`SocketIOTrace`, profiler APIs) may evolve as we improve developer experience.
+
+📖 **Full Details**: See [API_STABILITY.md](API_STABILITY.md) for the complete stability contract.
 
 ---
 
@@ -164,6 +197,78 @@ socket.Emit("chat", "Hello from Unity!");
 
 ---
 
+### Connection State & Error Handling
+
+```csharp
+var socket = SocketIOManager.Instance.Socket;
+
+// Check connection state
+if (socket.IsConnected)
+{
+    socket.Emit("status", "online");
+}
+
+// Handle connection errors
+socket.OnError += (error) =>
+{
+    Debug.LogError($"❌ Socket error: {error}");
+    // Common errors: connection refused, timeout, invalid URL
+};
+
+// Handle disconnection
+socket.OnDisconnected += () =>
+{
+    Debug.Log("🔌 Disconnected from server");
+};
+```
+
+**Common Error Scenarios:**
+| Error | Cause | Solution |
+|-------|-------|----------|
+| Connection refused | Server not running | Start the server |
+| Timeout | Network issues or firewall | Check network/firewall settings |
+| Invalid URL | Malformed WebSocket URL | Use `ws://` or `wss://` prefix |
+| Auth failed | Invalid credentials | Check namespace auth payload |
+
+---
+
+### Event Unsubscription (`Off()`)
+
+Always unsubscribe from events when destroying GameObjects to prevent memory leaks:
+
+```csharp
+public class MyComponent : MonoBehaviour
+{
+    private Action<string> chatHandler;
+    private Action<byte[]> fileHandler;
+
+    void Start()
+    {
+        var socket = SocketIOManager.Instance.Socket;
+
+        // Store handler references for later cleanup
+        chatHandler = (msg) => Debug.Log($"Chat: {msg}");
+        fileHandler = (data) => Debug.Log($"File: {data.Length} bytes");
+
+        socket.On("chat", chatHandler);
+        socket.On("file", fileHandler);
+    }
+
+    void OnDestroy()
+    {
+        var socket = SocketIOManager.Instance?.Socket;
+        if (socket != null)
+        {
+            // Unsubscribe to prevent memory leaks
+            socket.Off("chat", chatHandler);
+            socket.Off("file", fileHandler);
+        }
+    }
+}
+```
+
+---
+
 ### Binary Events
 
 Handle binary data (images, files, etc.) with typed handlers:
@@ -194,6 +299,10 @@ socket.Emit("upload", payload, (response) =>
 {
     Debug.Log($"✅ Server response: {response}");
 });
+
+// Emitting multiple values (binary + metadata)
+// Note: Multiple binary attachments in a single emit is not currently supported.
+// Use separate emits or combine data server-side.
 ```
 
 ---
@@ -244,12 +353,59 @@ socket.Emit("getTime", null, response =>
 {
     Debug.Log("⏱ Server time: " + response);
 });
+
+// With custom timeout (default: 5000ms)
+socket.Emit("slowOperation", data, response =>
+{
+    if (response == null)
+    {
+        Debug.LogWarning("⏱ ACK timed out - no response from server");
+    }
+    else
+    {
+        Debug.Log("✅ Response: " + response);
+    }
+}, timeoutMs: 10000);
 ```
 
 **Features:**
-* Timeout-protected
+* Timeout-protected (callback receives `null` on timeout)
 * Namespace-aware
 * Automatically cleared on disconnect
+
+**ACK Timeout Behavior:**
+* When timeout expires, the callback is invoked with `null`
+* The ACK is removed from the pending registry
+* No retry is attempted - handle retry logic in your callback if needed
+
+---
+
+### Disconnect vs Shutdown
+
+```csharp
+var socket = SocketIOManager.Instance.Socket;
+
+// Disconnect() - Intentional disconnect, can reconnect later
+socket.Disconnect();
+// - Stops auto-reconnect
+// - Preserves namespace registrations
+// - Can call Connect() again
+
+// Shutdown() - Full cleanup, typically on application quit
+socket.Shutdown();
+// - Disconnects all namespaces
+// - Clears all event handlers
+// - Resets all internal state
+// - Use in OnApplicationQuit or when completely done with socket
+```
+
+**When to use which:**
+| Scenario | Method |
+|----------|--------|
+| User logs out, may log back in | `Disconnect()` |
+| Switching servers | `Disconnect()` then `Connect(newUrl)` |
+| Application quitting | `Shutdown()` |
+| Disposing the socket permanently | `Shutdown()` + `Dispose()` |
 
 ---
 
@@ -273,6 +429,89 @@ socket.Emit("getTime", null, response =>
 * Exponential backoff to avoid overwhelming the server
 * Single reconnect loop (no duplicate attempts)
 * Automatically stopped on successful connection
+
+---
+
+### Thread Safety
+
+All callbacks are guaranteed to execute on Unity's main thread:
+
+```csharp
+socket.On("update", (data) =>
+{
+    // ✅ Safe to access Unity APIs here
+    transform.position = ParsePosition(data);
+    myText.text = data;
+});
+
+socket.OnConnected += () =>
+{
+    // ✅ Safe to instantiate GameObjects
+    Instantiate(playerPrefab);
+};
+```
+
+**Thread Safety Guarantees:**
+* `OnConnected`, `OnDisconnected`, `OnError` - Main thread
+* All `On()` event handlers - Main thread
+* All ACK callbacks - Main thread
+* Namespace events - Main thread
+
+This is achieved via `UnityMainThreadDispatcher`, which queues callbacks from the WebSocket thread and processes them during Unity's Update loop.
+
+---
+
+### RTT & Throughput Monitoring
+
+Access real-time network metrics for debugging or UI display:
+
+```csharp
+var socket = SocketIOManager.Instance.Socket;
+
+// Round-trip time (ping latency in milliseconds)
+float rtt = socket.PingRttMs;
+Debug.Log($"Latency: {rtt}ms");
+
+// Throughput tracking (requires SocketIOThroughputTracker)
+// These values update every second
+float sentPerSec = SocketIOThroughputTracker.SentBytesPerSec;
+float recvPerSec = SocketIOThroughputTracker.ReceivedBytesPerSec;
+Debug.Log($"↑ {sentPerSec:F0} B/s  ↓ {recvPerSec:F0} B/s");
+```
+
+**Note:** These properties are telemetry APIs and may change in minor releases. See [API Stability](#-api-stability).
+
+---
+
+### Scene & Domain Reload Safety
+
+The socket system handles Unity Editor workflow correctly:
+
+**Automatic Handling:**
+* **Play → Stop** - Connections are cleaned up, no orphaned sockets
+* **Domain Reload** - Static state is reset, reconnection works correctly
+* **Scene Load** - `DontDestroyOnLoad` preserves `SocketIOManager` singleton
+
+**Best Practices:**
+```csharp
+// In your MonoBehaviour
+void OnDestroy()
+{
+    // Always unsubscribe when your object is destroyed
+    socket?.Off("myEvent", myHandler);
+}
+
+void OnApplicationQuit()
+{
+    // Optional: explicit shutdown on quit
+    SocketIOManager.Instance?.Socket?.Shutdown();
+}
+```
+
+**What You Don't Need to Worry About:**
+* WebSocket connections leaking between play sessions
+* Duplicate reconnect loops after domain reload
+* Stale callbacks firing after scene unload (if you unsubscribe properly)
 
 ---
 
@@ -303,13 +542,11 @@ socketio-unity/
 │   ├── SocketIOUnity.Editor.asmdef
 │   └── SocketIONetworkHud.cs
 │
-├── Samples~/                   # Importable samples
-│   ├── SocketIOManager.cs
-│   ├── BinaryEventTest.cs
-│   ├── WebGLTestController.cs
-│   ├── TraceDemo.cs
-│   ├── MainThreadDispatcherTest.cs
-│   └── NamespaceAuthTest.cs
+├── Samples~/                   # UPM importable samples
+│   └── BasicChat/              # Production-ready Hello World
+│       ├── BasicChatUI.cs
+│       ├── BasicChatScene.unity
+│       └── README.md
 │
 └── Documentation~/             # Package docs
     ├── ARCHITECTURE.md
@@ -319,11 +556,55 @@ socketio-unity/
     └── WEBGL_NOTES.md
 ```
 
+> **Note**: `Samples~/` contains UPM-style samples importable via Package Manager.
+
 ---
 
-## 🧪 Sample Scripts Reference
+## 💬 Basic Chat Sample
 
-All sample scripts are in `Samples~/`. Import them via Package Manager → Samples tab.
+The **Basic Chat** sample is the recommended starting point for learning socketio-unity. It's a production-ready "Hello World" that demonstrates:
+
+- ✅ Connection lifecycle management
+- ✅ Event handling (send/receive)
+- ✅ Automatic reconnection
+- ✅ Proper event cleanup (memory leak prevention)
+- ✅ Main-thread safety
+
+### Quick Tour
+
+```csharp
+// Get socket from SocketIOManager singleton
+var socket = SocketIOManager.Instance.Socket;
+
+// Subscribe to events
+socket.OnConnected += OnConnected;
+socket.On("chat", OnChatMessage);
+
+// Connect and send
+socket.Connect("ws://localhost:3000");
+socket.Emit("chat", "Hello!");
+
+// Clean up in OnDestroy
+socket.Off("chat", OnChatMessage);
+```
+
+**📚 Full Documentation**: See [Samples~/BasicChat/README.md](SocketIOUnity/Samples~/BasicChat/README.md)
+
+**🎯 Import**: Package Manager → Socket.IO Unity Client → Samples → "Basic Chat"
+
+**Key Features:**
+- Uses only APIs guaranteed stable for v1.x
+- Full UI implementation with TextMesh Pro
+- Comprehensive error handling
+- Works on Editor, Standalone, and WebGL
+
+---
+
+## 🧪 Sample Test Scripts Reference
+
+> **Note**: For a complete production example, start with the [Basic Chat Sample](#-basic-chat-sample) above.
+
+All test scripts below are in `Samples~/`. Import them via Package Manager → Samples tab.
 
 ### Core Components
 
@@ -336,8 +617,8 @@ All sample scripts are in `Samples~/`. Import them via Package Manager → Sampl
 | Script | What It Tests | How to Use |
 |--------|---------------|------------|
 | `BinaryEventTest.cs` | Binary event receive (`file`, `multi`) | Attach to any GameObject |
-| `NamespaceAuthTest.cs` | Auth success, rejection, and no-auth namespaces | Attach to SocketIOManager GameObject |
 | `MainThreadDispatcherTest.cs` | Verifies all callbacks run on main thread | Attach to any GameObject |
+| `NamespaceAuthTest.cs` | Auth success, rejection, and no-auth namespaces | Attach to SocketIOManager GameObject |
 | `TraceDemo.cs` | Runtime trace level toggle UI | Attach to any GameObject |
 | `WebGLTestController.cs` | WebGL browser testing with runtime UI | Attach to any GameObject (WebGL builds) |
 
@@ -664,6 +945,12 @@ io.on("connection", (socket) => {
     if (ack) ack({ ok: true, size: buffer.length });
   });
 
+  // ---- Basic Chat (for BasicChat sample)
+  socket.on("chat", (msg) => {
+    console.log("📩 / chat:", msg);
+    socket.emit("chat", msg);  // Echo back
+  });
+
   socket.on("disconnect", (reason) => {
     console.log("❌ / ROOT DISCONNECTED:", socket.id, reason);
   });
@@ -799,6 +1086,29 @@ httpServer.listen(PORT, () => {
 ## 📄 License
 
 [MIT License](LICENSE) — Free for commercial and non-commercial use.
+
+---
+
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. **Open an issue first** to discuss significant changes
+2. **Follow existing code style** and patterns
+3. **Add tests** for new functionality when possible
+4. **Update documentation** if adding/changing public APIs
+
+For bug reports, please include:
+* Unity version
+* Platform (Editor/Standalone/WebGL)
+* Server configuration
+* Minimal reproduction steps
 
 ---
 
