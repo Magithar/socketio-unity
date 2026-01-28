@@ -112,10 +112,11 @@ public bool AddBinary(byte[] data)
     return _buffers.Count == _expected;
 }
 
-public (string eventName, JArray args, string ns) Build()
+public (SocketPacketType type, int? ackId, string eventName, JArray args, string ns) Build()
 {
     ReplacePlaceholders(_json);
-    return (eventName, _json, _namespace);
+    // Extract event name, return full tuple
+    return (type, ackId, eventName, _json, _namespace);
 }
 ```
 
@@ -229,15 +230,16 @@ socket.emit("binary-ack", buffer, (response) => {
 Binary works in WebGL via the jslib bridge:
 
 ```javascript
-ws.onmessage = (e) => {
+ws.onmessage = function(e) {
     if (typeof e.data === "string") {
-        SendMessage("WebGLSocketBridge", "JSOnText", e.data);
+        // Include socket ID prefix for routing
+        SendMessage("WebGLSocketBridge", "JSOnText", id + ":" + e.data);
     } else {
-        // Binary handling
-        const bytes = new Uint8Array(e.data);
-        const ptr = _malloc(bytes.length);
+        // Binary handling with socket ID for routing
+        var bytes = new Uint8Array(e.data);
+        var ptr = _malloc(bytes.length);
         HEAPU8.set(bytes, ptr);
-        SendMessage("WebGLSocketBridge", "JSOnBinary", ptr + "," + bytes.length);
+        SendMessage("WebGLSocketBridge", "JSOnBinary", id + "," + ptr + "," + bytes.length);
         _free(ptr);
     }
 };
