@@ -1,19 +1,20 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
+using System.Reflection;
 
 namespace SocketIOUnity.Editor
 {
     /// <summary>
     /// Editor-only Network HUD overlay in Scene View.
-    /// Toggle via: Tools → SocketIO → Toggle Network HUD
+    /// Toggle via: SocketIO → Toggle Network HUD
     /// Zero build cost - completely stripped from builds.
     /// </summary>
     [InitializeOnLoad]
     internal static class SocketIONetworkHud
     {
         private const string PREF_KEY = "SocketIO_NetworkHUD_Enabled";
-        private const string MENU_PATH = "Tools/SocketIO/Toggle Network HUD";
+        private const string MENU_PATH = "SocketIO/Toggle Network HUD";
 
         private static bool Enabled
         {
@@ -67,13 +68,13 @@ namespace SocketIOUnity.Editor
             GUILayout.Label("  ⬇ Recv: (counters disabled)");
 #endif
 
-            SocketIOManager manager = null;
             Runtime.SocketIOClient client = null;
-            
+
             if (Application.isPlaying)
             {
-                manager = GameObject.FindObjectOfType<SocketIOManager>();
-                client = manager?.Socket;
+                // Use reflection to find any MonoBehaviour with a Socket property
+                // This works with SocketIOManager from Samples without a hard dependency
+                client = FindSocketIOClient();
             }
 
             if (client != null && client.IsConnected)
@@ -116,6 +117,24 @@ namespace SocketIOUnity.Editor
         {
             Menu.SetChecked(MENU_PATH, Enabled);
             return true;
+        }
+
+        /// <summary>
+        /// Finds a SocketIOClient by searching all MonoBehaviours for a "Socket" property.
+        /// This allows the HUD to work with SocketIOManager from Samples without a hard dependency.
+        /// </summary>
+        private static Runtime.SocketIOClient FindSocketIOClient()
+        {
+            var behaviours = Object.FindObjectsOfType<MonoBehaviour>();
+            foreach (var behaviour in behaviours)
+            {
+                var prop = behaviour.GetType().GetProperty("Socket", BindingFlags.Public | BindingFlags.Instance);
+                if (prop != null && prop.PropertyType == typeof(Runtime.SocketIOClient))
+                {
+                    return prop.GetValue(behaviour) as Runtime.SocketIOClient;
+                }
+            }
+            return null;
         }
     }
 }

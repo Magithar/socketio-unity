@@ -2,7 +2,8 @@
     "name": "SocketIOUnity.Editor",
     "rootNamespace": "SocketIOUnity.Editor",
     "references": [
-        "SocketIOUnity"
+        "SocketIOUnity",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"
