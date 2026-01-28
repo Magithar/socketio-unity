@@ -7,7 +7,7 @@ namespace SocketIOUnity.Core
     /// Generic object pool to eliminate GC allocations.
     /// Thread-safe for Unity main thread (single-threaded).
     /// </summary>
-    public sealed class ObjectPool<T> where T : class
+    internal sealed class ObjectPool<T> where T : class
     {
         private readonly Stack<T> _pool;
         private readonly Func<T> _factory;
