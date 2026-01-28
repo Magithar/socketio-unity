@@ -15,6 +15,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+## [1.0.0] — 2026-01-29
+
+**First stable release** — Production-ready Socket.IO v4 client for Unity.
+
+### Added
+- **Basic Chat Sample**: Production-ready "Hello World" onboarding experience
+  - Demonstrates connection lifecycle, event handling, reconnection, proper cleanup
+  - Works on Editor, Standalone, and WebGL
+- **API Stability Contract**: `API_STABILITY.md` documenting stability guarantees
+- **Protocol Edge-Case Test Suite**: 38 comprehensive tests covering:
+  - Empty/null packet handling
+  - Invalid Socket.IO type rejection (out-of-range, non-numeric)
+  - ACK ID overflow protection (Int64 overflow → null)
+  - Binary packet separator validation
+  - Namespace parsing correctness
+  - Malformed JSON resilience (deferred validation)
+  - Disconnect packet parsing (with/without trailing comma)
+
+### Changed
+- Moved **Toggle Network HUD** menu from `Tools → SocketIO` to top-level `SocketIO` menu
+
+### Fixed
+- **Protocol Hardening**:
+  - Empty packets now return null instead of throwing
+  - Invalid type characters (e.g., "4X") safely rejected
+  - Out-of-range types (47+) safely rejected
+  - Huge ACK IDs that overflow Int64 return null
+  - Binary packets without `-` separator handled gracefully
+- **Namespace Disconnect Correctness**:
+  - Disconnect packets with namespace (`41/admin,`) parsed correctly
+  - Disconnect packets without comma (`41/chat`) parsed correctly
+  - Root disconnect (`41`) defaults to `/` namespace
+- **Scene/Domain Reload Safety**:
+  - No orphaned WebSocket connections between play sessions
+  - Static state properly reset on domain reload
+  - No duplicate reconnect loops after reload
+
+### Stability
+- **Public API frozen for v1.x**: `Connect`, `Disconnect`, `Emit`, `On`, `Off`, `Of`
+- **Internal APIs hidden**: Implementation details not exposed to consumers
+- **Debug/Telemetry APIs marked unstable**: `SocketIOTrace`, profiler APIs may evolve
+
+### Documentation
+- Comprehensive README updates:
+  - Connection state & error handling (`IsConnected`, `OnError`, `OnDisconnected`)
+  - Event unsubscription (`Off()`) with proper cleanup examples
+  - `Disconnect()` vs `Shutdown()` comparison
+  - Thread safety guarantees (all callbacks on main thread)
+  - RTT & throughput monitoring APIs
+  - Scene/domain reload safety guidance
+  - Minimum Unity version requirements
+  - Contributing guidelines
+  - Common error scenarios table
+
 ## [0.3.0-alpha] - 2026-01-22
 
 ### Added
@@ -31,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SocketIOProfilerCounters` for live metrics (enable via `SOCKETIO_PROFILER_COUNTERS` define)
     - Bytes Sent/Received, Packets/sec, Active Namespaces, Pending ACKs
   - `SocketIOThroughputTracker` for bandwidth monitoring
-- **Editor Network HUD**: Real-time Scene View overlay (`Tools → SocketIO → Toggle Network HUD`)
+- **Editor Network HUD**: Real-time Scene View overlay (`SocketIO → Toggle Network HUD`)
   - Displays connection status, RTT, namespace count, pending ACKs, throughput
 - **RTT Tracking**: `PingRttTracker` for round-trip latency measurement via Engine.IO PING timing
 - **ACK Timeout Support**: `AckRegistry` with configurable timeout and automatic expiration cleanup
@@ -157,7 +211,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v0.3.0-alpha...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Magithar/socketio-unity/compare/v0.3.0-alpha...v1.0.0
 [0.3.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.2.0-alpha...v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.1-alpha...v0.2.0-alpha
 [0.1.1-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.0-alpha...v0.1.1-alpha
