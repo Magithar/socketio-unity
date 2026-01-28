@@ -1,6 +1,5 @@
 using UnityEngine;
 using SocketIOUnity.Runtime;
-using SocketIOUnity.Transport;
 
 /// <summary>
 /// Test script to verify binary event handling.
@@ -9,12 +8,13 @@ using SocketIOUnity.Transport;
 /// </summary>
 public class BinaryEventTest : MonoBehaviour
 {
+    [SerializeField] private string serverUrl = "http://localhost:3000";
+
     private SocketIOClient _socket;
 
     void Start()
     {
-        _socket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
-
+        _socket = SocketIOManager.Instance.Socket;
 
         _socket.OnConnected += () => Debug.Log("✅ Connected to server!");
         _socket.OnDisconnected += () => Debug.Log("❌ Disconnected from server");
@@ -31,11 +31,7 @@ public class BinaryEventTest : MonoBehaviour
             Debug.Log($"📥 Received 'multi' binary event: {data.Length} bytes");
         });
 
-        _socket.Connect("http://localhost:3000");
-    }
-
-    void OnDestroy()
-    {
-        _socket?.Dispose();
+        Debug.Log($"[BinaryEventTest] Connecting to {serverUrl}...");
+        _socket.Connect(serverUrl);
     }
 }

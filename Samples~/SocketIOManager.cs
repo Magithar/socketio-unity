@@ -8,8 +8,6 @@ public sealed class SocketIOManager : MonoBehaviour
 
     public SocketIOClient Socket { get; private set; }
 
-    private const string Url = "ws://localhost:3000";
-
     private void Awake()
     {
         if (Instance != null)
@@ -25,7 +23,8 @@ public sealed class SocketIOManager : MonoBehaviour
         // Platform-specific: WebGL uses .jslib bridge, others use WebSocketSharp
         Socket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
 
-        Socket.Connect(Url);
+        // Note: Connection is initiated by scene scripts (e.g., BasicChatUI.Start())
+        // Do NOT call Socket.Connect() here to avoid double-connect race condition
     }
 
     private void OnDestroy()
@@ -33,6 +32,7 @@ public sealed class SocketIOManager : MonoBehaviour
         if (Instance == this)
         {
             Socket?.Shutdown();
+            Instance = null;
         }
     }
 

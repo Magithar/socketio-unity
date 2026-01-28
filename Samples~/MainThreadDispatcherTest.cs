@@ -1,6 +1,5 @@
 using UnityEngine;
 using SocketIOUnity.Runtime;
-using SocketIOUnity.Transport;
 using System.Threading;
 using System;
 
@@ -10,6 +9,8 @@ using System;
 /// </summary>
 public class MainThreadDispatcherTest : MonoBehaviour
 {
+    [SerializeField] private string serverUrl = "http://localhost:3000";
+
     private SocketIOClient _socket;
     private int _mainThreadId;
 
@@ -19,8 +20,8 @@ public class MainThreadDispatcherTest : MonoBehaviour
         _mainThreadId = Thread.CurrentThread.ManagedThreadId;
         Debug.Log($"[MainThreadTest] Main thread ID: {_mainThreadId}");
 
-        // Connect to test server
-        _socket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
+        // Use shared socket from manager
+        _socket = SocketIOManager.Instance.Socket;
 
         // Test 1: Regular event callback (explicit cast to avoid ambiguity)
         _socket.On("test-thread", (Action<string>)((data) =>
@@ -49,12 +50,8 @@ public class MainThreadDispatcherTest : MonoBehaviour
             Debug.Log("[MainThreadTest] ✓ Connected to server");
         };
 
-        _socket.Connect("http://localhost:3000");
-    }
-
-    void OnDestroy()
-    {
-        _socket?.Dispose();
+        Debug.Log($"[MainThreadTest] Connecting to {serverUrl}...");
+        _socket.Connect(serverUrl);
     }
 
     private void VerifyMainThread(string callbackName)

@@ -10,6 +10,8 @@ public class NamespaceAuthTest : MonoBehaviour
 {
     private SocketIOClient _socket;
     
+    [SerializeField] private string serverUrl = "http://localhost:3000";
+
     void Start()
     {
         _socket = SocketIOManager.Instance.Socket;
@@ -17,6 +19,10 @@ public class NamespaceAuthTest : MonoBehaviour
         // Test 1: Root namespace (no auth)
         _socket.On("connect", OnRootConnected);
         _socket.On("connect_error", OnRootConnectError);
+
+        // Actually connect to the server
+        Debug.Log($"[NamespaceAuthTest] Connecting to {serverUrl}...");
+        _socket.Connect(serverUrl);
 
         // Test 2: Admin namespace with valid auth
         var admin = _socket.Of("/admin", new { token = "test-secret" });
