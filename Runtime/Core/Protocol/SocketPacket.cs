@@ -1,6 +1,6 @@
 namespace SocketIOUnity.SocketProtocol
 {
-    public class SocketPacket
+    internal class SocketPacket
     {
         public SocketPacketType Type;
         public string Namespace;

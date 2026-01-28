@@ -1,30 +1,38 @@
 using System;
+using SocketIOUnity.Debugging;
 
 namespace SocketIOUnity.SocketProtocol
 {
-    public static class SocketPacketParser
+    internal static class SocketPacketParser
     {
+        /// <summary>
+        /// Parse a raw Socket.IO packet string into a SocketPacket.
+        /// Returns null if the packet is malformed (defensive parsing).
+        /// </summary>
         public static SocketPacket Parse(string raw)
         {
             if (string.IsNullOrEmpty(raw))
-                throw new ArgumentException("Empty Socket.IO packet");
+            {
+                SocketIOTrace.Error(TraceCategory.SocketIO, "Empty Socket.IO packet received");
+                return null;
+            }
 
             int i = 0;
 
-            // --------------------------------------------------
-            // Engine.IO framing (WebSocket)
-            // --------------------------------------------------
-            // '4' = Engine.IO message
-            if (raw[i] == '4')
-                i++;
-
-            if (i >= raw.Length)
-                throw new ArgumentException("Invalid Socket.IO packet");
+            // Note: Engine.IO framing ('4' prefix) is already stripped by
+            // EngineIOClient.HandleTextMessage before reaching this parser.
+            // The raw string here is the Socket.IO packet payload only.
 
             // --------------------------------------------------
-            // Socket.IO packet type
+            // Socket.IO packet type (validate 0-6 range)
             // --------------------------------------------------
-            var type = (SocketPacketType)(raw[i] - '0');
+            int typeInt = raw[i] - '0';
+            if (typeInt < 0 || typeInt > 6)
+            {
+                SocketIOTrace.Error(TraceCategory.SocketIO, $"Invalid Socket.IO packet type: {raw[i]} in '{raw}'");
+                return null;
+            }
+            var type = (SocketPacketType)typeInt;
             i++;
 
             // --------------------------------------------------
@@ -39,7 +47,13 @@ namespace SocketIOUnity.SocketProtocol
                     i++;
 
                 if (i > attachStart)
-                    int.TryParse(raw.Substring(attachStart, i - attachStart), out attachments);
+                {
+                    if (!int.TryParse(raw.Substring(attachStart, i - attachStart), out attachments))
+                    {
+                        SocketIOTrace.Error(TraceCategory.SocketIO, $"Invalid binary attachment count in '{raw}'");
+                        return null;
+                    }
+                }
 
                 if (i < raw.Length && raw[i] == '-')
                     i++; // skip '-'
@@ -72,7 +86,17 @@ namespace SocketIOUnity.SocketProtocol
                 i++;
 
             if (i > ackStart)
-                ackId = int.Parse(raw.Substring(ackStart, i - ackStart));
+            {
+                if (int.TryParse(raw.Substring(ackStart, i - ackStart), out int parsedAckId))
+                {
+                    ackId = parsedAckId;
+                }
+                else
+                {
+                    SocketIOTrace.Error(TraceCategory.SocketIO, $"ACK ID overflow or invalid: '{raw.Substring(ackStart, i - ackStart)}'");
+                    // Continue without ACK ID rather than crashing
+                }
+            }
 
             // --------------------------------------------------
             // Payload
