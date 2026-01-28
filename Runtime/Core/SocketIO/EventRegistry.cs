@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SocketIOUnity.Debugging;
 using SocketIOUnity.UnityIntegration;
+using UnityEngine;
 
 namespace SocketIOUnity.Runtime
 {
@@ -10,6 +11,9 @@ namespace SocketIOUnity.Runtime
         private readonly Dictionary<string, List<Action<string>>> _handlers = new();
         private readonly Dictionary<string, List<Action<byte[]>>> _binaryHandlers = new();
 
+        /// <summary>
+        /// Subscribe a string event handler. Duplicate handlers are ignored (no double-registration).
+        /// </summary>
         public void On(string eventName, Action<string> handler)
         {
             if (!_handlers.TryGetValue(eventName, out var list))
@@ -18,9 +22,14 @@ namespace SocketIOUnity.Runtime
                 _handlers[eventName] = list;
             }
 
-            list.Add(handler);
+            // Prevent duplicate handler registration
+            if (!list.Contains(handler))
+                list.Add(handler);
         }
 
+        /// <summary>
+        /// Subscribe a binary event handler. Duplicate handlers are ignored (no double-registration).
+        /// </summary>
         public void On(string eventName, Action<byte[]> handler)
         {
             if (!_binaryHandlers.TryGetValue(eventName, out var list))
@@ -29,7 +38,9 @@ namespace SocketIOUnity.Runtime
                 _binaryHandlers[eventName] = list;
             }
 
-            list.Add(handler);
+            // Prevent duplicate handler registration
+            if (!list.Contains(handler))
+                list.Add(handler);
         }
 
         public void Emit(string eventName, string payload)
@@ -41,9 +52,21 @@ namespace SocketIOUnity.Runtime
 
                 foreach (var handler in list)
                 {
+                    // Capture handler in closure to avoid modified closure issues
+                    var capturedHandler = handler;
                     UnityMainThreadDispatcher.Enqueue(() =>
                     {
-                        handler.Invoke(payload);
+                        try
+                        {
+                            capturedHandler.Invoke(payload);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log exception but don't prevent other handlers from firing
+                            Debug.LogException(ex);
+                            SocketIOTrace.Error(TraceCategory.SocketIO,
+                                $"Exception in event handler for '{eventName}': {ex.Message}");
+                        }
                     });
                 }
             }
@@ -58,9 +81,21 @@ namespace SocketIOUnity.Runtime
 
                 foreach (var handler in list)
                 {
+                    // Capture handler in closure to avoid modified closure issues
+                    var capturedHandler = handler;
                     UnityMainThreadDispatcher.Enqueue(() =>
                     {
-                        handler.Invoke(data);
+                        try
+                        {
+                            capturedHandler.Invoke(data);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log exception but don't prevent other handlers from firing
+                            Debug.LogException(ex);
+                            SocketIOTrace.Error(TraceCategory.SocketIO,
+                                $"Exception in binary event handler for '{eventName}': {ex.Message}");
+                        }
                     });
                 }
             }

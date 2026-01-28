@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SocketIOUnity.Debugging;
 
 namespace SocketIOUnity.Runtime
@@ -57,6 +58,10 @@ namespace SocketIOUnity.Runtime
         }
 
         public int Count => _namespaces.Count;
-        public IEnumerable<NamespaceSocket> All => _namespaces.Values;
+
+        /// <summary>
+        /// Returns a snapshot of all namespace sockets. Safe to iterate even if collection is modified.
+        /// </summary>
+        public IEnumerable<NamespaceSocket> All => _namespaces.Values.ToArray();
     }
 }

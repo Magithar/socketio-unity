@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Newtonsoft.Json;
 using SocketIOUnity.Debugging;
 using SocketIOUnity.EngineProtocol;
@@ -25,8 +26,13 @@ namespace SocketIOUnity.Runtime
         public bool IsConnected => _engine != null && _engine.IsConnected;
 
         // Telemetry accessors for Editor HUD
+        [System.Obsolete("Telemetry properties may change before v2.0. Use for debugging only.", false)]
         public int NamespaceCount => _namespaces.Count;
+        
+        [System.Obsolete("Telemetry properties may change before v2.0. Use for debugging only.", false)]
         public int PendingAckCount => _defaultNamespace?.PendingAckCount ?? 0;
+        
+        [System.Obsolete("Telemetry properties may change before v2.0. Use for debugging only.", false)]
         public float PingRttMs => _engine?.PingRttMs ?? 0f;
 
         public event Action OnConnected;
@@ -81,6 +87,13 @@ namespace SocketIOUnity.Runtime
 
         private void AttemptReconnect()
         {
+            // Safety check: ensure we have a URL to reconnect to
+            if (string.IsNullOrEmpty(_lastUrl))
+            {
+                SocketIOTrace.Error(TraceCategory.SocketIO, "Cannot reconnect: no URL available");
+                return;
+            }
+
             CreateFreshEngine();
             _engine.Connect(_lastUrl);
         }
@@ -122,7 +135,9 @@ namespace SocketIOUnity.Runtime
 
         public void Tick()
         {
-            foreach (var ns in _namespaces.All)
+            // Cache namespace list to avoid iteration issues if collection is modified during Tick
+            var namespacesToTick = _namespaces.All.ToArray();
+            foreach (var ns in namespacesToTick)
                 ns.Tick();
 
             _reconnect.Tick();
@@ -219,7 +234,9 @@ namespace SocketIOUnity.Runtime
             // Reset namespaces before disconnect handlers
             _namespaces.ResetAll();
 
-            foreach (var ns in _namespaces.All)
+            // Cache namespace list to avoid iteration issues if handlers modify the collection
+            var namespacesToNotify = _namespaces.All.ToArray();
+            foreach (var ns in namespacesToNotify)
                 ns.HandleDisconnect();
 
             if (_intentionalDisconnect)
@@ -246,10 +263,19 @@ namespace SocketIOUnity.Runtime
             try
             {
                 packet = SocketPacketParser.Parse(raw);
+                
+                // Defensive: parser returns null for malformed packets
+                if (packet == null)
+                {
+                    OnError?.Invoke("Malformed Socket.IO packet received");
+                    return;
+                }
+                
                 SocketIOTrace.Verbose(TraceCategory.SocketIO, $"← Packet type={packet.Type} ns={packet.Namespace}");
             }
             catch (Exception ex)
             {
+                // Safety net - should not happen with defensive parser
                 SocketIOTrace.Error(TraceCategory.SocketIO, $"Parse error: {ex.Message}");
                 OnError?.Invoke($"Socket.IO parse error: {ex.Message}");
                 return;
@@ -289,6 +315,7 @@ namespace SocketIOUnity.Runtime
                     break;
 
                 case SocketPacketType.Disconnect:
+                    SocketIOTrace.Protocol(TraceCategory.Namespace, $"Server-initiated namespace disconnect: {packet.Namespace}");
                     nsSocket.HandleDisconnect();
                     break;
 
@@ -299,7 +326,6 @@ namespace SocketIOUnity.Runtime
                     if (_binaryAssembler.IsWaiting)
                         _binaryAssembler.Abort();
                     _binaryAssembler.Start(packet);
-                    // TODO: Route BinaryAck to ack handler (currently only BinaryEvent is dispatched)
                     break;
             }
         }
@@ -313,14 +339,27 @@ namespace SocketIOUnity.Runtime
 
             if (_binaryAssembler.AddBinary(data))
             {
-                var (eventName, args, ns) = _binaryAssembler.Build();
-
-                SocketIOTrace.Protocol(TraceCategory.Binary, $"Binary event complete: '{eventName}' with {args.Count} args");
+                var (type, ackId, eventName, args, ns) = _binaryAssembler.Build();
 
                 if (!_namespaces.TryGet(ns, out var nsSocket))
                     nsSocket = _defaultNamespace;
 
-                nsSocket.HandleBinaryEvent(eventName, args);
+                if (type == SocketProtocol.SocketPacketType.BinaryAck)
+                {
+                    // Route BinaryAck to acknowledgment handler
+                    if (ackId.HasValue)
+                    {
+                        SocketIOTrace.Protocol(TraceCategory.Ack, $"Binary ACK received id={ackId.Value}");
+                        var payload = args.Count > 0 ? args[0]?.ToString() : null;
+                        nsSocket.HandleAck(ackId.Value, payload);
+                    }
+                }
+                else
+                {
+                    // Route BinaryEvent to event handler
+                    SocketIOTrace.Protocol(TraceCategory.Binary, $"Binary event complete: '{eventName}' with {args.Count} args");
+                    nsSocket.HandleBinaryEvent(eventName, args);
+                }
             }
         }
     }

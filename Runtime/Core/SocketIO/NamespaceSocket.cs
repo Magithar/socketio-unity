@@ -19,6 +19,7 @@ namespace SocketIOUnity.Runtime
         public int PendingAckCount => _acks.Count;
 
         public event Action OnConnected;
+        public event Action OnDisconnected;
 
         internal NamespaceSocket(string ns, SocketIOClient root, object auth = null)
         {
@@ -117,8 +118,16 @@ namespace SocketIOUnity.Runtime
 
         internal void HandleDisconnect()
         {
+            if (!_connected)
+                return; // Prevent double-fire
+            
+            SocketIOTrace.Protocol(TraceCategory.Namespace, $"Namespace disconnected: '{_namespace}'");
+            
             _connected = false;
             _acks.Clear(); // 🔥 purge all pending ACKs on disconnect
+            
+            OnDisconnected?.Invoke();
+            _events.Emit("disconnect", null);
         }
 
         internal void Reset()
