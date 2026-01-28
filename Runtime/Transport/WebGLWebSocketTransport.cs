@@ -10,9 +10,10 @@ namespace SocketIOUnity.Transport
     /// Uses JavaScript bridge (.jslib) for actual WebSocket management.
     /// Only compiles in WebGL builds (not in Unity Editor).
     /// </summary>
-    public sealed class WebGLWebSocketTransport : ITransport
+    internal sealed class WebGLWebSocketTransport : ITransport
     {
         private readonly string _id = Guid.NewGuid().ToString();
+        private bool _registered;
 
         public event Action OnOpen;
         public event Action OnClose;
@@ -35,11 +36,20 @@ namespace SocketIOUnity.Transport
         public void Connect(string url)
         {
             var bridge = EnsureBridge();
-            bridge.OnOpen += () => OnOpen?.Invoke();
-            bridge.OnClose += () => OnClose?.Invoke();
-            bridge.OnText += msg => OnTextMessage?.Invoke(msg);
-            bridge.OnBinary += data => OnBinaryMessage?.Invoke(data);
-            bridge.OnError += () => OnError?.Invoke("WebGL socket error");
+
+            // Register this transport's handlers with the bridge
+            if (!_registered)
+            {
+                _registered = true;
+                bridge.Register(
+                    _id,
+                    () => OnOpen?.Invoke(),
+                    () => OnClose?.Invoke(),
+                    msg => OnTextMessage?.Invoke(msg),
+                    data => OnBinaryMessage?.Invoke(data),
+                    () => OnError?.Invoke("WebGL socket error")
+                );
+            }
 
             SocketIO_WebSocket_Create(_id, url);
         }
@@ -50,12 +60,27 @@ namespace SocketIOUnity.Transport
         public void SendBinary(byte[] data)
         {
             var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            SocketIO_WebSocket_SendBinary(_id, handle.AddrOfPinnedObject(), data.Length);
-            handle.Free();
+            try
+            {
+                SocketIO_WebSocket_SendBinary(_id, handle.AddrOfPinnedObject(), data.Length);
+            }
+            finally
+            {
+                // Ensure handle is always freed, even if SendBinary throws
+                handle.Free();
+            }
         }
 
         public void Close()
-            => SocketIO_WebSocket_Close(_id);
+        {
+            // Unregister handlers to prevent stale callbacks
+            if (_registered)
+            {
+                _registered = false;
+                WebGLSocketBridge.Instance?.Unregister(_id);
+            }
+            SocketIO_WebSocket_Close(_id);
+        }
 
         /// <summary>
         /// WebGL uses browser event loop, no manual dispatch needed.
