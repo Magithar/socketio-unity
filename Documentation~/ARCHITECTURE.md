@@ -48,6 +48,7 @@ socketio-unity/                 # Package root
 │
 ├── Runtime/                    # Runtime code (included in builds)
 │   ├── SocketIOUnity.asmdef
+│   ├── AssemblyInfo.cs
 │   │
 │   ├── Core/
 │   │   ├── EngineIO/           # Engine.IO v4 protocol
@@ -112,13 +113,17 @@ socketio-unity/                 # Package root
 │   ├── SocketIOUnity.Editor.asmdef
 │   └── SocketIONetworkHud.cs
 │
-├── Samples~/                   # Importable samples (~ = not auto-imported)
+├── Samples~/                   # UPM importable samples
+│   ├── BasicChat/
+│   │   ├── BasicChatUI.cs
+│   │   ├── BasicChatScene.unity
+│   │   └── README.md
 │   ├── SocketIOManager.cs
 │   ├── BinaryEventTest.cs
-│   ├── WebGLTestController.cs
-│   ├── TraceDemo.cs
 │   ├── MainThreadDispatcherTest.cs
-│   └── NamespaceAuthTest.cs
+│   ├── NamespaceAuthTest.cs
+│   ├── TraceDemo.cs
+│   └── WebGLTestController.cs
 │
 └── Documentation~/             # Package documentation
     ├── ARCHITECTURE.md
@@ -127,6 +132,8 @@ socketio-unity/                 # Package root
     ├── RECONNECT_BEHAVIOR.md
     └── WEBGL_NOTES.md
 ```
+
+> **Note**: `Samples~/` contains UPM-style samples importable via Package Manager.
 
 ---
 
