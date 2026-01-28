@@ -7,7 +7,7 @@ namespace SocketIOUnity.EngineProtocol
     /// Engine.IO v4 heartbeat manager.
     /// Timeout = pingInterval + pingTimeout
     /// </summary>
-    public sealed class HeartbeatController
+    internal sealed class HeartbeatController
     {
         private int _pingIntervalMs;
         private int _pingTimeoutMs;

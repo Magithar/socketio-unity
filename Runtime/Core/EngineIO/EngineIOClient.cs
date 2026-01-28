@@ -7,7 +7,7 @@ using SocketIOUnity.UnityIntegration;
 
 namespace SocketIOUnity.EngineProtocol
 {
-    public sealed class EngineIOClient : ITickable, IDisposable
+    internal sealed class EngineIOClient : ITickable, IDisposable
     {
         private readonly ITransport _transport;
         private readonly HeartbeatController _heartbeat;
@@ -82,7 +82,8 @@ namespace SocketIOUnity.EngineProtocol
 
         private void BindTransportEvents()
         {
-            _transport.OnOpen += HandleTransportOpen;
+            // Note: OnOpen is not bound because Engine.IO v4 requires waiting for
+            // the OPEN packet (type 0) before considering the connection established
             _transport.OnClose += HandleTransportClose;
             _transport.OnTextMessage += HandleTextMessage;
             _transport.OnBinaryMessage += HandleBinaryMessage;
@@ -101,11 +102,6 @@ namespace SocketIOUnity.EngineProtocol
         // --------------------------------------------------
         // Transport handlers
         // --------------------------------------------------
-
-        private void HandleTransportOpen()
-        {
-            // Waiting for Engine.IO OPEN packet (type 0)
-        }
 
         private void HandleTransportClose()
         {
@@ -136,7 +132,15 @@ namespace SocketIOUnity.EngineProtocol
 #if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
                 SocketIOProfilerCounters.PacketReceived();
 #endif
-                var type = (EngineMessageType)(raw[0] - '0');
+                // Defensive: validate Engine.IO type is in range 0-4
+                int typeInt = raw[0] - '0';
+                if (typeInt < 0 || typeInt > 4)
+                {
+                    SocketIOTrace.Error(TraceCategory.EngineIO, $"Invalid Engine.IO message type: '{raw[0]}' (0x{((int)raw[0]):X2})");
+                    return;
+                }
+
+                var type = (EngineMessageType)typeInt;
                 var payload = raw.Length > 1 ? raw.Substring(1) : null;
 
                 HandleEngineMessage(new EngineMessage(type, payload));
@@ -175,6 +179,10 @@ namespace SocketIOUnity.EngineProtocol
 
                 case EngineMessageType.Close:
                     Disconnect();
+                    break;
+
+                default:
+                    SocketIOTrace.Error(TraceCategory.EngineIO, $"Unknown Engine.IO message type: {message.Type}");
                     break;
             }
         }

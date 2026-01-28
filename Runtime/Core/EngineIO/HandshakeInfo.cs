@@ -1,7 +1,7 @@
 namespace SocketIOUnity.EngineProtocol
 {
     [System.Serializable]
-    public class HandshakeInfo
+    internal class HandshakeInfo
     {
         public string sid;
         public int pingInterval;
