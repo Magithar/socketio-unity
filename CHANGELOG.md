@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **First stable release** — Production-ready Socket.IO v4 client for Unity.
 
 ### Added
+- **AssemblyInfo.cs**: Assembly metadata with `InternalsVisibleTo` for test access
 - **Basic Chat Sample**: Production-ready "Hello World" onboarding experience
   - Demonstrates connection lifecycle, event handling, reconnection, proper cleanup
   - Works on Editor, Standalone, and WebGL
@@ -40,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Protocol Hardening**:
   - Empty packets now return null instead of throwing
   - Invalid type characters (e.g., "4X") safely rejected
-  - Out-of-range types (47+) safely rejected
+  - Out-of-range types (7+) safely rejected
   - Huge ACK IDs that overflow Int64 return null
   - Binary packets without `-` separator handled gracefully
 - **Namespace Disconnect Correctness**:
@@ -73,10 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Debugging & Tracing System**: Comprehensive diagnostic tools for development
-  - `SocketIOTrace` static API with configurable trace levels (Off/Errors/Protocol/Verbose)
+  - `SocketIOTrace` static API with configurable trace levels (None/Errors/Protocol/Verbose)
   - `ITraceSink` interface for custom log destinations (file, UI overlay, network)
   - `TraceConfig` for runtime trace level control
-  - `TraceCategory` enum: EngineIO, SocketIO, Namespace, Transport, Binary, Reconnect
+  - `TraceCategory` enum: EngineIO, SocketIO, Transport, Binary, Reconnect, Namespace, Ack
   - `UnityDebugTraceSink` default implementation for Unity Console output
 - **Unity Profiler Integration**: Zero-cost performance monitoring
   - `ProfilerMarkers` for CPU profiling (enable via `SOCKETIO_PROFILER` define)
@@ -92,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sample Test Scripts**: Comprehensive test suite in `Samples/` folder
   - `WebGLTestController` for testing WebGL builds
   - `NamespaceAuthTest`, `BinaryEventTest`, `AdminNamespaceTest`
-  - `MainThreadDispatcherTest`, `TraceDemo`, `ProfilerCounterTest`
+  - `MainThreadDispatcherTest`, `TraceDemo`
 - `/webgl` test namespace in server.js for WebGL-specific testing
 - `BinaryPacketBuilderPool` for zero-allocation binary packet construction
 - **Event Unsubscription**: `Off()` methods on `SocketIOClient` and `NamespaceSocket` for handler cleanup
@@ -117,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `WebGLSocketBridge` MonoBehaviour for JavaScript ↔ C# interop
   - JavaScript `.jslib` plugin for native browser WebSocket handling
 - **Binary Data Support**: Complete Socket.IO v4 binary event handling
-  - `BinaryAssembler` for reconstructing multi-packet binary payloads
+  - `BinaryPacketAssembler` for reconstructing multi-packet binary payloads
   - `BinaryPacketBuilder` for emitting binary data to server
   - Support for `byte[]` arguments in events and ACKs
 - **Memory Pooling**: Zero-GC optimizations for mobile/WebGL
