@@ -8,9 +8,9 @@
 
 An **open-source, clean-room implementation** of a **Socket.IO v4 client for Unity**.
 
-This project enables Unity applications to communicate with Socket.IO–powered backends 
-(e.g. Node.js services) using a familiar **event-based `On` / `Emit` API**, with support 
-for **Standalone and WebGL builds**.
+This project enables Unity applications to communicate with Socket.IO–powered backends
+(e.g. Node.js services) using a familiar **event-based `On` / `Emit` API**, with support for
+**Standalone and WebGL builds**.
 
 The implementation is written **from scratch**, based solely on **public protocol
 documentation** and **observed network behavior**, with **no dependency on paid or closed-source
@@ -524,9 +524,11 @@ socketio-unity/
 ├── package.json
 ├── README.md
 ├── CHANGELOG.md
+├── API_STABILITY.md
 │
 ├── Runtime/                    # Runtime code (included in builds)
 │   ├── SocketIOUnity.asmdef
+│   ├── AssemblyInfo.cs
 │   ├── Core/
 │   │   ├── EngineIO/           # Engine.IO v4 protocol
 │   │   ├── SocketIO/           # Socket.IO client layer
@@ -543,10 +545,16 @@ socketio-unity/
 │   └── SocketIONetworkHud.cs
 │
 ├── Samples~/                   # UPM importable samples
-│   └── BasicChat/              # Production-ready Hello World
-│       ├── BasicChatUI.cs
-│       ├── BasicChatScene.unity
-│       └── README.md
+│   ├── BasicChat/              # Production-ready Hello World
+│   │   ├── BasicChatUI.cs
+│   │   ├── BasicChatScene.unity
+│   │   └── README.md
+│   ├── SocketIOManager.cs
+│   ├── BinaryEventTest.cs
+│   ├── MainThreadDispatcherTest.cs
+│   ├── NamespaceAuthTest.cs
+│   ├── TraceDemo.cs
+│   └── WebGLTestController.cs
 │
 └── Documentation~/             # Package docs
     ├── ARCHITECTURE.md
@@ -588,7 +596,7 @@ socket.Emit("chat", "Hello!");
 socket.Off("chat", OnChatMessage);
 ```
 
-**📚 Full Documentation**: See [Samples~/BasicChat/README.md](SocketIOUnity/Samples~/BasicChat/README.md)
+**📚 Full Documentation**: See [BasicChat/README.md](file:///Users/magi/Documents/Unity/SocketIOTest/Assets/SocketIOUnity/Samples~/BasicChat/README.md)
 
 **🎯 Import**: Package Manager → Socket.IO Unity Client → Samples → "Basic Chat"
 
@@ -804,14 +812,14 @@ using SocketIOUnity.Debugging;
 TraceConfig.Level = TraceLevel.Protocol;  // Errors, Protocol, or Verbose
 
 // Trace events are automatically logged by protocol code
-// Categories: EngineIO, SocketIO, Namespace, Transport, Binary
+// Categories: EngineIO, SocketIO, Transport, Binary, Reconnect, Namespace, Ack
 ```
 
 ### Trace Levels
 
 | Level | Description |
 |-------|-------------|
-| `TraceLevel.Off` | Tracing disabled (default) |
+| `TraceLevel.None` | Tracing disabled (default) |
 | `TraceLevel.Errors` | Only errors |
 | `TraceLevel.Protocol` | Errors + protocol packets |
 | `TraceLevel.Verbose` | Full debug output |
@@ -822,7 +830,7 @@ TraceConfig.Level = TraceLevel.Protocol;  // Errors, Protocol, or Verbose
 // Implement ITraceSink for custom output (file, network, UI overlay)
 public class MyTraceSink : ITraceSink
 {
-    public void Emit(TraceEvent evt)
+    public void Emit(in TraceEvent evt)
     {
         // Custom handling
     }
@@ -1092,6 +1100,8 @@ httpServer.listen(PORT, () => {
 ## 📝 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
+See [API_STABILITY.md](API_STABILITY.md) for the complete API stability contract.
 
 ---
 
