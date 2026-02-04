@@ -130,12 +130,8 @@ namespace SocketIOUnity.Transport
                 // Reset event binding flag for potential reconnect with new WebSocket
                 _eventsBound = false;
 
-                // Null our own transport's events so callbacks become no-ops
-                OnOpen = null;
-                OnClose = null;
-                OnError = null;
-                OnTextMessage = null;
-                OnBinaryMessage = null;
+                // Do NOT nullify events - this would break reconnection and lose subscribers
+                // The WebSocket instance will be disposed and won't fire further events
 
                 await _ws.Close();
             }
