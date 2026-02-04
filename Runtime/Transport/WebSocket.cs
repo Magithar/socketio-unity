@@ -1,16 +1,17 @@
 /*
  * Socket.IO Unity Client - WebSocket Transport
- * 
+ *
  * Portions of this file are derived from NativeWebSocket by Endel Dreyer
  * https://github.com/endel/NativeWebSocket
  * Copyright 2019 Endel Dreyer and contributors
  * Licensed under the Apache License, Version 2.0
- * 
+ *
  * Modifications made for Socket.IO Unity integration:
  * - Embedded into socketio-unity project
- * - Adapted for Socket.IO protocol requirements  
+ * - Adapted for Socket.IO protocol requirements
  * - Custom threading utilities added
- * 
+ * - Added ResetStatics() for domain reload cleanup (v1.0.1)
+ *
  * See NOTICE.md for full license text
  */
  
@@ -741,6 +742,16 @@ namespace NativeWebSocket
 #if UNITY_WEBGL && !UNITY_EDITOR
     /* Map of websocket instances */
     public static Dictionary<Int32, WebSocket> instances = new Dictionary<Int32, WebSocket> ();
+
+    /// <summary>
+    /// Clear static dictionary on domain reload to prevent memory leaks
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        instances.Clear();
+        isInitialized = false;
+    }
 
     /* Delegates */
     public delegate void OnOpenCallback (int instanceId);
