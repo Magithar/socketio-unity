@@ -2,7 +2,7 @@
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.0.0 (2026-01-29) — Protocol hardening complete, API stability guaranteed.
+**Current:** v1.0.1 (2026-02-05) — Critical bug fixes, production stability improved.
 
 **Next:** v1.1.0 — Developer experience, testing infrastructure, and performance transparency.
 
@@ -48,6 +48,7 @@ Unity assets**.
 * **Shutdown() method** (clean disconnect with full state reset)
 * **Editor Network HUD** (real-time Scene View overlay via `SocketIO → Toggle Network HUD`)
 * **Throughput tracking** (`SocketIOThroughputTracker` for bandwidth monitoring)
+* **Automated test suite** (Protocol edge case tests via SocketIO menu + Bug regression tests via Unity Test Runner)
 
 ### ✅ WebGL Support (Production Verified)
 
@@ -145,6 +146,8 @@ Debugging tools (`SocketIOTrace`, profiler APIs) may evolve as we improve develo
    ```
    https://github.com/endel/NativeWebSocket.git#upm
    ```
+
+**Note on NativeWebSocket:** This project includes a modified version of `WebSocket.cs` from NativeWebSocket with Unity domain reload safety improvements (v1.0.1 bug fix). All modifications are documented in [NOTICE.md](SocketIOUnity/NOTICE.md) for Apache 2.0 license compliance.
 
 ### Built-in (No Installation Needed)
 
@@ -542,7 +545,13 @@ socketio-unity/
 │
 ├── Editor/                     # Editor-only code
 │   ├── SocketIOUnity.Editor.asmdef
+│   ├── ProtocolEdgeCaseTests.cs  # Protocol edge case tests (MenuItem)
 │   └── SocketIONetworkHud.cs
+│
+├── Tests/                      # Automated tests
+│   └── Runtime/                # Runtime tests (NUnit)
+│       ├── BugRegressionTests.cs
+│       └── SocketIOUnity.Tests.asmdef
 │
 ├── Samples~/                   # UPM importable samples
 │   ├── BasicChat/              # Production-ready Hello World
@@ -843,6 +852,43 @@ SocketIOTrace.SetSink(new MyTraceSink());
 ---
 
 ## 🧪 Development & Testing
+
+### Test Structure
+
+SocketIOUnity includes comprehensive automated tests for protocol correctness and bug regression prevention.
+
+**Test Organization:**
+
+```
+socketio-unity/
+├── Editor/
+│   ├── ProtocolEdgeCaseTests.cs      # Custom editor tests (MenuItem-based)
+│   └── SocketIOUnity.Editor.asmdef
+└── Tests/
+    └── Runtime/
+        ├── BugRegressionTests.cs      # Unity Test Runner (NUnit)
+        └── SocketIOUnity.Tests.asmdef
+```
+
+**Two Types of Tests:**
+
+| Test File | Type | How to Run |
+|-----------|------|------------|
+| **Editor/ProtocolEdgeCaseTests.cs** | Custom editor tool | Unity menu: **SocketIO → Run Protocol Edge Tests** |
+| **Tests/Runtime/BugRegressionTests.cs** | NUnit tests | Unity Test Runner: **Window → General → Test Runner** |
+
+**Protocol Edge Tests** validate Socket.IO protocol parsing including:
+- Empty/null packet handling
+- Invalid type validation (types 0-6)
+- Binary packet parsing with attachments
+- Namespace parsing edge cases
+- ACK ID overflow protection
+- Malformed JSON handling
+
+**Bug Regression Tests** prevent previously fixed bugs from reoccurring:
+- Binary packet assembler edge cases
+- ACK registry integer overflow handling
+- Invalid JSON graceful degradation
 
 ### Test Server Setup
 
