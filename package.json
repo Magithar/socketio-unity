@@ -1,6 +1,6 @@
 {
     "name": "com.magithar.socketio-unity",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "displayName": "Socket.IO Unity Client",
     "description": "Open-source Socket.IO v4 client for Unity (Standalone & WebGL)",
     "unity": "2020.1",
