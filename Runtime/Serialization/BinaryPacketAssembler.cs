@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
@@ -33,7 +34,17 @@ namespace SocketIOUnity.Serialization
             _namespace = packet.Namespace;
             _ackId = packet.AckId;
             _expected = packet.Attachments;
-            _json = JArray.Parse(packet.JsonPayload);
+
+            try
+            {
+                _json = JArray.Parse(packet.JsonPayload);
+            }
+            catch (Exception ex)
+            {
+                SocketIOTrace.Error(TraceCategory.Binary, $"Failed to parse binary packet JSON payload: {ex.Message}");
+                _json = new JArray(); // Use empty array as fallback
+            }
+
             _buffers.Clear();
         }
 
