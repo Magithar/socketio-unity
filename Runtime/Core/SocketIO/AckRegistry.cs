@@ -26,13 +26,18 @@ namespace SocketIOUnity.Runtime
 
         public int Register(Action<string> callback, TimeSpan timeout)
         {
-            var id = ++_nextId;
+            // Handle integer overflow by wrapping around to 1 (skip 0 and negatives)
+            _nextId++;
+            if (_nextId <= 0)
+                _nextId = 1;
+
+            var id = _nextId;
             var entry = _pool.Rent();
-            
+
             entry.Id = id;
             entry.Callback = callback;
             entry.ExpireAt = Time.time + (float)timeout.TotalSeconds;
-            
+
             _pending[id] = entry;
 
 #if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
