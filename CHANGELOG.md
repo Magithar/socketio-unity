@@ -15,6 +15,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+## [1.0.1] — 2026-02-05
+
+**Patch release** — Critical bug fixes with no API changes.
+
+### Fixed
+- **BinaryPacketAssembler**: Added try-catch around `JArray.Parse()` to handle malformed JSON payloads gracefully
+  - Previously could throw unhandled exception on invalid binary event JSON
+  - Now logs error and uses empty array as fallback
+  - Affects: `BinaryPacketAssembler.Start()` (internal method)
+- **WebSocketTransport**: Removed event nullification in `Close()` method
+  - Previously nullified transport events (`OnOpen`, `OnClose`, etc.), breaking reconnection
+  - Events remain intact during close, allowing proper reconnection lifecycle
+  - Affects: `WebSocketTransport.Close()` (internal transport layer)
+- **WebSocket.cs**: Fixed static dictionary memory leak in WebGL builds
+  - Added `RuntimeInitializeOnLoadMethod` to clear static `instances` dictionary on domain reload
+  - Prevents orphaned WebSocket instances across Unity play mode sessions
+  - Affects: `WebSocketFactory.instances` (internal WebGL bridge)
+- **AckRegistry**: Fixed ACK ID integer overflow after 2 billion emits
+  - ACK IDs now wrap to 1 when overflowing (skips 0 and negative numbers)
+  - Prevents negative ACK IDs that could cause lookup failures
+  - Affects: `AckRegistry.Register()` (internal ACK tracking)
+
+### Added
+- **Regression Tests**: Comprehensive test suite for all 4 bug fixes
+  - `BugRegressionTests.cs` in `Tests/Runtime/`
+  - Tests malformed JSON handling, ACK ID overflow, and wraparound behavior
+
+### Stability
+- **No API Changes**: All fixes are internal implementation improvements
+- **Backward Compatible**: Safe upgrade from v1.0.0
+- **Public API Unchanged**: `Connect()`, `Disconnect()`, `Emit()`, `On()`, `Off()`, `Of()` remain frozen
+
 ## [1.0.0] — 2026-01-29
 
 **First stable release** — Production-ready Socket.IO v4 client for Unity.
@@ -212,7 +244,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Magithar/socketio-unity/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Magithar/socketio-unity/compare/v0.3.0-alpha...v1.0.0
 [0.3.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.2.0-alpha...v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.1.1-alpha...v0.2.0-alpha
