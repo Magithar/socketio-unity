@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: EditMode Tests — Unity 2022.3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: TestProject/Library
+          key: Library-${{ hashFiles('Runtime/**', 'Editor/**', 'Tests/**') }}
+          restore-keys: Library-
+
+      - name: Run EditMode Tests
+        uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          projectPath: TestProject
+          testMode: editmode
+          unityVersion: 2022.3.62f2
+          artifactsPath: artifacts
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EditMode-Results
+          path: ${{ steps.tests.outputs.artifactsPath }}
