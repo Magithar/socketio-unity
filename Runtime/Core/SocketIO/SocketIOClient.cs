@@ -14,6 +14,7 @@ namespace SocketIOUnity.Runtime
     {
         private readonly TransportFactory _transportFactory;
         private readonly ReconnectController _reconnect;
+        private ReconnectConfig _reconnectConfig = new ReconnectConfig();
 
         private EngineIOClient _engine;
         private NamespaceManager _namespaces;
@@ -24,6 +25,31 @@ namespace SocketIOUnity.Runtime
         private bool _intentionalDisconnect;
 
         public bool IsConnected => _engine != null && _engine.IsConnected;
+
+        /// <summary>
+        /// Configuration for automatic reconnection behavior.
+        /// Added in v1.1.0. Setting this property creates a defensive copy to prevent external mutation.
+        ///
+        /// NOTE: Direct property mutation (socket.ReconnectConfig.maxDelay = 999f) is supported in v1.x
+        /// for backward compatibility but will be removed in v2.0. Prefer creating a new config instance.
+        /// </summary>
+        public ReconnectConfig ReconnectConfig
+        {
+            get => _reconnectConfig; // Return reference (v1.x compatibility)
+            set
+            {
+                if (value == null)
+                    throw new ArgumentNullException(nameof(value));
+
+                // Defensive copy on set (prevents external mutation bug)
+                _reconnectConfig = new ReconnectConfig(value);
+
+                if (_reconnect != null)
+                {
+                    _reconnect.Config = new ReconnectConfig(value);
+                }
+            }
+        }
 
         // Telemetry accessors for Editor HUD
         [System.Obsolete("Telemetry properties may change before v2.0. Use for debugging only.", false)]
@@ -45,11 +71,12 @@ namespace SocketIOUnity.Runtime
 
         public SocketIOClient(TransportFactory transportFactory)
         {
-            _transportFactory = transportFactory 
+            _transportFactory = transportFactory
                 ?? throw new ArgumentNullException(nameof(transportFactory));
 
             // 🔥 CRITICAL: Create ReconnectController ONCE (not on every reconnect)
             _reconnect = new ReconnectController(AttemptReconnect);
+            _reconnect.Config = new ReconnectConfig(_reconnectConfig); // Initialize with default config
 
             CreateFreshEngine();
 
