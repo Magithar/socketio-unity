@@ -8,11 +8,22 @@ namespace SocketIOUnity.Runtime
     {
         private readonly Action _reconnectAction;
 
+        // Store as private copy - prevent external mutation
+        private ReconnectConfig _config = new ReconnectConfig();
+
+        /// <summary>
+        /// Get or set reconnection configuration.
+        /// Setting creates a defensive copy to prevent external mutation.
+        /// </summary>
+        public ReconnectConfig Config
+        {
+            get => _config; // Return reference (v1.x compatibility)
+            set => _config = new ReconnectConfig(value ?? new ReconnectConfig()); // Defensive copy on set
+        }
+
         private int _attempt;
         private float _nextAttemptTime;
         private bool _enabled;
-
-        private const float MaxDelay = 30f;
 
         public bool IsRunning => _enabled;
 
@@ -58,6 +69,14 @@ namespace SocketIOUnity.Runtime
                 if (!_enabled)
                     return;
 
+                // Check if we've exceeded max attempts
+                if (_config.maxAttempts > 0 && _attempt >= _config.maxAttempts)
+                {
+                    SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Max reconnect attempts ({_config.maxAttempts}) reached");
+                    Stop();
+                    return;
+                }
+
                 if (Time.time >= _nextAttemptTime)
                 {
                     SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Reconnect attempt {_attempt + 1} firing now");
@@ -70,10 +89,23 @@ namespace SocketIOUnity.Runtime
 
         private void ScheduleNext()
         {
-            float delay = Mathf.Min(Mathf.Pow(2, _attempt), MaxDelay);
+            // Calculate exponential backoff with configurable parameters
+            float baseDelay = _config.initialDelay * Mathf.Pow(_config.multiplier, _attempt);
+            float delay = Mathf.Min(baseDelay, _config.maxDelay);
+
+            // Apply jitter if configured (prevents thundering herd problem)
+            if (_config.jitterPercent > 0f)
+            {
+                float jitterAmount = delay * _config.jitterPercent;
+                delay += UnityEngine.Random.Range(-jitterAmount, jitterAmount);
+
+                // Ensure non-negative delay with reasonable minimum
+                delay = Mathf.Max(delay, 0.1f);
+            }
+
             _nextAttemptTime = Time.time + delay;
 
-            SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Next reconnect in {delay:0.0}s (attempt {_attempt + 1})");
+            SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Next reconnect in {delay:0.2}s (attempt {_attempt + 1})");
         }
     }
 }
