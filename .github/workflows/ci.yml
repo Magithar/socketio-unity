@@ -37,7 +37,7 @@ jobs:
           testMode: editmode
           artifactsPath: artifacts
           # CRITICAL: Since this is a library, this links the root to the TestProject
-          packageMode: true
+          packageMode: false
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
