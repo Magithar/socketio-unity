@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.magithar.socketio-unity": "file:../",
+    "com.magithar.socketio-unity": "file:../../",
     "com.unity.nuget.newtonsoft-json": "3.2.2",
     "com.unity.profiling.core": "1.0.3",
     "com.unity.testtools.codecoverage": "1.1.1",

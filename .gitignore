@@ -4,13 +4,17 @@
 .LSOverride
 
 # Unity
-/TestProject/Library/
-/TestProject/Temp/
-/TestProject/Logs/
-/TestProject/obj/
-/TestProject/Build/
-/TestProject/Builds/
-/TestProject/UserSettings/
+/TestProject~/Library/
+/TestProject~/Temp/
+/TestProject~/Logs/
+/TestProject~/obj/
+/TestProject~/Build/
+/TestProject~/Builds/
+/TestProject~/UserSettings/
+/TestProject~/*.meta
+/TestProject~/Assets/*.meta
+/TestProject~/Packages/*.meta
+/TestProject~/ProjectSettings/*.meta
 *.csproj
 *.sln
 *.unityproj
