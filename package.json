@@ -5,7 +5,7 @@
     "description": "Open-source Socket.IO v4 client for Unity (Standalone & WebGL)",
     "unity": "2020.1",
     "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1"
+        "com.unity.nuget.newtonsoft-json": "3.2.2"
     },
     "keywords": [
         "socketio",
