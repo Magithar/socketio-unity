@@ -17,6 +17,14 @@ jobs:
         with:
           lfs: true
 
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: TestProject/Library
+          key: Library-2022.3.62f2-${{ runner.os }}-${{ hashFiles('package.json', 'TestProject/Packages/manifest.json') }}
+          restore-keys: |
+            Library-2022.3.62f2-${{ runner.os }}-
+
       - name: Run EditMode Tests
         uses: game-ci/unity-test-runner@v4.3.1
         env:
@@ -24,11 +32,10 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: .
+          projectPath: TestProject
           unityVersion: 2022.3.62f2
           testMode: editmode
           artifactsPath: artifacts
-          packageMode: true
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
