@@ -1,5 +1,7 @@
 # socketio-unity
 
+[![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
+
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
 **Current:** v1.0.1 (2026-02-05) — Critical bug fixes, production stability improved.
