@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Unity
+/TestProject/Library/
+/TestProject/Temp/
+/TestProject/Logs/
+/TestProject/obj/
+/TestProject/Build/
+/TestProject/Builds/
+/TestProject/UserSettings/
+*.csproj
+*.sln
+*.unityproj
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Claude
+.claude/
+.specstory/
