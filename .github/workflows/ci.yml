@@ -36,6 +36,7 @@ jobs:
           unityVersion: 2022.3.62f2
           testMode: editmode
           artifactsPath: artifacts
+          coverageOptions: ''
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
