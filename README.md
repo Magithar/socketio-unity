@@ -1,22 +1,29 @@
 # socketio-unity
 
+Production-ready Socket.IO v4 client for Unity.
+Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stability.
+
+Built for serious multiplayer and live backend systems.
+
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v1.0.1-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
+[![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
 **Current:** v1.0.1 (2026-02-05) — Critical bug fixes, production stability improved.
 
-**Next:** v1.1.0 — Developer experience, testing infrastructure, and performance transparency.
+**Next:** v1.1.0 — Configurable reconnect strategy (`ReconnectConfig`), PlayerSync multiplayer sample, and CI improvements.
 
-An **open-source, clean-room implementation** of a **Socket.IO v4 client for Unity**.
+Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
+protocol spec with no dependency on paid or closed-source assets.
+Provides a familiar **event-based `On` / `Emit` API** across **Standalone and WebGL** builds.
 
-This project enables Unity applications to communicate with Socket.IO–powered backends
-(e.g. Node.js services) using a familiar **event-based `On` / `Emit` API**, with support for
-**Standalone and WebGL builds**.
-
-The implementation is written **from scratch**, based solely on **public protocol
-documentation** and **observed network behavior**, with **no dependency on paid or closed-source
-Unity assets**.
+> ⚠️ **Transport scope:** This client uses **WebSocket transport only**. Engine.IO long-polling is intentionally not supported.
 
 ---
 
@@ -85,6 +92,23 @@ Unity assets**.
 
 ---
 
+## 🛡 Production Readiness
+
+| Requirement | Status |
+|-------------|--------|
+| Stable public API (v1.x frozen) | ✅ |
+| CI-validated (Unity 2022.3 LTS) | ✅ |
+| Protocol edge-case tested (38 tests) | ✅ |
+| Bug regression tests | ✅ |
+| WebGL verified | ✅ |
+| No GC spikes (object pooling) | ✅ |
+| Main-thread safe (all callbacks) | ✅ |
+| Domain reload safe | ✅ |
+| Clean-room / legally safe | ✅ |
+| IDisposable / no resource leaks | ✅ |
+
+---
+
 ## 📦 Supported Platforms
 
 | Platform                | Status               |
@@ -93,6 +117,16 @@ Unity assets**.
 | Windows / macOS / Linux | ✅                    |
 | WebGL                   | ✅ (verified)         |
 | Mobile                  | ❓ (community tested) |
+
+### Socket.IO / Engine.IO Version Compatibility
+
+| Server Version | Supported |
+|----------------|-----------|
+| Socket.IO v4.x | ✅ |
+| Socket.IO v3.x | ❌ |
+| Socket.IO v2.x | ❌ |
+| Engine.IO v4 (WebSocket) | ✅ |
+| Engine.IO long-polling | ❌ intentionally excluded |
 
 ### Minimum Unity Version
 
@@ -118,7 +152,7 @@ Debugging tools (`SocketIOTrace`, profiler APIs) may evolve as we improve develo
 
 ## 🚀 Installation
 
-### Option 1: Unity Package Manager (Git URL)
+### Option 1: Unity Package Manager (Git URL) — Recommended
 
 1. Open Unity's Package Manager (`Window > Package Manager`)
 2. Click `+` → `Add package from git URL`
@@ -127,7 +161,8 @@ Debugging tools (`SocketIOTrace`, profiler APIs) may evolve as we improve develo
 ### Option 2: Manual Installation
 
 1. Download or clone this repository
-2. Copy the `SocketIOUnity` folder into your Unity project's `Assets` folder
+2. Copy the entire repository folder into your Unity project's `Packages/` directory
+   (or add it as a local package via Package Manager → `Add package from disk` → `package.json`)
 
 ---
 
@@ -149,7 +184,7 @@ Debugging tools (`SocketIOTrace`, profiler APIs) may evolve as we improve develo
    https://github.com/endel/NativeWebSocket.git#upm
    ```
 
-**Note on NativeWebSocket:** This project includes a modified version of `WebSocket.cs` from NativeWebSocket with Unity domain reload safety improvements (v1.0.1 bug fix). All modifications are documented in [NOTICE.md](SocketIOUnity/NOTICE.md) for Apache 2.0 license compliance.
+**Note on NativeWebSocket:** This project includes a modified version of `WebSocket.cs` from NativeWebSocket with Unity domain reload safety improvements (v1.0.1 bug fix). All modifications are documented in [NOTICE.md](NOTICE.md) for Apache 2.0 license compliance.
 
 ### Built-in (No Installation Needed)
 
@@ -553,6 +588,7 @@ socketio-unity/
 ├── Tests/                      # Automated tests
 │   └── Runtime/                # Runtime tests (NUnit)
 │       ├── BugRegressionTests.cs
+│       ├── ReconnectConfigTests.cs
 │       └── SocketIOUnity.Tests.asmdef
 │
 ├── Samples~/                   # UPM importable samples
@@ -560,6 +596,10 @@ socketio-unity/
 │   │   ├── BasicChatUI.cs
 │   │   ├── BasicChatScene.unity
 │   │   └── README.md
+│   ├── PlayerSync/             # Real-time multiplayer demo
+│   │   ├── README.md
+│   │   ├── PlayerSyncScene.unity
+│   │   └── Scripts/
 │   ├── SocketIOManager.cs
 │   ├── BinaryEventTest.cs
 │   ├── MainThreadDispatcherTest.cs
@@ -607,7 +647,7 @@ socket.Emit("chat", "Hello!");
 socket.Off("chat", OnChatMessage);
 ```
 
-**📚 Full Documentation**: See [BasicChat/README.md](file:///Users/magi/Documents/Unity/SocketIOTest/Assets/SocketIOUnity/Samples~/BasicChat/README.md)
+**📚 Full Documentation**: See [BasicChat/README.md](Samples~/BasicChat/README.md)
 
 **🎯 Import**: Package Manager → Socket.IO Unity Client → Samples → "Basic Chat"
 
