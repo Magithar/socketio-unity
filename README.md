@@ -10,6 +10,7 @@ Built for serious multiplayer and live backend systems.
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Basic Chat Sample](https://img.shields.io/badge/sample-Basic%20Chat-red?logo=youtube)](https://youtu.be/7dU89B9O50c)
 
 ---
 
@@ -26,6 +27,21 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 ---
 
 ## 🚧 Implementation Status
+
+### ✅ v1.1.0 Milestone (2026-02-26)
+
+* **PlayerSync Sample** - Production-grade multiplayer synchronization (9 components, 2 scenes, 3 Node.js servers)
+* **ReconnectConfig** - Inspector-configurable backoff with jitter, factory presets, defensive copy
+* **Mobile Support** - Android / iOS touch input, runtime URL configuration, dedicated mobile scene
+* **CI Pipeline** - GitHub Actions + game-ci/unity-test-runner on every push/PR
+
+### ✅ v1.0.0 Milestone (2026-01-29)
+
+* **API Stability Contract** - Public API frozen for v1.x releases
+* **Basic Chat Sample** - Production-ready Hello World onboarding experience
+* **Protocol Hardening** - Edge case handling and malformed packet protection
+* **Namespace Disconnect Correctness** - Reliable multi-namespace lifecycle management
+* **Scene/Domain Reload Safety** - Unity Editor workflow compatibility
 
 ### ✅ Implemented
 
@@ -65,21 +81,6 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 * Namespace support verified (`/`, `/webgl`, `/admin`)
 * Binary data reception confirmed
 * Reconnection behavior validated in browser
-
-### ✅ v1.1.0 Milestone (2026-02-26)
-
-* **PlayerSync Sample** - Production-grade multiplayer synchronization (9 components, 2 scenes, 3 Node.js servers)
-* **ReconnectConfig** - Inspector-configurable backoff with jitter, factory presets, defensive copy
-* **Mobile Support** - Android / iOS touch input, runtime URL configuration, dedicated mobile scene
-* **CI Pipeline** - GitHub Actions + game-ci/unity-test-runner on every push/PR
-
-### ✅ v1.0.0 Milestone (2026-01-29)
-
-* **API Stability Contract** - Public API frozen for v1.x releases
-* **Basic Chat Sample** - Production-ready Hello World onboarding experience
-* **Protocol Hardening** - Edge case handling and malformed packet protection
-* **Namespace Disconnect Correctness** - Reliable multi-namespace lifecycle management
-* **Scene/Domain Reload Safety** - Unity Editor workflow compatibility
 
 ---
 
