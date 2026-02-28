@@ -37,21 +37,22 @@ The `ReconnectController` provides automatic reconnection with:
 
 ## Backoff Strategy
 
-Delays follow exponential backoff with a 30-second cap:
+Delays follow exponential backoff, configurable via `ReconnectConfig`. Default values match v1.0.x behavior:
 
-| Attempt | Delay |
-|---------|-------|
+| Attempt | Default Delay |
+|---------|---------------|
 | 1 | 1 second |
 | 2 | 2 seconds |
 | 3 | 4 seconds |
 | 4 | 8 seconds |
 | 5 | 16 seconds |
-| 6+ | 30 seconds (max) |
+| 6+ | 30 seconds (cap) |
 
 ### Formula
 
 ```csharp
-float delay = Mathf.Min(Mathf.Pow(2, _attempt), MaxDelay); // MaxDelay = 30
+float delay = Mathf.Min(config.initialDelay * Mathf.Pow(config.multiplier, attempt), config.maxDelay);
+// Default: initialDelay=1, multiplier=2, maxDelay=30
 ```
 
 ---
@@ -103,6 +104,27 @@ socket.Connect("ws://localhost:3000");
 socket.Disconnect(); // Sets intentional disconnect flag
 
 // This will NOT trigger reconnection
+```
+
+### ReconnectConfig (v1.1.0+)
+
+Customize the reconnection strategy at runtime:
+
+```csharp
+socket.ReconnectConfig = new ReconnectConfig
+{
+    initialDelay  = 1f,    // First attempt delay (seconds)
+    multiplier    = 2f,    // Backoff growth rate
+    maxDelay      = 30f,   // Maximum delay cap (seconds)
+    maxAttempts   = -1,    // -1 = unlimited
+    autoReconnect = true,
+    jitterPercent = 0.1f,  // ±10% random variance (prevents thundering herd)
+};
+
+// Or use factory presets:
+socket.ReconnectConfig = ReconnectConfig.Default();      // Standard (1s/2x/30s)
+socket.ReconnectConfig = ReconnectConfig.Aggressive();   // Fast (for development)
+socket.ReconnectConfig = ReconnectConfig.Conservative(); // Slow (for production)
 ```
 
 ---

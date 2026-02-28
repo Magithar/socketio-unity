@@ -65,7 +65,8 @@ socketio-unity/                 # Package root
 │   │   │   ├── EventRegistry.cs
 │   │   │   ├── AckRegistry.cs
 │   │   │   ├── AckEntry.cs
-│   │   │   └── ReconnectController.cs
+│   │   │   ├── ReconnectController.cs
+│   │   │   └── ReconnectConfig.cs
 │   │   │
 │   │   ├── Protocol/           # Packet parsing
 │   │   │   ├── SocketPacket.cs
@@ -111,13 +112,24 @@ socketio-unity/                 # Package root
 │
 ├── Editor/                     # Editor-only code
 │   ├── SocketIOUnity.Editor.asmdef
+│   ├── ProtocolEdgeCaseTests.cs
 │   └── SocketIONetworkHud.cs
+│
+├── Tests/                      # Automated tests
+│   └── Runtime/
+│       ├── BugRegressionTests.cs
+│       ├── ReconnectConfigTests.cs
+│       └── SocketIOUnity.Tests.asmdef
 │
 ├── Samples~/                   # UPM importable samples
 │   ├── BasicChat/
 │   │   ├── BasicChatUI.cs
 │   │   ├── BasicChatScene.unity
 │   │   └── README.md
+│   ├── PlayerSync/             # Real-time multiplayer demo
+│   │   ├── README.md
+│   │   ├── PlayerSyncScene.unity
+│   │   └── Scripts/
 │   ├── SocketIOManager.cs
 │   ├── BinaryEventTest.cs
 │   ├── MainThreadDispatcherTest.cs

@@ -45,6 +45,11 @@ event Action OnDisconnected
 event Action<string> OnError
 ```
 
+**Reconnect Configuration (v1.1.0+):**
+```csharp
+ReconnectConfig ReconnectConfig { get; set; }
+```
+
 ---
 
 ### NamespaceSocket
@@ -84,6 +89,20 @@ static bool IsInitialized { get; }
 ## ⚠️ May Change Before v2.0.0
 
 These APIs are subject to change in minor releases (v1.x → v1.y).
+
+### ReconnectConfig Fields
+
+```csharp
+// Direct field mutation on a retrieved config is supported in v1.x
+// but the getter may return a copy in v2.0
+socket.ReconnectConfig.maxDelay = 60f;  // Works in v1.x, avoid in new code
+```
+
+**Recommended pattern (forward-compatible):**
+```csharp
+var cfg = new ReconnectConfig { maxDelay = 60f };
+socket.ReconnectConfig = cfg;
+```
 
 ### Debugging & Profiler APIs
 

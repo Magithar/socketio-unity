@@ -5,15 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] — v1.1.0
 
 ### Added
-
-### Changed
+- **ReconnectConfig**: Configurable reconnection strategy replacing hardcoded exponential backoff
+  - `initialDelay`, `multiplier`, `maxDelay`, `maxAttempts`, `autoReconnect`, `jitterPercent` fields
+  - `ReconnectConfig.Default()` — matches v1.0.x behavior (1s initial, 2x multiplier, 30s cap)
+  - `ReconnectConfig.Aggressive()` — faster reconnection for development
+  - `ReconnectConfig.Conservative()` — slower reconnection for production
+  - Copy constructor `new ReconnectConfig(other)` for defensive copying
+  - Jitter support to prevent thundering herd problem on mass reconnect
+- **SocketIOClient.ReconnectConfig** property (get/set) for runtime reconnect configuration
+- **ReconnectConfigTests**: Unit tests for defensive copy, factory methods, and v1.0.x compatibility
+- **PlayerSync sample**: Real-time multiplayer position synchronization demo
+  - Namespace pattern (`/playersync`), ReconnectConfig integration, WebGL support
+  - Production-grade cleanup (`OnDestroy`, `isDestroyed` guard, explicit disconnect)
+  - RTT display, connection status UI, network interpolation
 
 ### Fixed
+- `DontDestroyOnLoad` now skipped in EditMode/CI where `Application.isPlaying` is false
 
 ### Documentation
+- Updated README with v1.1.0 preview and PlayerSync sample reference
+- Added `ReconnectConfig` to API stability contract
 
 ## [1.0.1] — 2026-02-05
 

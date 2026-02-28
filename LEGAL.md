@@ -1,9 +1,3 @@
-
----
-
-# ⚖️ `LEGAL.md`
-
-```md
 # Legal & Clean-Room Declaration
 
 This project is a **clean-room implementation** of the Socket.IO v4 protocol for Unity.
