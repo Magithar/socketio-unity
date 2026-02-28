@@ -1347,27 +1347,23 @@ See [API_STABILITY.md](API_STABILITY.md) for the complete API stability contract
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome — but this project has one hard rule:
 
-1. **Open an issue first** to discuss significant changes
-2. **Follow existing code style** and patterns
-3. **Add tests** for new functionality when possible
-4. **Update documentation** if adding/changing public APIs
+> 🚨 **Clean-room only.** Do not copy or port code from the official Socket.IO JS client, any paid Unity asset, or any other existing implementation. All contributions must be original and based on public protocol documentation.
 
-For bug reports, please include:
-* Unity version
-* Platform (Editor/Standalone/WebGL)
-* Server configuration
-* Minimal reproduction steps
+If you're unsure whether your contribution complies, open a discussion before submitting.
+
+**Quick guidelines:**
+- Open an issue first to discuss significant changes
+- Add tests for new functionality when possible
+- Update documentation if adding or changing public APIs
+
+**For bug reports, include:**
+- Unity version and target platform (Editor / Standalone / WebGL / Mobile)
+- Server configuration and Socket.IO server version
+- Minimal reproduction steps
+
+📄 **Full details**: See [CONTRIBUTING.md](CONTRIBUTING.md) for allowed/disallowed contributions, PR guidelines, and the complete clean-room rules.
 
 ---
 
-## ⚠️ Disclaimer
-
-This project is **not affiliated with Socket.IO** or Unity Technologies.
-
-All behavior is implemented using:
-
-* Public protocol documentation
-* Observed network behavior
-* Independent engineering decisions
