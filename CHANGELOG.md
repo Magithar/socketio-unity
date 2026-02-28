@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v1.1.0
+## [Unreleased]
+
+## [1.1.0] — 2026-02-28
 
 ### Added
 - **ReconnectConfig**: Configurable reconnection strategy replacing hardcoded exponential backoff
@@ -21,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Namespace pattern (`/playersync`), ReconnectConfig integration, WebGL support
   - Production-grade cleanup (`OnDestroy`, `isDestroyed` guard, explicit disconnect)
   - RTT display, connection status UI, network interpolation
+
+### Added (CI)
+- **GitHub Actions CI pipeline** using [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) — runs automated EditMode tests on every push and PR to `main`
+  - Unity `2022.3.62f2` (LTS) on `ubuntu-latest`
+  - `TestProject~/` standalone Unity project references the package as a local dependency
+  - Test results uploaded as artifacts on every run (`if: always()`)
+  - Git LFS enabled (`lfs: true`) for binary assets
+  - `Library/` folder cached via `actions/cache` keyed on `package.json` + `TestProject~/Packages/manifest.json`
 
 ### Fixed
 - `DontDestroyOnLoad` now skipped in EditMode/CI where `Application.isPlaying` is false
@@ -258,7 +268,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Magithar/socketio-unity/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Magithar/socketio-unity/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Magithar/socketio-unity/compare/v0.3.0-alpha...v1.0.0
 [0.3.0-alpha]: https://github.com/Magithar/socketio-unity/compare/v0.2.0-alpha...v0.3.0-alpha

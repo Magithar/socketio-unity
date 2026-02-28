@@ -23,7 +23,7 @@ Built for serious multiplayer and live backend systems.
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.1.0 (2026-02-26) — PlayerSync multiplayer sample, configurable reconnection, mobile support, and CI improvements.
+**Current:** v1.1.0 (2026-02-28) — PlayerSync multiplayer sample, configurable reconnection, mobile support, and CI improvements.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -35,7 +35,7 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 
 ## 🚧 Implementation Status
 
-### ✅ v1.1.0 Milestone (2026-02-26)
+### ✅ v1.1.0 Milestone (2026-02-28)
 
 * **PlayerSync Sample** - Production-grade multiplayer synchronization (9 components, 2 scenes, 3 Node.js servers)
 * **ReconnectConfig** - Inspector-configurable backoff with jitter, factory presets, defensive copy
