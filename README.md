@@ -14,6 +14,14 @@ Built for serious multiplayer and live backend systems.
 
 ---
 
+## 🎬 Demo
+
+| Sample | Video |
+|--------|-------|
+| Basic Chat | [▶ Watch on YouTube](https://youtu.be/7dU89B9O50c) |
+
+---
+
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
 **Current:** v1.1.0 (2026-02-26) — PlayerSync multiplayer sample, configurable reconnection, mobile support, and CI improvements.
