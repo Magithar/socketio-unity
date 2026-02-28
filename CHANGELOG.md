@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-02-28
+
+**Patch release** — PlayerSync sample bug fixes. No API changes.
+
+### Fixed
+- **PlayerSync / RemotePlayer prefab**: Canvas render mode was `Screen Space - Overlay` instead of `World Space`
+  - Label rendered on top of the entire screen UI rather than in 3D space above the player
+- **PlayerSync / RemotePlayer prefab**: Canvas `Transform.localScale` was `(0, 0, 0)` — label was invisible at runtime
+- **PlayerSync / RemotePlayer prefab**: Canvas `RectTransform.sizeDelta` was `(0, 0)` — no surface area to render text onto
+
+### Added
+- **`BillboardCanvas`** script (`Samples/PlayerSync/Scripts/BillboardCanvas.cs`)
+  - Attaches to the RemotePlayer Canvas child; copies camera rotation each `LateUpdate` so the label always faces the viewer regardless of camera angle or player direction
+
+### Stability
+- **No API Changes**: All fixes are confined to the PlayerSync sample assets
+- **Backward Compatible**: Safe upgrade from v1.1.0
+
 ## [1.1.0] - 2026-02-28
 
 ### Added
@@ -251,7 +269,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/Magithar/socketio-unity/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Magithar/socketio-unity/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Magithar/socketio-unity/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Magithar/socketio-unity/compare/v0.3.0-alpha...v1.0.0

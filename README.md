@@ -6,7 +6,7 @@ Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stabi
 Built for serious multiplayer and live backend systems.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.0.1-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.1.1-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -23,7 +23,7 @@ Built for serious multiplayer and live backend systems.
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.1.0 (2026-02-28) — PlayerSync multiplayer sample, configurable reconnection, mobile support, and CI improvements.
+**Current:** v1.1.1 (2026-02-28) — PlayerSync prefab fixes (Canvas render mode, scale, size) and BillboardCanvas script.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -34,6 +34,11 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 ---
 
 ## 🚧 Implementation Status
+
+### ✅ v1.1.1 Milestone (2026-02-28)
+
+* **PlayerSync RemotePlayer Prefab Fixes** - Canvas render mode corrected to World Space, scale and size restored
+* **BillboardCanvas Script** - Camera-facing label that always faces the viewer regardless of player direction
 
 ### ✅ v1.1.0 Milestone (2026-02-28)
 
