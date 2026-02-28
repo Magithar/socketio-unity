@@ -10,7 +10,6 @@ Built for serious multiplayer and live backend systems.
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Basic Chat Sample](https://img.shields.io/badge/sample-Basic%20Chat-red?logo=youtube)](https://youtu.be/7dU89B9O50c)
 
 ---
 
