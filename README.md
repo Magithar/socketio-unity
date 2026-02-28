@@ -620,12 +620,17 @@ socketio-unity/
 │   ├── TraceDemo.cs
 │   └── WebGLTestController.cs
 │
-└── Documentation~/             # Package docs
-    ├── ARCHITECTURE.md
-    ├── BINARY_EVENTS.md
-    ├── DEBUGGING_GUIDE.md
-    ├── RECONNECT_BEHAVIOR.md
-    └── WEBGL_NOTES.md
+├── Documentation~/             # Package docs
+│   ├── ARCHITECTURE.md
+│   ├── BINARY_EVENTS.md
+│   ├── DEBUGGING_GUIDE.md
+│   ├── RECONNECT_BEHAVIOR.md
+│   └── WEBGL_NOTES.md
+│
+└── TestProject~/               # CI test project (Unity 2022.3 LTS)
+    ├── Assets/
+    ├── Packages/               # References this package as local dependency
+    └── ProjectSettings/
 ```
 
 > **Note**: `Samples~/` contains UPM-style samples importable via Package Manager.
@@ -995,6 +1000,39 @@ socketio-unity/
 - Binary packet assembler edge cases
 - ACK registry integer overflow handling
 - Invalid JSON graceful degradation
+
+### CI Pipeline
+
+SocketIOUnity uses **GitHub Actions** with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) to run automated tests on every push and pull request to `main`.
+
+**Pipeline:** `.github/workflows/ci.yml`
+
+| Setting | Value |
+|---------|-------|
+| Trigger | Push / PR to `main` |
+| Runner | `ubuntu-latest` |
+| Unity version | `2022.3.62f2` (LTS) |
+| Test mode | EditMode |
+| Test project | `TestProject~/` |
+| Artifacts | Test results uploaded on every run (`if: always()`) |
+| Git LFS | Enabled (`lfs: true`) — required for binary assets |
+| Library cache | Cached via `actions/cache`, keyed on `package.json` + `TestProject~/Packages/manifest.json` |
+
+**`TestProject~/`** is a standalone Unity project that lives inside the repository. It references this package as a local dependency, giving the CI runner a complete Unity project to import and test against.
+
+**Git LFS:** This repository uses Git LFS for binary assets. Contributors must have LFS installed (`git lfs install`) before cloning, otherwise assets will be corrupted and local runs may diverge from CI.
+
+**Library cache:** The Unity `Library/` folder is cached between runs to speed up subsequent jobs. The cache key includes both `package.json` and `TestProject~/Packages/manifest.json`, so it invalidates automatically whenever package dependencies change — expect a slower first run after any dependency update.
+
+**Required GitHub Secrets** (set in repository Settings → Secrets):
+
+| Secret | Description |
+|--------|-------------|
+| `UNITY_LICENSE` | Unity license XML (from `unity-activate` action or manual export) |
+| `UNITY_EMAIL` | Unity account email |
+| `UNITY_PASSWORD` | Unity account password |
+
+> See [game-ci docs](https://game.ci/docs/github/activation) for how to generate and add the Unity license secret.
 
 ### Test Server Setup
 
