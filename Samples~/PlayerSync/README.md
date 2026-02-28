@@ -129,7 +129,7 @@ cd server
 npm install socket.io
 ```
 
-3. Create `server.js` with the Socket.IO server (see server code below)
+3. Create `server.js` with the Socket.IO server (see [Server Code Example](#server-code-example) below)
 
 4. Start the server:
 
@@ -609,40 +609,70 @@ Watch the **Connection Status** (top-left):
 ## Server Code Example
 
 ```javascript
-const io = require("socket.io")(3000, {
-  cors: { origin: "*" },
+const http = require("http");
+const { Server } = require("socket.io");
+
+const PORT = 3000;
+const httpServer = http.createServer();
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
-const playersyncNsp = io.of("/playersync");
+// ======================================================
+// /playersync — PLAYER SYNC SAMPLE (NO AUTH)
+// ======================================================
+
 const players = {};
 
-playersyncNsp.on("connection", (socket) => {
-  console.log(`Player connected: ${socket.id}`);
+io.of("/playersync").on("connection", (socket) => {
+  console.log("✅ /playersync CONNECTED:", socket.id);
 
+  // Register player at origin
   players[socket.id] = { x: 0, y: 0, z: 0 };
 
-  // Send player their ID
+  // Send server-assigned ID to this client
   socket.emit("player_id", socket.id);
+  console.log("📤 /playersync → player_id:", socket.id);
 
-  // Send existing players
+  // Send existing players to the new player
   socket.emit("existing_players", players);
+  console.log("📤 /playersync → existing_players:", Object.keys(players).length, "players");
 
-  // Notify others
+  // Notify other players that someone joined
   socket.broadcast.emit("player_join", socket.id);
+  console.log("📢 /playersync → broadcast player_join:", socket.id);
 
+  // Receive movement from client
   socket.on("player_move", (data) => {
-    players[data.id] = data.position;
-    socket.broadcast.emit("player_move", data);
+    if (data && data.position) {
+      players[socket.id] = data.position;
+
+      // Broadcast to all other players
+      socket.broadcast.emit("player_move", {
+        id: socket.id,
+        position: data.position
+      });
+    }
   });
 
   socket.on("disconnect", () => {
+    console.log("❌ /playersync DISCONNECTED:", socket.id);
+
+    // Remove player from list
     delete players[socket.id];
+
+    // Notify other players
     socket.broadcast.emit("player_leave", socket.id);
-    console.log(`Player disconnected: ${socket.id}`);
   });
 });
 
-console.log("Server running on http://localhost:3000");
+httpServer.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
 ```
 
 ## Customizing Reconnection Behavior
