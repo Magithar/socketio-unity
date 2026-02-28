@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] — 2026-02-28
+## [1.1.0] - 2026-02-28
 
 ### Added
 - **ReconnectConfig**: Configurable reconnection strategy replacing hardcoded exponential backoff
@@ -23,8 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Namespace pattern (`/playersync`), ReconnectConfig integration, WebGL support
   - Production-grade cleanup (`OnDestroy`, `isDestroyed` guard, explicit disconnect)
   - RTT display, connection status UI, network interpolation
-
-### Added (CI)
 - **GitHub Actions CI pipeline** using [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) — runs automated EditMode tests on every push and PR to `main`
   - Unity `2022.3.62f2` (LTS) on `ubuntu-latest`
   - `TestProject~/` standalone Unity project references the package as a local dependency
@@ -35,13 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `DontDestroyOnLoad` now skipped in EditMode/CI where `Application.isPlaying` is false
 
-### Documentation
+### Changed
 - Updated README with v1.1.0 preview and PlayerSync sample reference
 - Added `ReconnectConfig` to API stability contract
 
-## [1.0.1] — 2026-02-05
+## [1.0.1] - 2026-02-05
 
 **Patch release** — Critical bug fixes with no API changes.
+
+### Added
+- **Regression Tests**: Comprehensive test suite for all 4 bug fixes
+  - `BugRegressionTests.cs` in `Tests/Runtime/`
+  - Tests malformed JSON handling, ACK ID overflow, and wraparound behavior
 
 ### Fixed
 - **BinaryPacketAssembler**: Added try-catch around `JArray.Parse()` to handle malformed JSON payloads gracefully
@@ -61,17 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Prevents negative ACK IDs that could cause lookup failures
   - Affects: `AckRegistry.Register()` (internal ACK tracking)
 
-### Added
-- **Regression Tests**: Comprehensive test suite for all 4 bug fixes
-  - `BugRegressionTests.cs` in `Tests/Runtime/`
-  - Tests malformed JSON handling, ACK ID overflow, and wraparound behavior
+### Changed
+- No API changes — all fixes are internal implementation improvements
+- Backward compatible — safe upgrade from v1.0.0
+- Public API unchanged: `Connect()`, `Disconnect()`, `Emit()`, `On()`, `Off()`, `Of()` remain frozen
 
-### Stability
-- **No API Changes**: All fixes are internal implementation improvements
-- **Backward Compatible**: Safe upgrade from v1.0.0
-- **Public API Unchanged**: `Connect()`, `Disconnect()`, `Emit()`, `On()`, `Off()`, `Of()` remain frozen
-
-## [1.0.0] — 2026-01-29
+## [1.0.0] - 2026-01-29
 
 **First stable release** — Production-ready Socket.IO v4 client for Unity.
 
@@ -92,6 +90,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Moved **Toggle Network HUD** menu from `Tools → SocketIO` to top-level `SocketIO` menu
+- Public API frozen for v1.x: `Connect`, `Disconnect`, `Emit`, `On`, `Off`, `Of`
+- Internal APIs hidden — implementation details not exposed to consumers
+- Debug/Telemetry APIs marked unstable: `SocketIOTrace`, profiler APIs may evolve
+- Comprehensive README updates:
+  - Connection state & error handling (`IsConnected`, `OnError`, `OnDisconnected`)
+  - Event unsubscription (`Off()`) with proper cleanup examples
+  - `Disconnect()` vs `Shutdown()` comparison
+  - Thread safety guarantees (all callbacks on main thread)
+  - RTT & throughput monitoring APIs
+  - Scene/domain reload safety guidance
+  - Minimum Unity version requirements
+  - Contributing guidelines
+  - Common error scenarios table
 
 ### Fixed
 - **Protocol Hardening**:
@@ -108,23 +119,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No orphaned WebSocket connections between play sessions
   - Static state properly reset on domain reload
   - No duplicate reconnect loops after reload
-
-### Stability
-- **Public API frozen for v1.x**: `Connect`, `Disconnect`, `Emit`, `On`, `Off`, `Of`
-- **Internal APIs hidden**: Implementation details not exposed to consumers
-- **Debug/Telemetry APIs marked unstable**: `SocketIOTrace`, profiler APIs may evolve
-
-### Documentation
-- Comprehensive README updates:
-  - Connection state & error handling (`IsConnected`, `OnError`, `OnDisconnected`)
-  - Event unsubscription (`Off()`) with proper cleanup examples
-  - `Disconnect()` vs `Shutdown()` comparison
-  - Thread safety guarantees (all callbacks on main thread)
-  - RTT & throughput monitoring APIs
-  - Scene/domain reload safety guidance
-  - Minimum Unity version requirements
-  - Contributing guidelines
-  - Common error scenarios table
 
 ## [0.3.0-alpha] - 2026-01-22
 
@@ -160,7 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WebGL jslib missing symbols**: Added all required NativeWebSocket functions to `SocketIOWebGL.jslib`
 - **WebGL namespace connection loops**: Fixed socket disposal and event handler cleanup in connection logic
 
-### Documentation
+### Changed
 - Added DEBUGGING_GUIDE.md with comprehensive troubleshooting guide
 - Documented all trace levels, categories, and custom sink examples
 - Documented Unity Profiler integration and available markers/counters
@@ -192,14 +186,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ReconnectController` lifetime now persists across reconnects for proper exponential backoff
 - Improved namespace authentication with proper CONNECT packet formatting
 - Enhanced reconnect logic with clean state reset on each attempt
-
-### Fixed
-- Transport state leakage during reconnects
-- Constructor mismatches in transport layer
-- Event dispatch on non-main thread causing Unity API errors
-- Binary event handlers now correctly receive `byte[]` instead of `string`
-
-### Documentation
 - Added detailed usage examples for basic connections, namespaces, and ACKs
 - Added architecture diagram showing component hierarchy
 - Added directory structure documentation
@@ -207,12 +193,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added WebGL status and implementation details
 - Added NativeWebSocket third-party attribution in WebSocket.cs
 
-## [0.1.1-alpha] - 2026-01-05
-
 ### Fixed
-- Fixed WebSocketTransport implementation
-- Added robust Socket.IO packet parser with namespace and ACK support
-- Implemented spec-correct heartbeat and Unity tick integration
+- Transport state leakage during reconnects
+- Constructor mismatches in transport layer
+- Event dispatch on non-main thread causing Unity API errors
+- Binary event handlers now correctly receive `byte[]` instead of `string`
+
+## [0.1.1-alpha] - 2026-01-05
 
 ### Added
 - Engine.IO v4 handshake and heartbeat
@@ -223,6 +210,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic reconnection with exponential backoff
 - Standalone platform support
 
+### Fixed
+- Fixed WebSocketTransport implementation
+- Added robust Socket.IO packet parser with namespace and ACK support
+- Implemented spec-correct heartbeat and Unity tick integration
+
 ## [0.1.0-alpha] - 2026-01-05 [DEPRECATED]
 
 > ⚠️ **This release is deprecated due to critical bugs. Use v0.1.1-alpha instead.**
@@ -231,11 +223,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial alpha release
 - Basic Engine.IO v4 implementation
 - Basic Socket.IO v4 implementation
-
-### Known Issues
-- WebSocketTransport had critical bugs
-- Packet parser issues with namespaces and ACKs
-- Heartbeat timing issues
 
 ---
 
@@ -247,10 +234,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MIT License
 - Clean-room legal declaration (LEGAL.md)
 - Contribution guidelines (CONTRIBUTING.md)
-
-### Notes
-- No protocol or runtime code included
-- Establishes legal and architectural foundation
 
 ---
 
