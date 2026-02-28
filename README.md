@@ -15,13 +15,11 @@ Built for serious multiplayer and live backend systems.
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.0.1 (2026-02-05) — Critical bug fixes, production stability improved.
-
-**Next:** v1.1.0 — Configurable reconnect strategy (`ReconnectConfig`), PlayerSync multiplayer sample, and CI improvements.
+**Current:** v1.1.0 (2026-02-26) — PlayerSync multiplayer sample, configurable reconnection, mobile support, and CI improvements.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
-Provides a familiar **event-based `On` / `Emit` API** across **Standalone and WebGL** builds.
+Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL, and Mobile** builds.
 
 > ⚠️ **Transport scope:** This client uses **WebSocket transport only**. Engine.IO long-polling is intentionally not supported.
 
@@ -39,7 +37,9 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone and We
 * Custom namespaces (`/admin`, `/public`, etc.)
 * Namespace multiplexing over a single connection
 * Acknowledgement callbacks (ACKs)
-* Automatic reconnect with exponential backoff
+* Automatic reconnect with configurable exponential backoff
+* **ReconnectConfig** (v1.1.0) - Inspector-configurable reconnection strategy with jitter support
+* **Connection state management** (`ConnectionState` enum: Disconnected/Connecting/Connected/Reconnecting)
 * Intentional vs unintentional disconnect handling
 * Ping-timeout–triggered reconnect
 * Standalone (Editor / Desktop) support
@@ -65,6 +65,13 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone and We
 * Namespace support verified (`/`, `/webgl`, `/admin`)
 * Binary data reception confirmed
 * Reconnection behavior validated in browser
+
+### ✅ v1.1.0 Milestone (2026-02-26)
+
+* **PlayerSync Sample** - Production-grade multiplayer synchronization (9 components, 2 scenes, 3 Node.js servers)
+* **ReconnectConfig** - Inspector-configurable backoff with jitter, factory presets, defensive copy
+* **Mobile Support** - Android / iOS touch input, runtime URL configuration, dedicated mobile scene
+* **CI Pipeline** - GitHub Actions + game-ci/unity-test-runner on every push/PR
 
 ### ✅ v1.0.0 Milestone (2026-01-29)
 
@@ -101,6 +108,8 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone and We
 | Protocol edge-case tested (38 tests) | ✅ |
 | Bug regression tests | ✅ |
 | WebGL verified | ✅ |
+| Mobile verified (Android / iOS) | ✅ |
+| Configurable reconnect (ReconnectConfig) | ✅ |
 | No GC spikes (object pooling) | ✅ |
 | Main-thread safe (all callbacks) | ✅ |
 | Domain reload safe | ✅ |
@@ -116,7 +125,7 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone and We
 | Unity Editor            | ✅                    |
 | Windows / macOS / Linux | ✅                    |
 | WebGL                   | ✅ (verified)         |
-| Mobile                  | ❓ (community tested) |
+| Mobile (Android / iOS)  | ✅ (verified)         |
 
 ### Socket.IO / Engine.IO Version Compatibility
 
@@ -470,6 +479,10 @@ socket.Shutdown();
 * Single reconnect loop (no duplicate attempts)
 * Automatically stopped on successful connection
 
+**Customization:**
+By default, reconnection uses exponential backoff (1s → 2s → 4s → 8s → 16s → 30s max).
+For custom behavior, see [Configuring Reconnection Behavior](#configuring-reconnection-behavior-v110).
+
 ---
 
 ### Thread Safety
@@ -656,6 +669,57 @@ socket.Off("chat", OnChatMessage);
 - Full UI implementation with TextMesh Pro
 - Comprehensive error handling
 - Works on Editor, Standalone, and WebGL
+
+---
+
+## 🎮 PlayerSync Sample
+
+The **PlayerSync** sample is a production-grade real-time multiplayer demo (added in v1.1.0). It builds directly on the Basic Chat concepts and demonstrates:
+
+- ✅ Real-time position synchronization across clients
+- ✅ Player join / leave detection
+- ✅ Namespace-based architecture (`/playersync`)
+- ✅ Configurable reconnection with `ReconnectConfig` and jitter
+- ✅ Network interpolation for smooth remote player movement
+- ✅ RTT display and connection status UI
+- ✅ Production-grade cleanup (`OnDestroy`, `isDestroyed` guard)
+- ✅ Full WebGL support with automatic transport detection
+
+### Quick Tour
+
+```csharp
+// Connect to root, then get namespace
+rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
+rootSocket.Connect("ws://localhost:3000");
+var ns = rootSocket.Of("/playersync");
+
+// Configure reconnection with jitter
+rootSocket.ReconnectConfig = new ReconnectConfig
+{
+    initialDelay  = 1f,
+    multiplier    = 2f,
+    maxDelay      = 30f,
+    jitterPercent = 0.1f,  // Prevents thundering herd
+};
+
+// Receive existing players on connect
+ns.On("existing_players", (string json) => { /* spawn remote players */ });
+
+// Broadcast your position at 20Hz
+ns.Emit("player_move", JsonConvert.SerializeObject(movePacket));
+```
+
+**📚 Full Documentation**: See [PlayerSync/README.md](Samples~/PlayerSync/README.md)
+
+**🎯 Import**: Package Manager → Socket.IO Unity Client → Samples → "Player Sync"
+
+**Key Features:**
+- Namespace pattern (`rootSocket.Of("/playersync")`) over a single WebSocket
+- 9 components, pre-configured scene, and 3 Node.js server examples
+- Scales comfortably to 2–20 players (see scaling guide in the README)
+- Works on Editor, Standalone, WebGL, and Mobile
+
+> **New to socketio-unity?** Start with [Basic Chat](#-basic-chat-sample) first — PlayerSync builds on those foundations.
 
 ---
 
