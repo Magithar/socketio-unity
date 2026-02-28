@@ -41,7 +41,7 @@ public class ServerUrlInput : MonoBehaviour
             }
         }
 
-        UpdateStatusText("Enter server URL and click Save");
+        UpdateStatusText("1. Enter server URL  2. Tap Save  3. Restart app", Color.red);
     }
 
     private void OnSaveClicked()

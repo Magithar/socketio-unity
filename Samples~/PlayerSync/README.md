@@ -10,6 +10,7 @@ This sample demonstrates real-time multiplayer player synchronization using Sock
 - Production-grade architecture with proper separation of concerns
 - Socket.IO namespace support (`/playersync`)
 - **Full WebGL support** - runs in browsers with automatic transport detection
+- **Mobile support (Android/iOS)** - touch drag movement, runtime URL configuration
 
 ## Prerequisites
 
@@ -150,6 +151,51 @@ To see the full multiplayer experience (including remote players):
 
 **Note**: Running only one instance will show just your blue player. The server correctly returns your player in the `existing_players` list, but the client skips spawning itself (see console log: "Skipping self: [player_id]").
 
+### Testing on Mobile (Android / iOS)
+
+The **PlayerSyncMobile** scene is a copy of PlayerSyncScene pre-configured for mobile.
+
+**Scene additions over PlayerSyncScene:**
+- `ServerUrlPanel` — lets users enter a custom server URL at runtime without rebuilding
+
+**Server URL setup:**
+1. Find your Mac's local IP:
+```bash
+ipconfig getifaddr en0
+```
+2. Set `productionServerUrl` in **PlayerNetworkSync** Inspector to `http://192.168.x.x:3000`
+3. Or use the in-app `ServerUrlInput` panel:
+   - Enter URL → tap **Save** → restart the app
+
+**Build & deploy:**
+1. File → Build Settings → Android (or iOS) → Build
+2. Install APK: `adb install your.apk`
+3. Start your server: `node server.js`
+4. Launch app on device
+
+**ADB log monitoring:**
+```bash
+# Get PID (app must be running)
+adb shell pidof -s com.DefaultCompany.SocketIOTest
+
+# Stream logs for your app only
+adb logcat --pid=<pid>
+
+# Clear logs before a fresh run
+adb logcat -c
+```
+
+**Touch movement:**
+
+Drag finger anywhere on screen to move. Implemented via `#if UNITY_ANDROID || UNITY_IOS` in `PlayerController.cs` — keyboard input is preserved for Editor/Standalone builds.
+
+**Firewall note:**
+
+If the device can't connect, ensure macOS firewall allows incoming connections on port 3000:
+**System Settings → Network → Firewall → Options → add `node` → Allow incoming**
+
+---
+
 ### Testing with WebGL
 
 **WebGL builds are fully supported!** The sample automatically uses the correct transport for browser environments.
@@ -254,7 +300,8 @@ The sample uses `TransportFactoryHelper.CreateDefault()` which automatically:
 
 ### Controls
 
-- **WASD** or **Arrow Keys**: Move your player
+- **WASD** or **Arrow Keys**: Move your player (Editor / Standalone)
+- **Touch drag**: Move your player (Android / iOS) — drag finger anywhere on screen
 - Player movement is clamped to (-10, 10) on X and Z axes
 - Movement only enabled after receiving `player_id` from server
 
