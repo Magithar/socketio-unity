@@ -175,6 +175,23 @@ Once you understand this sample, explore:
 - **Acknowledgments** for request-response patterns
 - **Room-based multiplayer** patterns (see future samples)
 
+### 🎮 Advanced Sample: PlayerSync
+
+Ready for multiplayer? Check out the **PlayerSync** sample for production-grade real-time player synchronization:
+
+**What PlayerSync adds beyond BasicChat:**
+- ✅ **Real-time position synchronization** - Multiple players moving simultaneously (20Hz updates)
+- ✅ **Namespace architecture** - Using `/playersync` namespace for multiplayer logic separation
+- ✅ **Connection state UI** - Visual feedback for Disconnected/Connecting/Connected/Reconnecting states
+- ✅ **RTT monitoring** - Real-time latency display
+- ✅ **Advanced reconnection** - Configurable exponential backoff with jitter support
+- ✅ **Production architecture** - Separation of concerns, dependency injection, clean component design
+- ✅ **Smooth interpolation** - Network-synchronized movement without jitter
+
+**📚 Full Documentation**: [Samples/PlayerSync/README.md](../PlayerSync/README.md)
+
+**Perfect for:** Game developers building multiplayer features, learning real-time synchronization patterns, or understanding production-grade Socket.IO architecture.
+
 ---
 
 ## 🐛 Troubleshooting
