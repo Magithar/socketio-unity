@@ -665,6 +665,8 @@ socket.Emit("chat", "Hello!");
 socket.Off("chat", OnChatMessage);
 ```
 
+**📺 Video Walkthrough**: [Watch on YouTube](https://youtu.be/7dU89B9O50c)
+
 **📚 Full Documentation**: See [BasicChat/README.md](Samples~/BasicChat/README.md)
 
 **🎯 Import**: Package Manager → Socket.IO Unity Client → Samples → "Basic Chat"
