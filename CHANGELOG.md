@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-03-05
+
+**Patch release** — Reconnection stability fixes. No API changes.
+
+### Fixed
+- **`SocketIOClient.CreateFreshEngine()`**: Fully recreates engine, namespaces, and binary assembler on each reconnect — prevents stale state from a previous connection leaking into the new one
+- **`SocketIOClient.Tick()`**: Caches the namespace list before iterating to avoid a `InvalidOperationException` (collection modified during enumeration) that could occur mid-reconnect
+- **`SocketIOClient.HandleEngineClose()`**: Added race-condition guard (`if (IsConnected) return`) and calls `_namespaces.ResetAll()` before invoking disconnect handlers — prevents double-teardown and ensures namespace state is clean before user code runs
+- **`SocketIOClient.HandleEngineMessage()`**: Re-registers all non-root namespaces after reconnect by sending `CONNECT` packets — namespaces were silently dropped after a reconnect cycle
+- **`SocketIOClient.DestroyEngine()` / `AttemptReconnect()`**: Separated teardown and reconnect attempt into distinct methods for clarity and correctness
+- **`PlayerNetworkSync` sample**: Re-attaches socket event handlers on reconnect to match the core reconnection fixes
+
+### Stability
+- **No API Changes**: All fixes are internal implementation changes
+- **Backward Compatible**: Safe upgrade from v1.1.1
+
 ## [1.1.1] - 2026-02-28
 
 **Patch release** — PlayerSync sample bug fixes. No API changes.
@@ -269,7 +285,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/Magithar/socketio-unity/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Magithar/socketio-unity/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Magithar/socketio-unity/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Magithar/socketio-unity/compare/v1.0.0...v1.0.1

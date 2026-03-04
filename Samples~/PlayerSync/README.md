@@ -601,6 +601,7 @@ Watch the **Connection Status** (top-left):
 - **Optional jitter**: Can add random variance (jitterPercent) to prevent thundering herd when many clients reconnect simultaneously
 - **Max attempts**: Optionally limit reconnection attempts (default: unlimited)
 - **Fresh socket creation**: New SocketIOClient instance created on each reconnection attempt
+- **Re-attached event handlers**: All socket event handlers (`OnConnected`, `OnDisconnected`, `OnError`, namespace events) are re-registered after each reconnect — fixes v1.1.1 regression where handlers were silently dropped
 - **Clean state**: Remote players removed on disconnect, position updates stopped
 - **Fresh sync**: New player ID and full state sync on reconnect
 - **No duplicates**: Only one position update coroutine and one reconnection coroutine running at a time

@@ -6,7 +6,7 @@ Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stabi
 Built for serious multiplayer and live backend systems.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.1.1-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.1.2-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -23,7 +23,7 @@ Built for serious multiplayer and live backend systems.
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.1.1 (2026-02-28) — PlayerSync prefab fixes (Canvas render mode, scale, size) and BillboardCanvas script.
+**Current:** v1.1.2 (2026-03-05) — Reconnection stability fixes (stale engine state, collection enumeration crash, namespace re-registration after reconnect).
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -34,6 +34,11 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 ---
 
 ## 🚧 Implementation Status
+
+### ✅ v1.1.2 Milestone (2026-03-05)
+
+* **Reconnection Stability** - `CreateFreshEngine()` fully recreates engine state on each reconnect; prevents stale state, collection-modification crashes, and silently dropped namespaces after reconnect
+* **PlayerNetworkSync Sample** - Re-attaches socket event handlers on reconnect to align with core reconnection fixes
 
 ### ✅ v1.1.1 Milestone (2026-02-28)
 
