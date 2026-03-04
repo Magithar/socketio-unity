@@ -127,12 +127,11 @@ public class PlayerNetworkSync : MonoBehaviour
             Debug.Log("Creating SocketIOClient...");
             rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
 
-            // Apply custom reconnection configuration
-            rootSocket.ReconnectConfig = reconnectConfig;
+            // Disable built-in reconnection — it creates a fresh NamespaceManager
+            // which wipes our /playersync event handlers. We use manual ReconnectRoutine instead.
+            rootSocket.ReconnectConfig = new ReconnectConfig { autoReconnect = false };
 
-            Debug.Log($"SocketIOClient created successfully with reconnect config: " +
-                     $"initialDelay={reconnectConfig.initialDelay}s, multiplier={reconnectConfig.multiplier}, " +
-                     $"maxDelay={reconnectConfig.maxDelay}s, jitter={reconnectConfig.jitterPercent * 100}%");
+            Debug.Log("SocketIOClient created (built-in reconnect disabled, using manual reconnect)");
         }
         catch (System.Exception e)
         {
@@ -143,16 +142,22 @@ public class PlayerNetworkSync : MonoBehaviour
         // Connect to root first
         Debug.Log($"Connecting to root: {serverUrl}");
         ConnectionState = ConnectionState.Connecting;
-        ConnectToServer();
+        AttachSocketHandlers();
+        ConnectToServer();  // This already calls SetupNamespace() internally
+    }
 
-        // Add error handler to root socket
+    /// <summary>
+    /// Attaches OnError and OnDisconnected handlers to the current rootSocket.
+    /// Must be called every time a new rootSocket is created (initial + every reconnect).
+    /// </summary>
+    private void AttachSocketHandlers()
+    {
         rootSocket.OnError += (error) =>
         {
-            if (isDestroyed) return; // Don't process events after destruction
+            if (isDestroyed) return;
 
             Debug.LogError($"❌ Socket Error: {error}");
 
-            // Switch to reconnecting state if we lose connection at any time
             if (ConnectionState == ConnectionState.Connecting || ConnectionState == ConnectionState.Connected)
             {
                 ConnectionState = ConnectionState.Reconnecting;
@@ -160,22 +165,19 @@ public class PlayerNetworkSync : MonoBehaviour
                 isNamespaceConnected = false;
                 controller.CanMove = false;
 
-                // Stop position updates
                 if (positionRoutine != null)
                 {
                     StopCoroutine(positionRoutine);
                     positionRoutine = null;
                 }
 
-                // Clean up all remote players
                 spawner.RemoveAllRemotePlayers();
             }
         };
 
-        // Add disconnect handler to root socket
         rootSocket.OnDisconnected += () =>
         {
-            if (isDestroyed) return; // Don't process events after destruction
+            if (isDestroyed) return;
 
             Debug.LogWarning("❌ Disconnected from root socket");
             isNamespaceConnected = false;
@@ -183,24 +185,20 @@ public class PlayerNetworkSync : MonoBehaviour
             ConnectionState = ConnectionState.Reconnecting;
             ReconnectAttempt = 0;
 
-            // Stop position updates
             if (positionRoutine != null)
             {
                 StopCoroutine(positionRoutine);
                 positionRoutine = null;
             }
 
-            // Clean up all remote players
             spawner.RemoveAllRemotePlayers();
 
-            // Start reconnection attempts
+            // Start manual reconnection (built-in reconnect is disabled)
             if (reconnectRoutine == null && !isReconnecting)
             {
                 reconnectRoutine = StartCoroutine(ReconnectRoutine());
             }
         };
-
-        SetupNamespace();
     }
 
     private void ConnectToServer()
@@ -398,14 +396,16 @@ public class PlayerNetworkSync : MonoBehaviour
             {
                 Debug.Log($"🔌 Attempting to reconnect to {serverUrl}...");
 
-                // Dispose old socket and create new one
+                // Properly shut down old socket (stops built-in reconnect + unregisters from tick driver)
                 if (rootSocket != null)
                 {
+                    rootSocket.Shutdown();
                     rootSocket = null;
                 }
 
                 rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
-                rootSocket.ReconnectConfig = reconnectConfig; // Apply custom config
+                rootSocket.ReconnectConfig = new ReconnectConfig { autoReconnect = false }; // Disable built-in reconnect
+                AttachSocketHandlers(); // Re-attach handlers to new socket instance
                 ConnectToServer();
             }
             catch (Exception e)
