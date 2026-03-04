@@ -273,6 +273,10 @@ namespace SocketIOUnity.Runtime
             if (IsConnected)
                 return;
 
+            // Check if auto-reconnect is disabled
+            if (!_reconnectConfig.autoReconnect)
+                return;
+
             if (!_reconnect.IsRunning)
                 _reconnect.Start();
         }
