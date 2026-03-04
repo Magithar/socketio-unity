@@ -1,5 +1,7 @@
 # PlayerSync Sample
 
+**📺 Video Walkthrough**: [Watch on YouTube](https://www.youtube.com/watch?v=pdLP2jB7iEE)
+
 ## Overview
 
 This sample demonstrates real-time multiplayer player synchronization using Socket.IO with Unity. Players can move around and see other connected players in real-time. The sample includes:

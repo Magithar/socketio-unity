@@ -18,6 +18,7 @@ Built for serious multiplayer and live backend systems.
 | Sample | Video |
 |--------|-------|
 | Basic Chat | [▶ Watch on YouTube](https://youtu.be/7dU89B9O50c) |
+| Player Sync — WebGL Multiplayer | [▶ Watch on YouTube](https://www.youtube.com/watch?v=pdLP2jB7iEE) |
 
 ---
 
@@ -733,6 +734,8 @@ ns.On("existing_players", (string json) => { /* spawn remote players */ });
 // Broadcast your position at 20Hz
 ns.Emit("player_move", JsonConvert.SerializeObject(movePacket));
 ```
+
+**📺 Video Walkthrough**: [Watch on YouTube](https://www.youtube.com/watch?v=pdLP2jB7iEE)
 
 **📚 Full Documentation**: See [PlayerSync/README.md](Samples~/PlayerSync/README.md)
 
