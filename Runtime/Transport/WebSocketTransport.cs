@@ -27,8 +27,9 @@ namespace SocketIOUnity.Transport
             {
                 SocketIOTrace.Protocol(TraceCategory.Transport, $"WebSocket connecting to {url}");
                 _ws = new WebSocket(url);
+                _eventsBound = false; // reset so new _ws instance gets its events bound
 
-                // Only bind events once per WebSocket instance to prevent duplicate handlers
+                // Bind events to this WebSocket instance
                 if (!_eventsBound)
                 {
                     _eventsBound = true;
