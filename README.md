@@ -37,6 +37,37 @@ Built for serious multiplayer and live backend systems.
 
 ---
 
+## ⚡ Quick Start (2 minutes)
+
+**1. Install via Unity Package Manager** (`Window > Package Manager` → `+` → `Add package from git URL`):
+
+```
+https://github.com/Magithar/socketio-unity.git
+```
+
+**2. Connect and send events:**
+
+```csharp
+var socket = SocketIOManager.Instance.Socket;
+
+socket.OnConnected += () => Debug.Log("Connected!");
+
+socket.On("chat", msg => Debug.Log("Server: " + msg));
+
+socket.Connect("ws://localhost:3000");
+socket.Emit("chat", "Hello from Unity!");
+```
+
+**3. Run the test server:**
+
+```bash
+cd TestServer && npm install && node server.js
+```
+
+Open the **Basic Chat** sample and press Play. → [Full guide](#-basic-chat-sample)
+
+---
+
 ## Why socketio-unity?
 
 Most Unity Socket.IO clients are either closed-source assets, incomplete protocol ports, or tied to a specific platform. This project was built to fill that gap.
@@ -68,37 +99,6 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 | CI-tested on every commit | ✅ GitHub Actions | ❌ Rare |
 
 > If you're building a real multiplayer game in Unity and need a transparent, inspectable Socket.IO client — this project is designed for that use case.
-
----
-
-## ⚡ Quick Start (2 minutes)
-
-**1. Install via Unity Package Manager** (`Window > Package Manager` → `+` → `Add package from git URL`):
-
-```
-https://github.com/Magithar/socketio-unity.git
-```
-
-**2. Connect and send events:**
-
-```csharp
-var socket = SocketIOManager.Instance.Socket;
-
-socket.OnConnected += () => Debug.Log("Connected!");
-
-socket.On("chat", msg => Debug.Log("Server: " + msg));
-
-socket.Connect("ws://localhost:3000");
-socket.Emit("chat", "Hello from Unity!");
-```
-
-**3. Run the test server:**
-
-```bash
-cd TestServer && npm install && node server.js
-```
-
-Open the **Basic Chat** sample and press Play. → [Full guide](#-basic-chat-sample)
 
 ---
 
