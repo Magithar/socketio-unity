@@ -719,16 +719,22 @@ void OnApplicationQuit()
 
 ```
 ┌─────────────────────────────────────────────────────────┐
+│                    Socket.IO Server                      │
+│               Node.js / Python / Any backend             │
+└──────────────────────────┬──────────────────────────────┘
+                           │ WebSocket frames
+                           ▼
+┌─────────────────────────────────────────────────────────┐
 │                    Your Game Code                        │
 │          MonoBehaviours / UI / Game Logic                │
 └──────────────────────────┬──────────────────────────────┘
-                           │
+                           │ events / callbacks
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   SocketIOManager                        │
-│        Unity singleton — scene lifecycle, DontDestroyOnLoad│
+│           SocketIOManager  (optional helper)             │
+│        Unity singleton wrapper · scene lifecycle         │
 └──────────────────────────┬──────────────────────────────┘
-                           │  owns
+                           │ owns
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   SocketIOClient                         │
@@ -741,36 +747,36 @@ void OnApplicationQuit()
 │  └─────────────────────┘   │  BinaryPacketAssembler   │ │
 │                             └──────────────────────────┘ │
 └──────────────────────────┬──────────────────────────────┘
-                           │  drives
+                           │ drives Engine.IO protocol
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   EngineIOClient                         │
-│     Engine.IO v4 handshake · heartbeat · packet framing  │
+│     handshake · heartbeat · packet framing               │
 │     HeartbeatController · PingRttTracker                 │
 └──────────────────────────┬──────────────────────────────┘
-                           │  uses
+                           │ transport abstraction
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                    ITransport                            │
-│  ┌─────────────────────────┐  ┌────────────────────┐   │
-│  │  WebSocketTransport     │  │WebGLWebSocket       │   │
-│  │  Standalone / Editor    │  │Transport (WebGL)    │   │
-│  │  System.Net.WebSockets  │  │JS bridge (.jslib)   │   │
-│  └─────────────────────────┘  └────────────────────┘   │
+│  ┌─────────────────────────┐  ┌────────────────────────┐│
+│  │  WebSocketTransport     │  │WebGLWebSocketTransport ││
+│  │  Standalone / Editor    │  │Browser JS bridge       ││
+│  │  System.Net.WebSockets  │  │(.jslib)                ││
+│  └─────────────────────────┘  └────────────────────────┘│
 └─────────────────────────────────────────────────────────┘
 
 Unity Integration (cross-cutting)
 ┌─────────────────────────────────────────────────────────┐
-│  UnityTickDriver — drives EngineIOClient from Update()   │
-│  UnityMainThreadDispatcher — queues callbacks to main    │
+│ UnityTickDriver — drives EngineIOClient via Update()     │
+│ UnityMainThreadDispatcher — marshals callbacks to main   │
 └─────────────────────────────────────────────────────────┘
 
 Debug / Observability (opt-in)
 ┌─────────────────────────────────────────────────────────┐
-│  SocketIOTrace → ITraceSink (configurable log output)    │
-│  ProfilerMarkers        (define: SOCKETIO_PROFILER)      │
-│  ProfilerCounters       (define: SOCKETIO_PROFILER_COUNTERS)│
-│  SocketIOThroughputTracker · Editor Network HUD          │
+│ SocketIOTrace → ITraceSink                               │
+│ ProfilerMarkers        (define: SOCKETIO_PROFILER)       │
+│ ProfilerCounters       (define: SOCKETIO_PROFILER_COUNTERS)│
+│ SocketIOThroughputTracker · Editor Network HUD           │
 └─────────────────────────────────────────────────────────┘
 ```
 
