@@ -725,12 +725,6 @@ void OnApplicationQuit()
                            │ WebSocket frames
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                    Your Game Code                        │
-│          MonoBehaviours / UI / Game Logic                │
-└──────────────────────────┬──────────────────────────────┘
-                           │ events / callbacks
-                           ▼
-┌─────────────────────────────────────────────────────────┐
 │           SocketIOManager  (optional helper)             │
 │        Unity singleton wrapper · scene lifecycle         │
 └──────────────────────────┬──────────────────────────────┘
@@ -747,7 +741,7 @@ void OnApplicationQuit()
 │  └─────────────────────┘   │  BinaryPacketAssembler   │ │
 │                             └──────────────────────────┘ │
 └──────────────────────────┬──────────────────────────────┘
-                           │ drives Engine.IO protocol
+                           │ uses Engine.IO protocol
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   EngineIOClient                         │
@@ -759,9 +753,9 @@ void OnApplicationQuit()
 ┌─────────────────────────────────────────────────────────┐
 │                    ITransport                            │
 │  ┌─────────────────────────┐  ┌────────────────────────┐│
-│  │  WebSocketTransport     │  │WebGLWebSocketTransport ││
-│  │  Standalone / Editor    │  │Browser JS bridge       ││
-│  │  System.Net.WebSockets  │  │(.jslib)                ││
+│  │  WebSocketTransport     │  │ WebGLWebSocketTransport││
+│  │  Standalone / Editor    │  │ Browser JS bridge      ││
+│  │  System.Net.WebSockets  │  │ (.jslib)               ││
 │  └─────────────────────────┘  └────────────────────────┘│
 └─────────────────────────────────────────────────────────┘
 
