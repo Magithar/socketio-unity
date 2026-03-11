@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-12
+
+**Minor release** — New Lobby sample. No API changes.
+
+### Added
+- **Lobby Sample** (`Samples~/Lobby/`): Production-style multiplayer lobby demonstrating reconnect recovery, host migration, and session identity
+  - Room creation and join-by-code (6-character codes, e.g. `C9N7GR`)
+  - Persistent `playerId` + `sessionToken` stored in `PlayerPrefs` — survives crashes and app restarts
+  - Session token validation on reconnect prevents player slot spoofing
+  - 10-second reconnect grace window — room slot held while player is offline; host migration fires automatically
+  - Three-layer architecture: `LobbyNetworkManager` (transport) → `LobbyStateStore` (state) → `LobbyUIController` (view)
+  - Room version tracking and player list diffing — no full list rebuilds
+  - Full WebGL support via `TransportFactoryHelper.CreateDefault()`
+  - Separate `lobby-server.js` on port 3001
+- **`package.json` `samples` array**: All three samples (Basic Chat, Player Sync, Lobby) now appear in the Unity Package Manager Samples tab
+
+### Stability
+- **No API Changes**: New sample only
+- **Backward Compatible**: Safe upgrade from v1.1.2
+
 ## [1.1.2] - 2026-03-05
 
 **Patch release** — Reconnection stability fixes. No API changes.
@@ -285,7 +305,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Magithar/socketio-unity/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/Magithar/socketio-unity/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Magithar/socketio-unity/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Magithar/socketio-unity/compare/v1.0.1...v1.1.0

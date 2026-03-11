@@ -6,7 +6,7 @@ Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stabi
 Built for serious multiplayer and live backend systems.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.1.2-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -24,7 +24,7 @@ Built for serious multiplayer and live backend systems.
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.1.2 (2026-03-05) — Reconnection stability fixes (stale engine state, collection enumeration crash, namespace re-registration after reconnect).
+**Current:** v1.2.0 (2026-03-12) — Lobby sample: multiplayer lobby with host migration, session identity, and reconnect recovery.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -35,6 +35,11 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 ---
 
 ## 🚧 Implementation Status
+
+### ✅ v1.2.0 Milestone (2026-03-12)
+
+* **Lobby Sample** - Production multiplayer lobby with host migration, session identity, reconnect grace window, and three-layer architecture
+* **UPM Samples** - All three samples now visible in Package Manager Samples tab
 
 ### ✅ v1.1.2 Milestone (2026-03-05)
 
@@ -500,7 +505,41 @@ socket.Shutdown();
 
 **Customization:**
 By default, reconnection uses exponential backoff (1s → 2s → 4s → 8s → 16s → 30s max).
-For custom behavior, see [Configuring Reconnection Behavior](#configuring-reconnection-behavior-v110).
+For custom behavior, see [Configuring Reconnection Behavior](#configuring-reconnection-behavior-v110) below.
+
+---
+
+### Configuring Reconnection Behavior (v1.1.0+)
+
+`ReconnectConfig` gives you full control over the reconnect strategy:
+
+```csharp
+socket.ReconnectConfig = new ReconnectConfig
+{
+    initialDelay  = 1f,      // First retry after 1 second
+    multiplier    = 2f,      // Double delay each attempt
+    maxDelay      = 30f,     // Cap at 30 seconds
+    maxAttempts   = -1,      // -1 = unlimited
+    autoReconnect = true,
+    jitterPercent = 0.1f,    // ±10% random variance — prevents thundering herd
+};
+```
+
+**Factory presets:**
+
+| Preset | Use case |
+|--------|----------|
+| `ReconnectConfig.Default()` | Matches v1.0.x behavior (1s / 2× / 30s cap) |
+| `ReconnectConfig.Aggressive()` | Faster reconnect for development |
+| `ReconnectConfig.Conservative()` | Slower reconnect for production |
+
+**Disable auto-reconnect** (manual control):
+
+```csharp
+socket.ReconnectConfig = new ReconnectConfig { autoReconnect = false };
+```
+
+📖 **Full details**: See [RECONNECT_BEHAVIOR.md](Documentation~/RECONNECT_BEHAVIOR.md)
 
 ---
 
@@ -632,6 +671,11 @@ socketio-unity/
 │   │   ├── README.md
 │   │   ├── PlayerSyncScene.unity
 │   │   └── Scripts/
+│   ├── Lobby/                  # Multiplayer lobby system (v1.2.0)
+│   │   ├── README.md
+│   │   ├── LobbyScene.unity
+│   │   ├── Scripts/
+│   │   └── Prefab/
 │   ├── SocketIOManager.cs
 │   ├── BinaryEventTest.cs
 │   ├── MainThreadDispatcherTest.cs
@@ -748,6 +792,62 @@ ns.Emit("player_move", JsonConvert.SerializeObject(movePacket));
 - Works on Editor, Standalone, WebGL, and Mobile
 
 > **New to socketio-unity?** Start with [Basic Chat](#-basic-chat-sample) first — PlayerSync builds on those foundations.
+
+---
+
+## 🏠 Lobby Sample
+
+The **Lobby** sample is a production-style multiplayer lobby added in v1.2.0. It builds on PlayerSync concepts and demonstrates:
+
+- ✅ Room creation and join-by-code (6-character codes, e.g. `C9N7GR`)
+- ✅ Persistent player identity across reconnects (survives crashes and app restarts)
+- ✅ Session token authentication (prevents player slot spoofing)
+- ✅ 10-second reconnect grace window (room slot held while player is offline)
+- ✅ Host migration (automatic promotion of next connected player when host leaves)
+- ✅ Three-layer architecture: transport → state store → UI (no layer crosses its boundary)
+- ✅ Full WebGL support via `TransportFactoryHelper.CreateDefault()`
+
+### Architecture
+
+```
+         ┌──────────────────────┐
+         │   LobbyNetworkManager│  transport layer — /lobby namespace
+         └──────────┬───────────┘
+                    │  ApplyRoomState / FireX
+                    ▼
+         ┌──────────────────────┐
+         │    LobbyStateStore   │  single source of truth — fires C# events
+         └──────────┬───────────┘
+                    │  OnRoomStateChanged / OnPlayerJoined / etc.
+                    ▼
+         ┌──────────────────────┐
+         │   LobbyUIController  │  view layer — no socket access
+         └──────────────────────┘
+```
+
+### Quick Start
+
+```bash
+# In TestServer/
+npm install
+npm run start:lobby   # Lobby server on port 3001
+```
+
+```
+Open LobbyScene in Unity → Press Play → Enter name → Create or Join Room
+```
+
+**📚 Full Documentation**: See [Lobby/README.md](Samples~/Lobby/README.md)
+
+**🎯 Import**: Package Manager → Socket.IO Unity Client → Samples → "Lobby"
+
+**Key Features:**
+- Separate `lobby-server.js` runs on port 3001 (independent of the main test server)
+- `playerId` + `sessionToken` stored in `PlayerPrefs` for crash-safe reconnect
+- Room version tracking prevents stale `room_state` packets from causing double-renders
+- Works on Editor, Standalone, and WebGL
+
+> **Prerequisites:** Complete [Basic Chat](#-basic-chat-sample) and [Player Sync](#-playersync-sample) first — the Lobby builds on acknowledgements, namespaces, and manual reconnection flow from those samples.
 
 ---
 
