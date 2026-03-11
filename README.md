@@ -13,6 +13,40 @@ Built for serious multiplayer and live backend systems.
 
 ---
 
+## Why socketio-unity?
+
+Most Unity Socket.IO clients are either closed-source assets, incomplete protocol ports, or tied to a specific platform. This project was built to fill that gap.
+
+| Problem in existing clients | socketio-unity solution |
+|-----------------------------|-------------------------|
+| Closed-source or paid assets | Fully open-source (MIT), clean-room implementation |
+| Incomplete protocol support | Socket.IO v4 + Engine.IO v4, binary events, namespaces, ACKs |
+| WebGL incompatibility | Dedicated JavaScript transport bridge |
+| Reconnect instability | Engine state fully recreated on each reconnect cycle |
+| GC spikes in gameplay | Object pooling, binary buffer reuse |
+| Hard to debug | Profiler markers, counters, configurable trace system |
+
+---
+
+## Comparison
+
+| Feature | socketio-unity | Typical Unity Socket.IO Asset |
+|---------|---------------|-------------------------------|
+| Open source | ✅ MIT | ❌ Often closed-source |
+| Socket.IO v4 protocol | ✅ Full implementation | ⚠️ Partial / outdated |
+| WebGL support | ✅ Verified | ⚠️ Often broken |
+| Binary payloads | ✅ | ⚠️ Limited |
+| Namespace multiplexing | ✅ | ⚠️ Sometimes missing |
+| ACK callbacks with timeout | ✅ | ⚠️ Partial |
+| Automatic reconnect | ✅ Configurable (ReconnectConfig) | ⚠️ Basic or hardcoded |
+| Unity Profiler integration | ✅ Markers + counters | ❌ |
+| Clean-room implementation | ✅ | ❌ Unknown |
+| CI-tested on every commit | ✅ GitHub Actions | ❌ Rare |
+
+> If you're building a real multiplayer game in Unity and need a transparent, inspectable Socket.IO client — this project is designed for that use case.
+
+---
+
 ## 🎬 Demo
 
 | Sample | Video |
