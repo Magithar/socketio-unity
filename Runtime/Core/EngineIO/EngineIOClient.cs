@@ -46,6 +46,7 @@ namespace SocketIOUnity.EngineProtocol
             if (_isConnected)
                 return;
 
+            UnityTickDriver.Register(this); // re-register in case Cleanup() unregistered us
             var url = BuildEngineIOUrl(baseUrl);
             _transport.Connect(url);
         }
