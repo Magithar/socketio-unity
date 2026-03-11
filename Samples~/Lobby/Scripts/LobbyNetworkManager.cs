@@ -1,0 +1,209 @@
+using UnityEngine;
+using SocketIOUnity.Runtime;
+using SocketIOUnity.Transport;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+/// <summary>
+/// Thin transport layer: manages the /lobby namespace socket connection
+/// and translates raw socket events into LobbyStateStore calls.
+///
+/// Does NOT own any state or fire any events directly.
+/// All state lives in LobbyStateStore; consumers subscribe there.
+/// </summary>
+public class LobbyNetworkManager : MonoBehaviour
+{
+    [Header("Server")]
+    [SerializeField] private string serverUrl = "http://localhost:3001";
+
+    [Header("State")]
+    [SerializeField] private LobbyStateStore store;
+
+    private SocketIOClient _root;
+    private NamespaceSocket _lobby;
+    private bool _destroyed;
+
+    private void Start()
+    {
+        _root = new SocketIOClient(TransportFactoryHelper.CreateDefault());
+        _root.ReconnectConfig = new ReconnectConfig { autoReconnect = false };
+
+        _root.OnError += err =>
+        {
+            if (_destroyed) return;
+            Debug.LogError($"❌ Lobby socket error: {err}");
+            store.FireError(err);
+        };
+
+        _root.OnDisconnected += () =>
+        {
+            if (_destroyed) return;
+            store.SetConnected(false);
+        };
+
+        ConnectToLobby();
+    }
+
+    private void ConnectToLobby()
+    {
+        _root.Connect(serverUrl);
+        if (_lobby == null) SetupNamespace();
+    }
+
+    private void SetupNamespace()
+    {
+        _lobby = _root.Of("/lobby");
+
+        _lobby.OnConnected += () =>
+        {
+            if (_destroyed) return;
+            Debug.Log("✅ Connected to /lobby");
+            store.SetConnected(true);
+        };
+
+        _lobby.OnDisconnected += () =>
+        {
+            if (_destroyed) return;
+            Debug.LogWarning("❌ Disconnected from /lobby");
+            store.SetConnected(false);
+        };
+
+        _lobby.On("match_started", (string json) =>
+        {
+            if (_destroyed) return;
+            string sceneName = JObject.Parse(json)["sceneName"]?.ToString();
+            Debug.Log($"🎮 Match started! scene={sceneName ?? "(none)"}");
+            store.FireMatchStarted(sceneName);
+        });
+
+        _lobby.On("room_state", (string json) =>
+        {
+            if (_destroyed) return;
+            store.ApplyRoomState(JsonConvert.DeserializeObject<RoomState>(json));
+        });
+
+        _lobby.On("player_removed", json =>
+        {
+            if (_destroyed) return;
+            var obj       = JObject.Parse(json);
+            string pid    = obj["playerId"]?.ToString();
+            string name   = obj["name"]?.ToString();
+            string reason = obj["reason"]?.ToString();
+            Debug.Log($"[Lobby] player_removed: {name} ({pid}) reason={reason}");
+            store.FirePlayerRemoved(pid, name, reason);
+        });
+    }
+
+    // =========================================================
+    // Emit API — called by LobbyUIController (and future systems)
+    // =========================================================
+
+    public void CreateRoom(string playerName)
+    {
+        if (!store.IsConnected) { Debug.LogWarning("Cannot create room: not connected"); return; }
+
+        _lobby.Emit("create_room", new { name = playerName }, ack =>
+        {
+            var result = ParseAck(ack);
+            if (result != null && result.Value<bool>("ok"))
+            {
+                store.SetLocalPlayerId(result.Value<string>("playerId"));
+                store.SetSessionToken(result.Value<string>("sessionToken"));
+                Debug.Log($"🏠 Room created: {result.Value<string>("roomId")} (me: {store.LocalPlayerId})");
+            }
+            else
+            {
+                Debug.LogWarning($"create_room failed: {ack}");
+            }
+        });
+    }
+
+    public void JoinRoom(string roomId, string playerName)
+    {
+        if (!store.IsConnected) { Debug.LogWarning("Cannot join room: not connected"); return; }
+
+        _lobby.Emit("join_room", new { roomId = roomId.ToUpper(), name = playerName }, ack =>
+        {
+            var result = ParseAck(ack);
+            if (result != null && result.Value<bool>("ok"))
+            {
+                store.SetLocalPlayerId(result.Value<string>("playerId"));
+                store.SetSessionToken(result.Value<string>("sessionToken"));
+                Debug.Log($"🚪 Joined room: {result.Value<string>("roomId")} (me: {store.LocalPlayerId})");
+            }
+            else
+            {
+                string error = result?.Value<string>("error") ?? ack;
+                Debug.LogWarning($"join_room failed: {error}");
+                store.FireError(error);
+            }
+        });
+    }
+
+    public void LeaveRoom()
+    {
+        if (!store.IsConnected) return;
+
+        _lobby.Emit("leave_room", new { }, ack =>
+        {
+            store.Reset();
+            Debug.Log("🚶 Left room");
+        });
+    }
+
+    public void SetReady(bool ready)
+    {
+        if (!store.IsConnected) return;
+        _lobby.Emit("player_ready", new { ready });
+    }
+
+    public void StartMatch(string sceneName = null)
+    {
+        if (!store.IsConnected || !store.IsHost) return;
+        _lobby.Emit("start_match", new { sceneName });
+    }
+
+    /// <summary>
+    /// Restore a previous session using the credentials issued at join time.
+    /// The sessionToken prevents playerId spoofing on reconnect.
+    /// </summary>
+    public void ReconnectSession(string playerId, string roomId, string sessionToken)
+    {
+        if (!store.IsConnected) { Debug.LogWarning("Cannot restore session: not connected"); return; }
+
+        _lobby.Emit("reconnect_player", new { playerId, roomId, sessionToken }, ack =>
+        {
+            var result = ParseAck(ack);
+            if (result != null && result.Value<bool>("ok"))
+            {
+                store.SetLocalPlayerId(result.Value<string>("playerId"));
+                Debug.Log($"♻️ Session restored: room={result.Value<string>("roomId")} player={result.Value<string>("playerId")}");
+            }
+            else
+            {
+                string error = result?.Value<string>("error") ?? ack;
+                Debug.LogWarning($"reconnect_player failed: {error}");
+                store.FireError(error);
+            }
+        });
+    }
+
+    public void Reconnect()
+    {
+        if (store.IsConnected) return;
+        Debug.Log("🔄 Reconnecting to lobby...");
+        ConnectToLobby();
+    }
+
+    private void OnDestroy()
+    {
+        _destroyed = true;
+        _root?.Shutdown();
+    }
+
+    private static JObject ParseAck(string ack)
+    {
+        try { return JObject.Parse(ack); }
+        catch { return null; }
+    }
+}
