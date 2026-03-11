@@ -13,6 +13,28 @@ Built for serious multiplayer and live backend systems.
 
 ---
 
+## 📚 Quick Navigation
+
+**Getting Started**
+[⚡ Quick Start](#-quick-start-2-minutes) · [🎬 Demo](#-demo) · [🚀 Installation](#-installation) · [📦 Dependencies](#-dependencies)
+
+**Usage**
+[🧠 API Guide](#-usage-current-api) · [🔒 API Stability](#-api-stability) · [🧱 Architecture](#-architecture-overview)
+
+**Samples**
+[💬 Basic Chat](#-basic-chat-sample) · [🎮 PlayerSync](#-playersync-sample) · [🏠 Lobby](#-lobby-sample)
+
+**Platform & Production**
+[📦 Platforms](#-supported-platforms) · [✅ WebGL](#-webgl-status-production-verified) · [🛡 Production Readiness](#-production-readiness)
+
+**Developer Tools**
+[🔬 Profiler Integration](#-unity-profiler-integration) · [📊 Profiler Counters](#-unity-profiler-counters) · [🔍 Packet Tracing](#-packet-tracing) · [🧪 Testing](#-development--testing)
+
+**Project**
+[🚧 Status](#-implementation-status) · [📝 Changelog](CHANGELOG.md) · [🤝 Contributing](#-contributing) · [📄 License](#-license)
+
+---
+
 ## Why socketio-unity?
 
 Most Unity Socket.IO clients are either closed-source assets, incomplete protocol ports, or tied to a specific platform. This project was built to fill that gap.
@@ -44,6 +66,37 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 | CI-tested on every commit | ✅ GitHub Actions | ❌ Rare |
 
 > If you're building a real multiplayer game in Unity and need a transparent, inspectable Socket.IO client — this project is designed for that use case.
+
+---
+
+## ⚡ Quick Start (2 minutes)
+
+**1. Install via Unity Package Manager** (`Window > Package Manager` → `+` → `Add package from git URL`):
+
+```
+https://github.com/Magithar/socketio-unity.git
+```
+
+**2. Connect and send events:**
+
+```csharp
+var socket = SocketIOManager.Instance.Socket;
+
+socket.OnConnected += () => Debug.Log("Connected!");
+
+socket.On("chat", msg => Debug.Log("Server: " + msg));
+
+socket.Connect("ws://localhost:3000");
+socket.Emit("chat", "Hello from Unity!");
+```
+
+**3. Run the test server:**
+
+```bash
+cd TestServer && npm install && node server.js
+```
+
+Open the **Basic Chat** sample and press Play. → [Full guide](#-basic-chat-sample)
 
 ---
 
@@ -840,35 +893,52 @@ The **Lobby** sample is a production-style multiplayer lobby added in v1.2.0. It
 - ✅ Host migration (automatic promotion of next connected player when host leaves)
 - ✅ Three-layer architecture: transport → state store → UI (no layer crosses its boundary)
 - ✅ Full WebGL support via `TransportFactoryHelper.CreateDefault()`
+- ✅ Trace-based structured server logs — per-player `traceId` stable across reconnects
 
 ### Architecture
 
 ```
          ┌──────────────────────┐
-         │   LobbyNetworkManager│  transport layer — /lobby namespace
+         │   Socket.IO Server   │
+         │   lobby-server.js    │
+         └──────────┬───────────┘
+                    │  room_state snapshots
+                    ▼
+         ┌──────────────────────┐
+         │  LobbyNetworkManager │  transport layer
+         │  namespace /lobby    │  emits & receives events
          └──────────┬───────────┘
                     │  ApplyRoomState / FireX
                     ▼
          ┌──────────────────────┐
-         │    LobbyStateStore   │  single source of truth — fires C# events
+         │    LobbyStateStore   │  single source of truth
+         │  CurrentRoom         │  fires semantic C# events
+         │  LocalPlayerId       │  diffs player lists
+         │  SessionToken        │
          └──────────┬───────────┘
                     │  OnRoomStateChanged / OnPlayerJoined / etc.
                     ▼
          ┌──────────────────────┐
-         │   LobbyUIController  │  view layer — no socket access
+         │   LobbyUIController  │  view layer
+         │   no socket access   │  reacts to store events only
          └──────────────────────┘
 ```
 
 ### Quick Start
 
 ```bash
-# In TestServer/
 npm install
-npm run start:lobby   # Lobby server on port 3001
+npm run start:lobby   # or: npm run dev:lobby (auto-restart)
 ```
 
 ```
 Open LobbyScene in Unity → Press Play → Enter name → Create or Join Room
+```
+
+Server output:
+```
+🚀 Lobby server running on http://localhost:3001
+🛰  Socket.IO namespace: /lobby
 ```
 
 **📚 Full Documentation**: See [Lobby/README.md](Samples~/Lobby/README.md)
