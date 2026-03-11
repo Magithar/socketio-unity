@@ -16,22 +16,24 @@ Built for serious multiplayer and live backend systems.
 ## 📚 Quick Navigation
 
 **Getting Started**
-[⚡ Quick Start](#-quick-start-2-minutes) · [🎬 Demo](#-demo) · [🚀 Installation](#-installation) · [📦 Dependencies](#-dependencies)
+⚡ [Quick Start](#-quick-start-2-minutes) · 🎬 [Demo](#-demo) · 🚀 [Installation](#-installation) · 📦 [Dependencies](#-dependencies)
 
 **Usage**
-[🧠 API Guide](#-usage-current-api) · [🔒 API Stability](#-api-stability) · [🧱 Architecture](#-architecture-overview)
+🧠 [API Guide](#-usage-current-api) · 🔒 [API Stability](#-api-stability) · 🧱 [Architecture](#-architecture-overview) · ⚙️ [Component Hierarchy](#component-hierarchy)
 
 **Samples**
-[💬 Basic Chat](#-basic-chat-sample) · [🎮 PlayerSync](#-playersync-sample) · [🏠 Lobby](#-lobby-sample)
+💬 [Basic Chat](#-basic-chat-sample) · 🎮 [PlayerSync](#-playersync-sample) · 🏠 [Lobby](#-lobby-sample)
 
 **Platform & Production**
-[📦 Platforms](#-supported-platforms) · [✅ WebGL](#-webgl-status-production-verified) · [🛡 Production Readiness](#-production-readiness)
+📦 [Platforms](#-supported-platforms) · ✅ [WebGL](#-webgl-status-production-verified) · 🛡 [Production Readiness](#-production-readiness)
 
 **Developer Tools**
-[🔬 Profiler Integration](#-unity-profiler-integration) · [📊 Profiler Counters](#-unity-profiler-counters) · [🔍 Packet Tracing](#-packet-tracing) · [🧪 Testing](#-development--testing)
+🔬 [Profiler Integration](#-unity-profiler-integration) · 📊 [Profiler Counters](#-unity-profiler-counters) · 🔍 [Packet Tracing](#-packet-tracing) · 🧪 [Testing](#-development--testing) · 🖥 [Test Server](#test-server-setup)
 
 **Project**
-[🚧 Status](#-implementation-status) · [📝 Changelog](CHANGELOG.md) · [🤝 Contributing](#-contributing) · [📄 License](#-license)
+🚧 [Status](#-implementation-status) · 📝 [Changelog](CHANGELOG.md) · 🤝 [Contributing](#-contributing) · 📄 [License](#-license)
+
+> 💡 New here? Start with **[Quick Start](#-quick-start-2-minutes) → [Basic Chat Sample](#-basic-chat-sample)**.
 
 ---
 
@@ -714,6 +716,63 @@ void OnApplicationQuit()
 ---
 
 ## 🧱 Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Your Game Code                        │
+│          MonoBehaviours / UI / Game Logic                │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   SocketIOManager                        │
+│        Unity singleton — scene lifecycle, DontDestroyOnLoad│
+└──────────────────────────┬──────────────────────────────┘
+                           │  owns
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   SocketIOClient                         │
+│          Public API: On / Emit / Off / Of / Connect      │
+│  ┌─────────────────────┐   ┌──────────────────────────┐ │
+│  │  NamespaceManager   │   │   ReconnectController    │ │
+│  │  NamespaceSocket[]  │   │   ReconnectConfig        │ │
+│  │  EventRegistry      │   └──────────────────────────┘ │
+│  │  AckRegistry        │   ┌──────────────────────────┐ │
+│  └─────────────────────┘   │  BinaryPacketAssembler   │ │
+│                             └──────────────────────────┘ │
+└──────────────────────────┬──────────────────────────────┘
+                           │  drives
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   EngineIOClient                         │
+│     Engine.IO v4 handshake · heartbeat · packet framing  │
+│     HeartbeatController · PingRttTracker                 │
+└──────────────────────────┬──────────────────────────────┘
+                           │  uses
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                    ITransport                            │
+│  ┌─────────────────────────┐  ┌────────────────────┐   │
+│  │  WebSocketTransport     │  │WebGLWebSocket       │   │
+│  │  Standalone / Editor    │  │Transport (WebGL)    │   │
+│  │  System.Net.WebSockets  │  │JS bridge (.jslib)   │   │
+│  └─────────────────────────┘  └────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+
+Unity Integration (cross-cutting)
+┌─────────────────────────────────────────────────────────┐
+│  UnityTickDriver — drives EngineIOClient from Update()   │
+│  UnityMainThreadDispatcher — queues callbacks to main    │
+└─────────────────────────────────────────────────────────┘
+
+Debug / Observability (opt-in)
+┌─────────────────────────────────────────────────────────┐
+│  SocketIOTrace → ITraceSink (configurable log output)    │
+│  ProfilerMarkers        (define: SOCKETIO_PROFILER)      │
+│  ProfilerCounters       (define: SOCKETIO_PROFILER_COUNTERS)│
+│  SocketIOThroughputTracker · Editor Network HUD          │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### Directory Structure (UPM Package)
 
