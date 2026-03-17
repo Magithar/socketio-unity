@@ -745,38 +745,41 @@ void OnApplicationQuit()
                            │ WebSocket frames
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│           SocketIOManager  (optional helper)             │
-│        Unity singleton wrapper · scene lifecycle         │
+│                    ITransport                            │
+│  ┌────────────────────────┐  ┌────────────────────────┐ │
+│  │  WebSocketTransport    │  │ WebGLWebSocketTransport│ │
+│  │  Standalone / Editor   │  │ Browser JS bridge      │ │
+│  │  System.Net.WebSockets │  │ (.jslib)               │ │
+│  └────────────────────────┘  └────────────────────────┘ │
 └──────────────────────────┬──────────────────────────────┘
-                           │ owns
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                   SocketIOClient                         │
-│          Public API: On / Emit / Off / Of / Connect      │
-│  ┌─────────────────────┐   ┌──────────────────────────┐ │
-│  │  NamespaceManager   │   │   ReconnectController    │ │
-│  │  NamespaceSocket[]  │   │   ReconnectConfig        │ │
-│  │  EventRegistry      │   └──────────────────────────┘ │
-│  │  AckRegistry        │   ┌──────────────────────────┐ │
-│  └─────────────────────┘   │  BinaryPacketAssembler   │ │
-│                             └──────────────────────────┘ │
-└──────────────────────────┬──────────────────────────────┘
-                           │ uses Engine.IO protocol
+                           │ transport abstraction
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   EngineIOClient                         │
 │     handshake · heartbeat · packet framing               │
 │     HeartbeatController · PingRttTracker                 │
 └──────────────────────────┬──────────────────────────────┘
-                           │ transport abstraction
+                           │ uses Engine.IO protocol
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                    ITransport                            │
-│  ┌─────────────────────────┐  ┌────────────────────────┐│
-│  │  WebSocketTransport     │  │ WebGLWebSocketTransport││
-│  │  Standalone / Editor    │  │ Browser JS bridge      ││
-│  │  System.Net.WebSockets  │  │ (.jslib)               ││
-│  └─────────────────────────┘  └────────────────────────┘│
+│                   SocketIOClient                         │
+│          Public API: On / Emit / Off / Of / Connect      │
+│  ┌─────────────────────┐   ┌──────────────────────────┐ │
+│  │  NamespaceManager   │   │   ReconnectController    │ │
+│  │  Dict<string,       │   │   ReconnectConfig        │ │
+│  │    NamespaceSocket> │   └──────────────────────────┘ │
+│  └─────────────────────┘   ┌──────────────────────────┐ │
+│  ┌─────────────────────┐   │  BinaryPacketAssembler   │ │
+│  │  NamespaceSocket    │   └──────────────────────────┘ │
+│  │  EventRegistry      │                                 │
+│  │  AckRegistry        │                                 │
+│  └─────────────────────┘                                 │
+└──────────────────────────┬──────────────────────────────┘
+                           │ owns
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│           SocketIOManager  (optional helper)             │
+│        Unity singleton wrapper · scene lifecycle         │
 └─────────────────────────────────────────────────────────┘
 
 Unity Integration (cross-cutting)
@@ -789,7 +792,7 @@ Debug / Observability (opt-in)
 ┌─────────────────────────────────────────────────────────┐
 │ SocketIOTrace → ITraceSink                               │
 │ ProfilerMarkers        (define: SOCKETIO_PROFILER)       │
-│ ProfilerCounters       (define: SOCKETIO_PROFILER_COUNTERS)│
+│ ProfilerCounters (define: SOCKETIO_PROFILER_COUNTERS)   │
 │ SocketIOThroughputTracker · Editor Network HUD           │
 └─────────────────────────────────────────────────────────┘
 ```
