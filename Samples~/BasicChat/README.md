@@ -47,12 +47,12 @@ This sample requires a Socket.IO server that echoes `chat` events.
 
 #### Option A: Use the Included Test Server
 
-If you have the `socketio-test-server` from the repository:
+The test server is included in `TestServer~/` at the project root:
 
 ```bash
-cd socketio-test-server
+cd TestServer~
 npm install
-node server.js
+npm start          # or: npm run dev (auto-restart with nodemon)
 ```
 
 The server will start on `ws://localhost:3000`.

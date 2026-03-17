@@ -1,7 +1,8 @@
+<div align="center">
+
 # socketio-unity
 
-Production-ready Socket.IO v4 client for Unity.
-Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stability.
+Production-ready Socket.IO v4 client for Unity. Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stability.
 
 Built for serious multiplayer and live backend systems.
 
@@ -13,27 +14,46 @@ Built for serious multiplayer and live backend systems.
 
 ---
 
-## 📚 Quick Navigation
+**Getting Started** &nbsp;·&nbsp;
+⚡ [Quick Start](#-quick-start-2-minutes) &nbsp;·&nbsp;
+🎬 [Demo](#-demo) &nbsp;·&nbsp;
+🚀 [Installation](#-installation) &nbsp;·&nbsp;
+📦 [Dependencies](#-dependencies)
 
-**Getting Started**
-⚡ [Quick Start](#-quick-start-2-minutes) · 🎬 [Demo](#-demo) · 🚀 [Installation](#-installation) · 📦 [Dependencies](#-dependencies)
+**Usage** &nbsp;·&nbsp;
+🧠 [API Guide](#-usage-current-api) &nbsp;·&nbsp;
+🔒 [API Stability](#-api-stability) &nbsp;·&nbsp;
+🧱 [Architecture](#-architecture-overview) &nbsp;·&nbsp;
+⚙️ [Component Hierarchy](#component-hierarchy)
 
-**Usage**
-🧠 [API Guide](#-usage-current-api) · 🔒 [API Stability](#-api-stability) · 🧱 [Architecture](#-architecture-overview) · ⚙️ [Component Hierarchy](#component-hierarchy)
+**Samples** &nbsp;·&nbsp;
+💬 [Basic Chat](#-basic-chat-sample) &nbsp;·&nbsp;
+🎮 [PlayerSync](#-playersync-sample) &nbsp;·&nbsp;
+🏠 [Lobby](#-lobby-sample)
 
-**Samples**
-💬 [Basic Chat](#-basic-chat-sample) · 🎮 [PlayerSync](#-playersync-sample) · 🏠 [Lobby](#-lobby-sample)
+**Platform & Production** &nbsp;·&nbsp;
+📦 [Platforms](#-supported-platforms) &nbsp;·&nbsp;
+✅ [WebGL](#-webgl-status-production-verified) &nbsp;·&nbsp;
+🛡 [Production Readiness](#-production-readiness)
 
-**Platform & Production**
-📦 [Platforms](#-supported-platforms) · ✅ [WebGL](#-webgl-status-production-verified) · 🛡 [Production Readiness](#-production-readiness)
+**Developer Tools** &nbsp;·&nbsp;
+🔬 [Profiler Integration](#-unity-profiler-integration) &nbsp;·&nbsp;
+📊 [Profiler Counters](#-unity-profiler-counters) &nbsp;·&nbsp;
+🔍 [Packet Tracing](#-packet-tracing) &nbsp;·&nbsp;
+🧪 [Testing](#-development--testing) &nbsp;·&nbsp;
+🖥 [Test Server](#test-server-setup)
 
-**Developer Tools**
-🔬 [Profiler Integration](#-unity-profiler-integration) · 📊 [Profiler Counters](#-unity-profiler-counters) · 🔍 [Packet Tracing](#-packet-tracing) · 🧪 [Testing](#-development--testing) · 🖥 [Test Server](#test-server-setup)
+**Project** &nbsp;·&nbsp;
+🚧 [Status](#-implementation-status) &nbsp;·&nbsp;
+📝 [Changelog](CHANGELOG.md) &nbsp;·&nbsp;
+🤝 [Contributing](#-contributing) &nbsp;·&nbsp;
+📄 [License](#-license)
 
-**Project**
-🚧 [Status](#-implementation-status) · 📝 [Changelog](CHANGELOG.md) · 🤝 [Contributing](#-contributing) · 📄 [License](#-license)
+---
 
-> 💡 New here? Start with **[Quick Start](#-quick-start-2-minutes) → [Basic Chat Sample](#-basic-chat-sample)**.
+💡 New here? Start with **[Quick Start](#-quick-start-2-minutes) → [Basic Chat Sample](#-basic-chat-sample)**.
+
+</div>
 
 ---
 
@@ -113,7 +133,7 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.2.0 (2026-03-12) — Lobby sample: multiplayer lobby with host migration, session identity, and reconnect recovery.
+**Current:** v1.2.0 (2026-03-18) — Lobby sample: multiplayer lobby with host migration, session identity, and reconnect recovery.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -125,7 +145,7 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 
 ## 🚧 Implementation Status
 
-### ✅ v1.2.0 Milestone (2026-03-12)
+### ✅ v1.2.0 Milestone (2026-03-18)
 
 * **Lobby Sample** - Production multiplayer lobby with host migration, session identity, reconnect grace window, and three-layer architecture
 * **UPM Samples** - All three samples now visible in Package Manager Samples tab
@@ -1359,6 +1379,8 @@ The test server runs on `http://localhost:3000` and provides:
 
 <details>
 <summary><strong>View server.js code</strong></summary>
+
+See the full server: [`TestServer~/server.js`](TestServer~/server.js)
 
 ```javascript
 const http = require("http");

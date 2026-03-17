@@ -273,7 +273,15 @@ cors: { origin: "*", methods: ["GET", "POST"] }
 
 ## Server Reference
 
-Save as `lobby-server.js` and run with `node lobby-server.js` (or `npm run start:lobby` if using the included `package.json`).
+The `lobby-server.js` is in `TestServer~/` at the project root. Run with:
+
+```bash
+cd TestServer~
+npm install
+npm run start:lobby   # or: npm run dev:lobby (auto-restart with nodemon)
+```
+
+See the full server: [`TestServer~/lobby-server.js`](../../TestServer~/lobby-server.js)
 
 ```javascript
 /**

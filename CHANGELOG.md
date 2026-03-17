@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-03-12
+## [1.2.0] - 2026-03-18
 
 **Minor release** — New Lobby sample. No API changes.
 
