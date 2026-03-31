@@ -39,7 +39,7 @@ npm start
 You should see:
 
 ```
-Server listening on port 3000
+✅ HTTP + WebSocket listening on 3000
 ```
 
 Leave this terminal open.
@@ -116,6 +116,7 @@ You've got the basics. Here's where to go next:
 |---|---|
 | Sync player positions across clients | [PlayerSync sample](../Samples~/PlayerSync/README.md) |
 | Build a multiplayer lobby with rooms | [Lobby sample](../Samples~/Lobby/README.md) |
+| See connection state / RTT in-game | Enable `SocketIOManager.Instance.ShowDiagnostics = true` |
 | Run on WebGL / browser | [WebGL Notes](WEBGL_NOTES.md) |
 | Understand the full API | [README API Guide](../README.md#-usage-current-api) |
 | Debug network traffic | [Debugging Guide](DEBUGGING_GUIDE.md) |

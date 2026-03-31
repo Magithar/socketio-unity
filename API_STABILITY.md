@@ -40,14 +40,44 @@ void Emit(string eventName, object payload, Action<string> ack, int timeoutMs = 
 **Properties & Events:**
 ```csharp
 bool IsConnected { get; }
+ConnectionState State { get; }        // v1.2.0+
 event Action OnConnected
 event Action OnDisconnected
-event Action<string> OnError
+event Action<SocketError> OnError     // v1.3.0+: typed error (was Action<string>)
+event Action<ConnectionState> OnStateChanged  // v1.3.0+
 ```
 
 **Reconnect Configuration (v1.1.0+):**
 ```csharp
 ReconnectConfig ReconnectConfig { get; set; }
+```
+
+---
+
+### ConnectionState (v1.2.0+)
+
+```csharp
+public enum ConnectionState
+{
+    Disconnected,
+    Connecting,
+    Connected,
+    Reconnecting
+}
+```
+
+---
+
+### SocketError (v1.3.0+)
+
+```csharp
+public readonly struct SocketError
+{
+    public ErrorType Type { get; }
+    public string Message { get; }
+}
+
+public enum ErrorType { Transport, Auth, Timeout, Protocol }
 ```
 
 ---
@@ -83,6 +113,24 @@ event Action OnDisconnected
 static void Enqueue(Action action)
 static bool IsInitialized { get; }
 ```
+
+---
+
+## ⚠️ Breaking Change in v1.3.0
+
+### `OnError` Signature
+
+`OnError` changed from `Action<string>` to `Action<SocketError>` to enable typed error handling.
+
+```csharp
+// v1.2.x (old)
+socket.OnError += (string msg) => Debug.LogError(msg);
+
+// v1.3.0+ (new)
+socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Message}");
+```
+
+This is the only breaking change in the v1.x lifecycle. All other stable APIs remain intact.
 
 ---
 

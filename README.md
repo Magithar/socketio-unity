@@ -30,7 +30,9 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 🧠 [API Guide](#-usage-current-api) &nbsp;·&nbsp;
 🔒 [API Stability](#-api-stability) &nbsp;·&nbsp;
 🧱 [Architecture](#-architecture-overview) &nbsp;·&nbsp;
-⚙️ [Component Hierarchy](#component-hierarchy)
+⚙️ [Component Hierarchy](#component-hierarchy) &nbsp;·&nbsp;
+🔄 [Connection State](#connection-state-tracking) &nbsp;·&nbsp;
+🛑 [Error Handling](#typed-error-handling)
 
 **Samples** &nbsp;·&nbsp;
 💬 [Basic Chat](#-basic-chat-sample) &nbsp;·&nbsp;
@@ -43,6 +45,7 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 🛡 [Production Readiness](#-production-readiness)
 
 **Developer Tools** &nbsp;·&nbsp;
+🩺 [Diagnostics Overlay](#-diagnostics-overlay) &nbsp;·&nbsp;
 🔬 [Profiler Integration](#-unity-profiler-integration) &nbsp;·&nbsp;
 📊 [Profiler Counters](#-unity-profiler-counters) &nbsp;·&nbsp;
 🔍 [Packet Tracing](#-packet-tracing) &nbsp;·&nbsp;
@@ -87,7 +90,7 @@ socket.Emit("chat", "Hello from Unity!");
 **3. Run the test server:**
 
 ```bash
-cd TestServer && npm install && node server.js
+cd TestServer~ && npm install && npm start
 ```
 
 Open the **Basic Chat** sample and press Play. → [Full guide](#-basic-chat-sample)
@@ -152,7 +155,7 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.2.0 (2026-03-18) — Lobby sample: multiplayer lobby with host migration, session identity, and reconnect recovery.
+**Current:** v1.2.0 (2026-03-18) + unreleased — Typed errors, connection state tracking, diagnostics overlay, and WebSocket lifecycle hardening.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -163,6 +166,16 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 ---
 
 ## 🚧 Implementation Status
+
+### 🔜 Unreleased (post v1.2.0)
+
+* **Typed `SocketError`** — `OnError` now delivers a `SocketError` struct with `ErrorType` (Transport, Auth, Timeout, Protocol) and `Message`, replacing raw strings
+* **`ConnectionState` tracking** — `socket.State` property (`Disconnected` / `Connecting` / `Connected` / `Reconnecting`) and `OnStateChanged` event for reactive UI
+* **Diagnostics Overlay** — Runtime in-game panel (`SocketIOManager.Instance.ShowDiagnostics = true`) showing state, RTT, namespace count, pending ACKs, and live event log
+* **Namespace preservation across reconnects** — `On()` handlers and namespace registrations survive reconnect cycles without re-registration
+* **WebSocket lifecycle hardening** — Improved reconnect controller, race condition guards, and proper event rebinding on new socket instances
+* **Stress tests** — EditMode tests for high packet rate, large binary bursts (10 MB), ACK stress (100 pending), reconnect storms (50 rapid cycles), and memory footprint validation
+* **Lobby integration tests** — Runtime tests for socket state invariants and namespace connection timing
 
 ### ✅ v1.2.0 Milestone (2026-03-18)
 
@@ -199,14 +212,16 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 * Engine.IO v4 handshake (WebSocket-only)
 * Engine.IO heartbeat / ping–pong watchdog
 * Socket.IO v4 packet framing & parsing
-* Event-based API (`On`, `Emit`)
+* Event-based API (`On`, `Emit`, `Off`, `Of`)
 * Default namespace (`/`)
 * Custom namespaces (`/admin`, `/public`, etc.)
 * Namespace multiplexing over a single connection
+* **Namespace preservation across reconnects** — `On()` handlers survive without re-registration
 * Acknowledgement callbacks (ACKs)
 * Automatic reconnect with configurable exponential backoff
-* **ReconnectConfig** (v1.1.0) - Inspector-configurable reconnection strategy with jitter support
-* **Connection state management** (`ConnectionState` enum: Disconnected/Connecting/Connected/Reconnecting)
+* **ReconnectConfig** (v1.1.0) — Inspector-configurable backoff with jitter and factory presets
+* **ConnectionState** — `socket.State` property + `OnStateChanged` event (Disconnected / Connecting / Connected / Reconnecting)
+* **Typed `SocketError`** — `OnError` delivers `SocketError { ErrorType, Message }` (Transport / Auth / Timeout / Protocol)
 * Intentional vs unintentional disconnect handling
 * Ping-timeout–triggered reconnect
 * Standalone (Editor / Desktop) support
@@ -214,17 +229,17 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 * **Auth per namespace** (handshake extensions)
 * **Unity Profiler markers** (zero-cost when disabled, via `SOCKETIO_PROFILER` define)
 * **Unity Profiler counters** (live metrics, via `SOCKETIO_PROFILER_COUNTERS` define)
+* **Diagnostics Overlay** (`SocketIOManager.Instance.ShowDiagnostics = true`) — runtime state, RTT, namespace count, ACK count, event log
 * **Packet tracing / debug tooling** (`SocketIOTrace`)
 * **Unity main-thread dispatch** (`UnityMainThreadDispatcher`)
 * **Memory pooling & GC optimization** (`ListPool`, `ObjectPool`, `BinaryPacketBuilderPool`)
 * **RTT tracking** (`PingRttTracker` for round-trip latency measurement)
 * **ACK timeout support** (configurable timeout with automatic expiration cleanup)
-* **Event unsubscription** (`Off()` methods for handler cleanup)
 * **IDisposable pattern** (`SocketIOClient`, `EngineIOClient` for proper resource cleanup)
 * **Shutdown() method** (clean disconnect with full state reset)
 * **Editor Network HUD** (real-time Scene View overlay via `SocketIO → Toggle Network HUD`)
 * **Throughput tracking** (`SocketIOThroughputTracker` for bandwidth monitoring)
-* **Automated test suite** (Protocol edge case tests via SocketIO menu + Bug regression tests via Unity Test Runner)
+* **Automated test suite** — protocol edge cases, bug regressions, reconnect config, lobby integration, EditMode stress tests
 
 ### ✅ WebGL Support (Production Verified)
 
@@ -398,38 +413,75 @@ socket.Emit("chat", "Hello from Unity!");
 
 ---
 
-### Connection State & Error Handling
+### Connection State Tracking
+
+Track the socket lifecycle with `ConnectionState` and `OnStateChanged`:
 
 ```csharp
 var socket = SocketIOManager.Instance.Socket;
 
-// Check connection state
-if (socket.IsConnected)
+// Read current state at any time
+if (socket.State == ConnectionState.Connected)
 {
     socket.Emit("status", "online");
 }
 
-// Handle connection errors
-socket.OnError += (error) =>
+// React to state transitions
+socket.OnStateChanged += (ConnectionState state) =>
 {
-    Debug.LogError($"❌ Socket error: {error}");
-    // Common errors: connection refused, timeout, invalid URL
+    Debug.Log($"State → {state}");
+    // Disconnected → Connecting → Connected
+    // Connected → Reconnecting → Connected (on drop)
 };
 
-// Handle disconnection
 socket.OnDisconnected += () =>
 {
-    Debug.Log("🔌 Disconnected from server");
+    Debug.Log("Disconnected from server");
 };
 ```
 
-**Common Error Scenarios:**
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Connection refused | Server not running | Start the server |
-| Timeout | Network issues or firewall | Check network/firewall settings |
-| Invalid URL | Malformed WebSocket URL | Use `ws://` or `wss://` prefix |
-| Auth failed | Invalid credentials | Check namespace auth payload |
+**States:**
+| State | Meaning |
+|-------|---------|
+| `Disconnected` | Not connected (initial state, or after `Disconnect()`) |
+| `Connecting` | Handshake in progress |
+| `Connected` | Live and operational |
+| `Reconnecting` | Connection lost, auto-reconnect active |
+
+---
+
+### Typed Error Handling
+
+`OnError` delivers a `SocketError` struct with a category and message:
+
+```csharp
+socket.OnError += (SocketError err) =>
+{
+    switch (err.Type)
+    {
+        case ErrorType.Transport:
+            Debug.LogError($"Network failure: {err.Message}");
+            break;
+        case ErrorType.Auth:
+            Debug.LogError($"Authentication rejected: {err.Message}");
+            break;
+        case ErrorType.Timeout:
+            Debug.LogWarning($"Server not responding: {err.Message}");
+            break;
+        case ErrorType.Protocol:
+            Debug.LogWarning($"Bad packet: {err.Message}");
+            break;
+    }
+};
+```
+
+**Error Types:**
+| Type | Cause | Typical Response |
+|------|-------|------------------|
+| `Transport` | WebSocket connection or send failure | Check server / network |
+| `Auth` | Server rejected connection (authentication) | Verify credentials |
+| `Timeout` | Heartbeat timeout (server stopped responding) | Auto-reconnect handles this |
+| `Protocol` | Malformed or unparseable packet | Check server compatibility |
 
 ---
 
@@ -861,6 +913,8 @@ socketio-unity/
 │   ├── Core/
 │   │   ├── EngineIO/           # Engine.IO v4 protocol
 │   │   ├── SocketIO/           # Socket.IO client layer
+│   │   │   ├── ConnectionState.cs  # Connection lifecycle enum
+│   │   │   └── SocketError.cs      # Typed error struct + ErrorType enum
 │   │   ├── Protocol/           # Packet parsing
 │   │   └── Pooling/            # GC optimization
 │   ├── Debug/                  # Profiler & tracing
@@ -875,10 +929,14 @@ socketio-unity/
 │   └── SocketIONetworkHud.cs
 │
 ├── Tests/                      # Automated tests
-│   └── Runtime/                # Runtime tests (NUnit)
-│       ├── BugRegressionTests.cs
-│       ├── ReconnectConfigTests.cs
-│       └── SocketIOUnity.Tests.asmdef
+│   ├── Runtime/                # Runtime tests (NUnit)
+│   │   ├── BugRegressionTests.cs
+│   │   ├── ReconnectConfigTests.cs
+│   │   ├── LobbyStateIntegrationTests.cs
+│   │   └── SocketIOUnity.Tests.asmdef
+│   └── EditMode/               # EditMode stress tests
+│       ├── StressTests.cs
+│       └── SocketIOUnity.Tests.Stress.asmdef
 │
 ├── Samples~/                   # UPM importable samples
 │   ├── BasicChat/              # Production-ready Hello World
@@ -894,7 +952,9 @@ socketio-unity/
 │   │   ├── LobbyScene.unity
 │   │   ├── Scripts/
 │   │   └── Prefab/
-│   ├── SocketIOManager.cs
+│   ├── Diagnostics/            # Runtime diagnostics overlay
+│   │   └── SocketIODiagnosticsOverlay.cs
+│   ├── SocketIOManager.cs      # Singleton (ShowDiagnostics toggle)
 │   ├── BinaryEventTest.cs
 │   ├── MainThreadDispatcherTest.cs
 │   ├── NamespaceAuthTest.cs
@@ -1023,6 +1083,7 @@ The **Lobby** sample is a production-style multiplayer lobby added in v1.2.0. It
 - ✅ 10-second reconnect grace window (room slot held while player is offline)
 - ✅ Host migration (automatic promotion of next connected player when host leaves)
 - ✅ Three-layer architecture: transport → state store → UI (no layer crosses its boundary)
+- ✅ `ConnectionState` + `OnStateChanged` for reactive UI (no shadow bool tracking)
 - ✅ Full WebGL support via `TransportFactoryHelper.CreateDefault()`
 - ✅ Trace-based structured server logs — per-player `traceId` stable across reconnects
 
@@ -1110,11 +1171,8 @@ All test scripts below are in `Samples~/`. Import them via Package Manager → S
 
 ### Test Server Requirements
 
-Copy the `server.js` code from the **Test Server Setup** section below, then run:
-
 ```bash
-npm init -y && npm install socket.io
-node server.js
+cd TestServer~ && npm install && npm start
 ```
 
 ### Testing Checklist
@@ -1144,6 +1202,7 @@ node server.js
 
 ```
 SocketIOClient
+ ├── ConnectionState           ← socket.State + OnStateChanged event
  ├── EngineIOClient (IDisposable)
  │    ├── HandshakeInfo
  │    ├── HeartbeatController
@@ -1152,7 +1211,7 @@ SocketIOClient
  │         ├── WebSocketTransport (Standalone)
  │         └── WebGLWebSocketTransport (WebGL)
  │
- ├── NamespaceManager
+ ├── NamespaceManager          ← preserved across reconnects
  │    └── NamespaceSocket[]
  │         ├── EventRegistry (On/Off handlers)
  │         └── AckRegistry (timeout-protected)
@@ -1161,7 +1220,15 @@ SocketIOClient
  ├── ReconnectController
  └── UnityTickDriver
 
+Error Handling
+ └── SocketError { ErrorType, Message }
+      ├── ErrorType.Transport
+      ├── ErrorType.Auth
+      ├── ErrorType.Timeout
+      └── ErrorType.Protocol
+
 Debug Subsystem
+ ├── SocketIODiagnosticsOverlay (runtime UI panel)
  ├── SocketIOTrace → ITraceSink
  │    └── UnityDebugTraceSink (default)
  ├── ProfilerMarkers (SOCKETIO_PROFILER)
@@ -1203,6 +1270,36 @@ WebGL support has been **fully tested and verified**.
 **⚠️ Browser Cache Note:**
 
 When iterating on WebGL builds, always force-refresh (`Cmd+Shift+R`) or use Incognito mode to avoid cached JS/WASM issues.
+
+---
+
+## 🩺 Diagnostics Overlay
+
+A built-in runtime overlay for debugging connections without opening the Profiler.
+
+### Enable
+
+```csharp
+// One-liner — creates overlay as a child of SocketIOManager
+SocketIOManager.Instance.ShowDiagnostics = true;
+
+// Or attach directly to any socket
+var overlay = gameObject.AddComponent<SocketIODiagnosticsOverlay>();
+overlay.Socket = mySocket;
+```
+
+### What It Shows
+
+| Metric | Description |
+|--------|-------------|
+| **Connection State** | Color-coded (green = connected, yellow = reconnecting, red = disconnected) |
+| **RTT** | Round-trip ping latency in milliseconds |
+| **Namespaces** | Count of active namespaces |
+| **Pending ACKs** | Outstanding acknowledgement callbacks |
+| **Event Log** | Live timestamped log of socket events |
+| **Throughput** | Sent/received bytes per second (requires `SOCKETIO_PROFILER_COUNTERS` define) |
+
+Toggle off at any time: `SocketIOManager.Instance.ShowDiagnostics = false;`
 
 ---
 
@@ -1324,7 +1421,7 @@ SocketIOTrace.SetSink(new MyTraceSink());
 
 ### Test Structure
 
-SocketIOUnity includes comprehensive automated tests for protocol correctness and bug regression prevention.
+SocketIOUnity includes comprehensive automated tests for protocol correctness, bug regression prevention, and performance.
 
 **Test Organization:**
 
@@ -1334,30 +1431,31 @@ socketio-unity/
 │   ├── ProtocolEdgeCaseTests.cs      # Custom editor tests (MenuItem-based)
 │   └── SocketIOUnity.Editor.asmdef
 └── Tests/
-    └── Runtime/
-        ├── BugRegressionTests.cs      # Unity Test Runner (NUnit)
-        └── SocketIOUnity.Tests.asmdef
+    ├── Runtime/                       # Unity Test Runner (NUnit)
+    │   ├── BugRegressionTests.cs      # Critical fix regression guards
+    │   ├── ReconnectConfigTests.cs    # ReconnectConfig API & copy semantics
+    │   └── LobbyStateIntegrationTests.cs  # Socket state invariants, namespace timing
+    └── EditMode/                      # EditMode stress tests
+        └── StressTests.cs             # High-load + memory footprint validation
 ```
 
-**Two Types of Tests:**
+**Test Types:**
 
-| Test File | Type | How to Run |
-|-----------|------|------------|
-| **Editor/ProtocolEdgeCaseTests.cs** | Custom editor tool | Unity menu: **SocketIO → Run Protocol Edge Tests** |
-| **Tests/Runtime/BugRegressionTests.cs** | NUnit tests | Unity Test Runner: **Window → General → Test Runner** |
+| Test File | Type | How to Run | What It Covers |
+|-----------|------|------------|----------------|
+| **Editor/ProtocolEdgeCaseTests.cs** | Custom editor tool | **SocketIO → Run Protocol Edge Tests** | Protocol parsing edge cases |
+| **Tests/Runtime/BugRegressionTests.cs** | NUnit | **Window → Test Runner → Runtime** | Binary assembler, ACK overflow, JSON degradation |
+| **Tests/Runtime/ReconnectConfigTests.cs** | NUnit | **Window → Test Runner → Runtime** | Defensive copy, factory presets, v1.0.x compat |
+| **Tests/Runtime/LobbyStateIntegrationTests.cs** | NUnit | **Window → Test Runner → Runtime** | State invariants, namespace connect timing |
+| **Tests/EditMode/StressTests.cs** | NUnit | **Window → Test Runner → EditMode** | High packet rate, 10 MB binary bursts, ACK storms, reconnect floods |
 
-**Protocol Edge Tests** validate Socket.IO protocol parsing including:
-- Empty/null packet handling
-- Invalid type validation (types 0-6)
-- Binary packet parsing with attachments
-- Namespace parsing edge cases
-- ACK ID overflow protection
-- Malformed JSON handling
-
-**Bug Regression Tests** prevent previously fixed bugs from reoccurring:
-- Binary packet assembler edge cases
-- ACK registry integer overflow handling
-- Invalid JSON graceful degradation
+**Stress Test Coverage (EditMode):**
+- 1,000 rapid event dispatches
+- 1 MB and 10 MB binary burst receive
+- 100 simultaneous pending ACKs
+- 50 rapid reconnect cycles
+- 10,000 Tick() calls (long-run stability)
+- 1,000 handler subscribe/unsubscribe cycles (memory footprint)
 
 ### CI Pipeline
 
@@ -1394,15 +1492,23 @@ SocketIOUnity uses **GitHub Actions** with [`game-ci/unity-test-runner`](https:/
 
 ### Test Server Setup
 
-A Node.js test server is included for development and testing. To run it:
+Node.js test servers are included in `TestServer~/`. To run them:
 
 ```bash
-cd TestServer
-npm install socket.io
-node server.js
+cd TestServer~
+npm install
+
+npm start                  # Echo server (port 3000) — BasicChat + binary + auth tests
+npm run start:playersync   # PlayerSync server (port 3000)
+npm run start:lobby        # Lobby server (port 3001)
+
+# Auto-restart on file changes (development)
+npm run dev
+npm run dev:lobby
+npm run dev:playersync
 ```
 
-The test server runs on `http://localhost:3000` and provides:
+**The echo server (`server.js`) runs on `http://localhost:3000` and provides:**
 
 * **Root namespace (`/`)** — No auth, binary events support
 * **Admin namespace (`/admin`)** — Requires `token: "test-secret"`
@@ -1429,265 +1535,7 @@ The test server runs on `http://localhost:3000` and provides:
 | 4s    | `multi`      | Two binary buffers             |
 | 6s    | `binary-ack` | Binary with ACK callback       |
 
-<details>
-<summary><strong>View server.js code</strong></summary>
-
-See the full server: [`TestServer~/server.js`](TestServer~/server.js)
-
-```javascript
-const http = require("http");
-const { Server } = require("socket.io");
-
-const PORT = 3000;
-
-// ======================================================
-// HTTP SERVER (REQUIRED FOR UNITY / NATIVE WS)
-// ======================================================
-const httpServer = http.createServer();
-
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
-
-console.log(`🚀 Socket.IO server starting on port ${PORT}`);
-
-
-// ======================================================
-// ROOT NAMESPACE  ("/") — NO AUTH
-// ======================================================
-io.on("connection", (socket) => {
-  console.log("✅ / ROOT CONNECTED:", socket.id);
-
-  // ---- Text event
-  socket.emit("hello", {
-    message: "welcome",
-    socketId: socket.id
-  });
-
-  // ---- Single binary (2s)
-  setTimeout(() => {
-    const buffer = Buffer.from("Hello");
-    console.log("📤 / file (single binary)");
-    socket.emit("file", buffer);
-  }, 2000);
-
-  // ---- Multi binary (4s)
-  setTimeout(() => {
-    const buf1 = Buffer.from([1, 2, 3]);
-    const buf2 = Buffer.from([4, 5, 6]);
-    console.log("📤 / multi (2 binaries)");
-    socket.emit("multi", buf1, buf2);
-  }, 4000);
-
-  // ---- Binary + ACK (6s)
-  setTimeout(() => {
-    const payload = Buffer.from("ACK_TEST");
-    console.log("📤 / binary-ack");
-
-    socket.emit("binary-ack", payload, (ack) => {
-      console.log("📥 / ACK from client:", ack);
-    });
-  }, 6000);
-
-  // ---- Client → Server
-  socket.on("ping-test", (msg) => {
-    console.log("📩 / ping-test:", msg);
-    socket.emit("pong-test", { serverTime: Date.now() });
-  });
-
-  socket.on("upload", (buffer, ack) => {
-    console.log("📩 / upload received:", buffer.length, "bytes");
-    if (ack) ack({ ok: true, size: buffer.length });
-  });
-
-  // ---- Basic Chat (for BasicChat sample)
-  socket.on("chat", (msg) => {
-    console.log("📩 / chat:", msg);
-    socket.emit("chat", msg);  // Echo back
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log("❌ / ROOT DISCONNECTED:", socket.id, reason);
-  });
-});
-
-
-// ======================================================
-// /admin — AUTH REQUIRED
-// ======================================================
-io.of("/admin").use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  console.log(`🔐 /admin auth token: "${token}"`);
-
-  if (token === "test-secret") {
-    console.log("✅ /admin AUTH OK");
-    next();
-  } else {
-    console.log("❌ /admin AUTH FAIL");
-    next(new Error("unauthorized"));
-  }
-});
-
-io.of("/admin").on("connection", (socket) => {
-  console.log("✅ /admin CONNECTED:", socket.id);
-
-  socket.on("ping", (payload, ack) => {
-    console.log("📩 /admin ping");
-    if (ack) ack({ ok: true, adminTime: Date.now() });
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log("❌ /admin DISCONNECTED:", socket.id, reason);
-  });
-});
-
-
-// ======================================================
-// /admin-bad — ALWAYS REJECT
-// ======================================================
-io.of("/admin-bad").use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  console.log(`🔐 /admin-bad token: "${token}"`);
-  console.log("❌ /admin-bad AUTH INTENTIONAL FAIL");
-  next(new Error("unauthorized"));
-});
-
-
-// ======================================================
-// /public — NO AUTH
-// ======================================================
-io.of("/public").on("connection", (socket) => {
-  console.log("✅ /public CONNECTED:", socket.id);
-
-  socket.on("disconnect", () => {
-    console.log("❌ /public DISCONNECTED:", socket.id);
-  });
-});
-
-
-// ======================================================
-// /webgl — WEBGL TESTING (NO AUTH)
-// ======================================================
-io.of("/webgl").on("connection", (socket) => {
-  console.log("✅ /webgl CONNECTED:", socket.id);
-
-  // Welcome message
-  socket.emit("welcome", {
-    message: "WebGL client connected!",
-    socketId: socket.id,
-    serverTime: Date.now()
-  });
-
-  // Ping → Pong (for latency testing)
-  socket.on("ping", (payload) => {
-    console.log("📩 /webgl ping:", payload);
-    socket.emit("pong", {
-      clientTime: payload,
-      serverTime: new Date().toISOString(),
-      roundtrip: "calculate on client"
-    });
-  });
-
-  // Message echo
-  socket.on("message", (msg) => {
-    console.log("📩 /webgl message:", msg);
-    socket.emit("message", {
-      echo: msg,
-      from: "server",
-      timestamp: Date.now()
-    });
-  });
-
-  // Simple text event
-  socket.on("test", (data) => {
-    console.log("📩 /webgl test:", data);
-    socket.emit("test-response", { received: data, ok: true });
-  });
-
-  // Broadcast to all WebGL clients
-  socket.on("broadcast", (msg) => {
-    console.log("📢 /webgl broadcast:", msg);
-    io.of("/webgl").emit("broadcast", {
-      from: socket.id,
-      message: msg
-    });
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log("❌ /webgl DISCONNECTED:", socket.id, reason);
-  });
-});
-
-
-// ======================================================
-// /playersync — PLAYER SYNC SAMPLE (NO AUTH)
-// ======================================================
-
-const players = {};
-
-io.of("/playersync").on("connection", (socket) => {
-  console.log("✅ /playersync CONNECTED:", socket.id);
-
-  // Register player at origin
-  players[socket.id] = { x: 0, y: 0, z: 0 };
-
-  // 🔥 Send server-assigned ID to this client
-  socket.emit("player_id", socket.id);
-  console.log("📤 /playersync → player_id:", socket.id);
-
-  // 🔥 Send existing players to the new player
-  socket.emit("existing_players", players);
-  console.log("📤 /playersync → existing_players:", Object.keys(players).length, "players");
-
-  // 🔥 Notify other players that someone joined
-  socket.broadcast.emit("player_join", socket.id);
-  console.log("📢 /playersync → broadcast player_join:", socket.id);
-
-  // Receive movement from client
-  socket.on("player_move", (data) => {
-    if (data && data.position) {
-      players[socket.id] = data.position;
-
-      // Broadcast to all other players
-      socket.broadcast.emit("player_move", {
-        id: socket.id,
-        position: data.position
-      });
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("❌ /playersync DISCONNECTED:", socket.id);
-
-    // Remove player from list
-    delete players[socket.id];
-
-    // Notify other players
-    socket.broadcast.emit("player_leave", socket.id);
-  });
-});
-
-
-// ======================================================
-// START SERVER
-// ======================================================
-httpServer.listen(PORT, () => {
-  console.log(`✅ HTTP + WebSocket listening on ${PORT}`);
-
-  console.log("\n📋 TEST SCENARIOS");
-  console.log("1️⃣ /            → no auth + binary");
-  console.log("2️⃣ /admin       → token='test-secret'");
-  console.log("3️⃣ /admin-bad   → always unauthorized");
-  console.log("4️⃣ /public      → no auth");
-  console.log("5️⃣ /webgl       → WebGL browser testing\n");
-  console.log("  /playersync  ← HERO FEATURE\n");
-});
-```
-
-</details>
+See the full source: [`TestServer~/server.js`](TestServer~/server.js)
 
 ---
 

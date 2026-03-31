@@ -6,11 +6,56 @@
 
 ## Quick Start
 
+### Option 1: Diagnostics Overlay (no code changes)
+
+```csharp
+// Add to any MonoBehaviour in your scene
+SocketIOManager.Instance.ShowDiagnostics = true;
+```
+
+Shows a live panel with connection state, RTT, namespace count, pending ACKs, and an event log. Toggle off with `ShowDiagnostics = false`.
+
+### Option 2: Packet tracing (console output)
+
 ```csharp
 // Enable verbose tracing
 TraceConfig.Level = TraceLevel.Verbose;
 
 // Watch Unity Console for [SocketIO:EngineIO], [SocketIO:Binary], etc.
+```
+
+---
+
+## Diagnostics Overlay
+
+The `SocketIODiagnosticsOverlay` component (in `Samples~/Diagnostics/`) renders a runtime UI panel — no Profiler window needed.
+
+### Enable
+
+```csharp
+// Simplest — auto-creates overlay as child of SocketIOManager
+SocketIOManager.Instance.ShowDiagnostics = true;
+
+// Manual — attach to any socket
+var overlay = gameObject.AddComponent<SocketIODiagnosticsOverlay>();
+overlay.Socket = mySocket;
+```
+
+### Metrics shown
+
+| Panel row | Source |
+|-----------|--------|
+| State | `socket.State` (color-coded green/yellow/red) |
+| RTT | `socket.PingRttMs` in milliseconds |
+| Namespaces | Active namespace count |
+| Pending ACKs | Outstanding ACK callbacks |
+| Event log | Last N events with timestamps |
+| Throughput | Bytes sent/received per second (`SOCKETIO_PROFILER_COUNTERS` required) |
+
+### Disable
+
+```csharp
+SocketIOManager.Instance.ShowDiagnostics = false;
 ```
 
 ---
@@ -162,6 +207,20 @@ SOCKETIO_PROFILER_COUNTERS
 
 ## Common Issues
 
+### Reading Typed Errors
+
+`OnError` delivers a `SocketError` struct — use `err.Type` to route:
+
+```csharp
+socket.OnError += (SocketError err) =>
+{
+    // ErrorType: Transport | Auth | Timeout | Protocol
+    Debug.LogError($"[{err.Type}] {err.Message}");
+};
+```
+
+---
+
 ### "Connection Refused"
 
 **Symptoms:**
@@ -304,14 +363,15 @@ tcp.port == 3000 and websocket
 
 ## Test Server
 
-For debugging, use the test server from the main README:
+The test servers live in `TestServer~/` at the project root:
 
-1. Copy the `server.js` code from README's **"Test Server Setup"** section
-2. Run:
-   ```bash
-   npm init -y && npm install socket.io
-   node server.js
-   ```
+```bash
+cd TestServer~
+npm install
+npm start                  # Echo server on port 3000 (BasicChat, binary, auth tests)
+npm run start:playersync   # PlayerSync server on port 3000
+npm run start:lobby        # Lobby server on port 3001
+```
 
 ### Available Namespaces
 

@@ -1,6 +1,7 @@
 using System;
 using NativeWebSocket;
 using SocketIOUnity.Debugging;
+using SocketIOUnity.Runtime;
 using SocketIOUnity.Transport;
 using UnityEngine;
 
@@ -19,7 +20,7 @@ namespace SocketIOUnity.Transport
         public event Action OnClose;
         public event Action<string> OnTextMessage;
         public event Action<byte[]> OnBinaryMessage;
-        public event Action<string> OnError;
+        public event Action<SocketError> OnError;
 
         public async void Connect(string url)
         {
@@ -47,7 +48,7 @@ namespace SocketIOUnity.Transport
                     _ws.OnError += msg =>
                     {
                         SocketIOTrace.Error(TraceCategory.Transport, $"WebSocket error: {msg}");
-                        OnError?.Invoke(msg);
+                        OnError?.Invoke(new SocketError(ErrorType.Transport, msg));
                     };
                     _ws.OnMessage += data =>
                     {
@@ -81,7 +82,7 @@ namespace SocketIOUnity.Transport
             catch (Exception ex)
             {
                 SocketIOTrace.Error(TraceCategory.Transport, $"WebSocket connect error: {ex.Message}");
-                OnError?.Invoke($"WebSocket connect failed: {ex.Message}");
+                OnError?.Invoke(new SocketError(ErrorType.Transport, $"WebSocket connect failed: {ex.Message}"));
             }
         }
 
@@ -99,7 +100,7 @@ namespace SocketIOUnity.Transport
             catch (Exception ex)
             {
                 SocketIOTrace.Error(TraceCategory.Transport, $"WebSocket send text error: {ex.Message}");
-                OnError?.Invoke($"WebSocket send failed: {ex.Message}");
+                OnError?.Invoke(new SocketError(ErrorType.Transport, $"WebSocket send failed: {ex.Message}"));
             }
         }
 
@@ -117,7 +118,7 @@ namespace SocketIOUnity.Transport
             catch (Exception ex)
             {
                 SocketIOTrace.Error(TraceCategory.Transport, $"WebSocket send binary error: {ex.Message}");
-                OnError?.Invoke($"WebSocket send failed: {ex.Message}");
+                OnError?.Invoke(new SocketError(ErrorType.Transport, $"WebSocket send failed: {ex.Message}"));
             }
         }
 

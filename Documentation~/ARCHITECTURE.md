@@ -9,6 +9,8 @@
 ```
 SocketIOClient                          ← Main entry point
  │
+ ├── ConnectionState                    ← socket.State + OnStateChanged event
+ │
  ├── EngineIOClient (IDisposable)       ← Engine.IO v4 layer
  │    ├── HandshakeInfo                 ← Session ID, ping intervals
  │    ├── HeartbeatController           ← Ping/pong watchdog
@@ -17,7 +19,7 @@ SocketIOClient                          ← Main entry point
  │         ├── WebSocketTransport       ← Desktop/Editor
  │         └── WebGLWebSocketTransport  ← WebGL browser
  │
- ├── NamespaceManager                   ← Namespace multiplexing
+ ├── NamespaceManager                   ← Namespace multiplexing (preserved across reconnects)
  │    └── NamespaceSocket[]             ← Per-namespace state
  │         ├── EventRegistry            ← Event handlers (On/Off)
  │         └── AckRegistry              ← ACK callbacks (timeout-protected)
@@ -26,7 +28,15 @@ SocketIOClient                          ← Main entry point
  ├── ReconnectController                ← Exponential backoff
  └── UnityTickDriver                    ← Main-thread dispatch
 
+Error Handling
+ └── SocketError { ErrorType, Message } ← Typed error struct
+      ├── ErrorType.Transport
+      ├── ErrorType.Auth
+      ├── ErrorType.Timeout
+      └── ErrorType.Protocol
+
 Debug Subsystem
+ ├── SocketIODiagnosticsOverlay         ← Runtime in-game UI panel (Samples~/Diagnostics/)
  ├── SocketIOTrace                      ← Configurable packet tracing
  │    └── ITraceSink                    ← Custom output targets
  │         └── UnityDebugTraceSink      ← Default: Debug.Log
@@ -60,6 +70,8 @@ socketio-unity/                 # Package root
 │   │   │
 │   │   ├── SocketIO/           # Socket.IO client layer
 │   │   │   ├── SocketIOClient.cs
+│   │   │   ├── ConnectionState.cs    ← connection lifecycle enum
+│   │   │   ├── SocketError.cs        ← typed error struct + ErrorType enum
 │   │   │   ├── NamespaceManager.cs
 │   │   │   ├── NamespaceSocket.cs
 │   │   │   ├── EventRegistry.cs
@@ -116,10 +128,14 @@ socketio-unity/                 # Package root
 │   └── SocketIONetworkHud.cs
 │
 ├── Tests/                      # Automated tests
-│   └── Runtime/
-│       ├── BugRegressionTests.cs
-│       ├── ReconnectConfigTests.cs
-│       └── SocketIOUnity.Tests.asmdef
+│   ├── Runtime/
+│   │   ├── BugRegressionTests.cs
+│   │   ├── ReconnectConfigTests.cs
+│   │   ├── LobbyStateIntegrationTests.cs
+│   │   └── SocketIOUnity.Tests.asmdef
+│   └── EditMode/               # Stress tests
+│       ├── StressTests.cs
+│       └── SocketIOUnity.Tests.Stress.asmdef
 │
 ├── Samples~/                   # UPM importable samples
 │   ├── BasicChat/
@@ -130,7 +146,14 @@ socketio-unity/                 # Package root
 │   │   ├── README.md
 │   │   ├── PlayerSyncScene.unity
 │   │   └── Scripts/
-│   ├── SocketIOManager.cs
+│   ├── Lobby/                  # Multiplayer lobby system
+│   │   ├── README.md
+│   │   ├── LobbyScene.unity
+│   │   ├── Scripts/
+│   │   └── Prefab/
+│   ├── Diagnostics/            # Runtime diagnostics overlay
+│   │   └── SocketIODiagnosticsOverlay.cs
+│   ├── SocketIOManager.cs      # ShowDiagnostics toggle
 │   ├── BinaryEventTest.cs
 │   ├── MainThreadDispatcherTest.cs
 │   ├── NamespaceAuthTest.cs
@@ -175,8 +198,9 @@ socketio-unity/                 # Package root
 - **Acknowledgements** — Timeout-protected request/response
 - **Auth handshakes** — Per-namespace authentication
 
-### Debug Layer (`Debug/`)
+### Debug Layer (`Debug/` + `Samples~/Diagnostics/`)
 
+- **Diagnostics overlay** — `SocketIODiagnosticsOverlay` runtime UI panel; toggle via `SocketIOManager.Instance.ShowDiagnostics = true`
 - **Packet tracing** — `SocketIOTrace` with configurable levels
 - **Profiler markers** — Zero-cost when disabled (`SOCKETIO_PROFILER`)
 - **Profiler counters** — Real-time metrics (`SOCKETIO_PROFILER_COUNTERS`)

@@ -113,7 +113,7 @@ socket = SocketIOManager.Instance.Socket;
 // 2. Subscribe to events (in Start())
 socket.OnConnected += OnConnected;
 socket.OnDisconnected += OnDisconnected;
-socket.OnError += OnError;
+socket.OnError += OnError;           // void OnError(SocketError err)
 socket.On("chat", OnChatMessage);
 
 // 3. Connect to server
@@ -161,7 +161,10 @@ All APIs used in this sample are **frozen for v1.x**:
 | `Emit(string eventName, string data)` | ✅ Stable |
 | `On(string eventName, Action<string> handler)` | ✅ Stable |
 | `Off(string eventName, Action<string> handler)` | ✅ Stable |
-| `OnConnected`, `OnDisconnected`, `OnError` | ✅ Stable |
+| `OnConnected`, `OnDisconnected` | ✅ Stable |
+| `OnError` (`Action<SocketError>`) | ✅ Stable (v1.3.0+) |
+| `State` (`ConnectionState`) | ✅ Stable (v1.2.0+) |
+| `OnStateChanged` | ✅ Stable (v1.3.0+) |
 
 **No breaking changes** will occur in any v1.x release.
 

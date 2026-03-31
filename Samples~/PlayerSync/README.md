@@ -453,10 +453,10 @@ When `OnDestroy()` is called, Unity destroys the component but socket events may
 
 ```csharp
 // ALL event handlers check this flag first
-rootSocket.OnError += (error) =>
+rootSocket.OnError += (SocketError err) =>
 {
     if (isDestroyed) return; // ← Exit immediately if destroyed
-    // ... rest of handler
+    Debug.LogError($"[{err.Type}] {err.Message}");
 };
 ```
 
@@ -534,7 +534,7 @@ Then open `http://localhost:8080` in browser.
 **Debug Steps:**
 ```bash
 # Check server logs
-node server.js
+cd TestServer~ && npm run start:playersync
 
 # Should see:
 # ✅ /playersync CONNECTED: [socket_id]
@@ -576,7 +576,7 @@ Watch the **Connection Status** (top-left):
    - Your blue player stops moving
    - All red players disappear
    - Attempt counter increments with each retry
-4. **Restart server**: Run `node server.js` again
+4. **Restart server**: Run `npm run start:playersync` again (from `TestServer~/`)
 5. **Verify reconnection**:
    - Unity automatically reconnects within a few seconds (exponential backoff)
    - Status changes to "[OK] Connected" in green
@@ -797,6 +797,8 @@ void Update()
 ## Production Checklist
 
 - ✅ Proper namespace connection pattern
+- ✅ `ConnectionState` + `OnStateChanged` for reactive UI
+- ✅ Typed `SocketError` handling (Transport / Auth / Timeout / Protocol)
 - ✅ Separation of UI and network logic
 - ✅ Dependency injection via SerializeField
 - ✅ Clean logging (important events only, no high-frequency spam)

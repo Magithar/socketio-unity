@@ -59,27 +59,44 @@ float delay = Mathf.Min(config.initialDelay * Mathf.Pow(config.multiplier, attem
 
 ## State Machine
 
+The `ConnectionState` enum tracks the client's lifecycle. Subscribe to `OnStateChanged` for reactive UI.
+
 ```
           ┌──────────────────────────────────────┐
           │                                      │
           ▼                                      │
-      CONNECTED                                  │
+      Connected        ← OnStateChanged(Connected)
           │                                      │
           │ (connection lost)                    │
           ▼                                      │
-      RECONNECTING ──────(success)───────────────┘
+      Reconnecting     ← OnStateChanged(Reconnecting)
           │
-          │ (tick)
-          ▼
-      WAIT_FOR_DELAY
+          │ (tick — wait for delay)
           │
-          │ (delay elapsed)
-          ▼
-      ATTEMPT_CONNECT
+          │ (delay elapsed — attempt connect)
+          ├──(fail)──→ Reconnecting (next attempt)
           │
-          ├──(fail)──→ WAIT_FOR_DELAY (next attempt)
-          │
-          └──(success)──→ CONNECTED
+          └──(success)──→ Connected
+
+Disconnected           ← initial state / after Disconnect()
+Connecting             ← during initial Connect() handshake
+```
+
+```csharp
+// Read current state
+Debug.Log(socket.State);  // ConnectionState.Connected
+
+// React to transitions
+socket.OnStateChanged += state =>
+{
+    statusLabel.text = state.ToString();
+    statusLabel.color = state switch
+    {
+        ConnectionState.Connected    => Color.green,
+        ConnectionState.Reconnecting => Color.yellow,
+        _                            => Color.red,
+    };
+};
 ```
 
 ---
@@ -101,9 +118,20 @@ socket.Connect("ws://localhost:3000");
 
 ```csharp
 // Stop reconnection attempts
-socket.Disconnect(); // Sets intentional disconnect flag
+socket.Disconnect(); // Sets intentional disconnect flag — no auto-reconnect
+```
 
-// This will NOT trigger reconnection
+### Observing State
+
+```csharp
+// One-time read
+if (socket.State == ConnectionState.Connected) { ... }
+
+// Reactive (fires on every transition)
+socket.OnStateChanged += (ConnectionState state) =>
+{
+    Debug.Log($"Socket is now: {state}");
+};
 ```
 
 ### ReconnectConfig (v1.1.0+)

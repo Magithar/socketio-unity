@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Typed `SocketError`** — `OnError` now delivers `SocketError { ErrorType, Message }` instead of a raw string
+  - `ErrorType` enum: `Transport`, `Auth`, `Timeout`, `Protocol`
+  - Lets callers branch on error category without string parsing
+- **`ConnectionState` enum** — `Disconnected` / `Connecting` / `Connected` / `Reconnecting`
+  - `SocketIOClient.State` property for synchronous reads
+  - `SocketIOClient.OnStateChanged` event fires on every transition
+  - Used by samples to replace shadow-bool pattern for UI state
+- **`SocketIODiagnosticsOverlay`** sample — runtime in-game panel (`Samples~/Diagnostics/`)
+  - Toggle via `SocketIOManager.Instance.ShowDiagnostics = true`
+  - Shows state (color-coded), RTT, active namespace count, pending ACK count, live event log
+  - Optional throughput display (`SOCKETIO_PROFILER_COUNTERS` define required)
+- **Namespace preservation across reconnects** — `On()` handlers and namespace registrations survive reconnect cycles; no re-registration needed
+- **`LobbyStateIntegrationTests`** — runtime integration tests for socket state invariants and namespace connection timing
+- **`StressTests` (EditMode)** — high packet rate (1 000 events), large binary bursts (1 MB / 10 MB), ACK storms (100 pending), reconnect floods (50 rapid cycles), memory footprint validation (1 000 subscribe/unsubscribe)
+- **`InternalsVisibleTo` for stress assembly** — `SocketIOUnity.Tests.Stress` can access internals for deeper validation
+
+### Changed
+- **`SocketIOClient.OnError`** — event type changed from `Action<string>` to `Action<SocketError>` (breaking change for any code using the old string form; see migration below)
+- WebSocket lifecycle hardened — reconnect controller prevents race conditions, safety check ensures URL is set before attempting connect, WebSocket events rebound when a new socket instance is created
+
+### Migration from v1.2.x `OnError`
+
+```csharp
+// Before (v1.2.x)
+socket.OnError += (string msg) => Debug.LogError(msg);
+
+// After
+socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Message}");
+```
+
 ## [1.2.0] - 2026-03-18
 
 **Minor release** — New Lobby sample. No API changes.
