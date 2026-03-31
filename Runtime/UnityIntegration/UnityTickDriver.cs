@@ -15,6 +15,7 @@ namespace SocketIOUnity.UnityIntegration
         public static void Register(ITickable tickable)
         {
             EnsureInstance();
+            if (_instance == null) return; // EditMode — no driver needed
             if (!_instance._tickables.Contains(tickable))
                 _instance._tickables.Add(tickable);
         }
@@ -39,9 +40,15 @@ namespace SocketIOUnity.UnityIntegration
         {
             if (_instance != null) return;
 
+#if UNITY_EDITOR
+            // In EditMode tests there is no active scene, so GameObject creation
+            // may fail. Silently skip — callers drive Tick() manually in tests.
+            if (!Application.isPlaying)
+                return;
+#endif
+
             var go = new GameObject("[SocketIOUnity Tick Driver]");
-            if (Application.isPlaying)
-                DontDestroyOnLoad(go);
+            DontDestroyOnLoad(go);
             _instance = go.AddComponent<UnityTickDriver>();
         }
 

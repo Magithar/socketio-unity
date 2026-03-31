@@ -28,6 +28,18 @@ namespace SocketIOUnity.UnityIntegration
         }
 
         /// <summary>
+        /// Synchronously drain all pending actions. Used by EditMode tests
+        /// where no Update loop is running.
+        /// </summary>
+        internal static void DrainQueue()
+        {
+            while (_queue.TryDequeue(out var action))
+            {
+                action.Invoke();
+            }
+        }
+
+        /// <summary>
         /// Called on domain reload to reset static state.
         /// Prevents stale references when Play → Stop → Play.
         /// </summary>
