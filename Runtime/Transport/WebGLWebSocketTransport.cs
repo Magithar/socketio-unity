@@ -1,6 +1,7 @@
 #if UNITY_WEBGL && !UNITY_EDITOR
 using System;
 using System.Runtime.InteropServices;
+using SocketIOUnity.Runtime;
 using UnityEngine;
 
 namespace SocketIOUnity.Transport
@@ -19,7 +20,7 @@ namespace SocketIOUnity.Transport
         public event Action OnClose;
         public event Action<string> OnTextMessage;
         public event Action<byte[]> OnBinaryMessage;
-        public event Action<string> OnError;
+        public event Action<SocketError> OnError;
 
         [DllImport("__Internal")]
         private static extern void SocketIO_WebSocket_Create(string id, string url);
@@ -47,7 +48,7 @@ namespace SocketIOUnity.Transport
                     () => OnClose?.Invoke(),
                     msg => OnTextMessage?.Invoke(msg),
                     data => OnBinaryMessage?.Invoke(data),
-                    () => OnError?.Invoke("WebGL socket error")
+                    () => OnError?.Invoke(new SocketError(ErrorType.Transport, "WebGL socket error"))
                 );
             }
 

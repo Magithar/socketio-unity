@@ -22,7 +22,7 @@ namespace SocketIOUnity.EngineProtocol
 
         public event Action OnOpen;
         public event Action OnClose;
-        public event Action<string> OnError;
+        public event Action<SocketError> OnError;
         public event Action<string> OnMessage;
         public event Action<byte[]> OnBinary;
 
@@ -95,7 +95,7 @@ namespace SocketIOUnity.EngineProtocol
         {
             _heartbeat.OnTimeout += () =>
             {
-                OnError?.Invoke("Engine.IO heartbeat timeout");
+                OnError?.Invoke(new SocketError(ErrorType.Timeout, "Engine.IO heartbeat timeout"));
                 Disconnect();
             };
         }
@@ -111,9 +111,9 @@ namespace SocketIOUnity.EngineProtocol
             OnClose?.Invoke();
         }
 
-        private void HandleTransportError(string error)
+        private void HandleTransportError(SocketError error)
         {
-            SocketIOTrace.Error(TraceCategory.EngineIO, $"Transport error: {error}");
+            SocketIOTrace.Error(TraceCategory.EngineIO, $"Transport error: {error.Message}");
             OnError?.Invoke(error);
         }
 
@@ -213,7 +213,7 @@ namespace SocketIOUnity.EngineProtocol
             }
             catch (Exception ex)
             {
-                OnError?.Invoke($"Handshake parse failed: {ex.Message}");
+                OnError?.Invoke(new SocketError(ErrorType.Protocol, $"Handshake parse failed: {ex.Message}"));
                 Disconnect();
             }
         }

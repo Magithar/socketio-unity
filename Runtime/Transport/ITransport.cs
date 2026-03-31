@@ -1,4 +1,5 @@
 using System;
+using SocketIOUnity.Runtime;
 
 namespace SocketIOUnity.Transport
 {
@@ -15,7 +16,7 @@ namespace SocketIOUnity.Transport
         event Action OnClose;
         event Action<string> OnTextMessage;
         event Action<byte[]> OnBinaryMessage;
-        event Action<string> OnError;
+        event Action<SocketError> OnError;
     }
 }
 
