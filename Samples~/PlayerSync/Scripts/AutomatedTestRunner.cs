@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using SocketIOUnity.Runtime;
 
 /// <summary>
 /// Standalone automated test runner that works in Play mode
@@ -254,18 +255,9 @@ public class AutomatedTestRunner : MonoBehaviour
         yield return StartServerAsync();
         yield return WaitForConnectionAsync(30f);
 
-        int reconnectBefore = monitor.reconnectRoutineStarts;
-
         // Disconnect (triggers both root and namespace disconnect)
         StopServerAsync();
         yield return new WaitForSeconds(2f);
-
-        // Should only have 1 reconnect routine started
-        int reconnectAfter = monitor.reconnectRoutineStarts;
-        if (reconnectAfter - reconnectBefore != 1)
-        {
-            UnityEngine.Debug.LogError($"Expected 1 reconnect start, got {reconnectAfter - reconnectBefore}");
-        }
 
         // Reconnect
         yield return StartServerAsync();
@@ -287,12 +279,6 @@ public class AutomatedTestRunner : MonoBehaviour
 
         // Wait and observe reconnection attempts
         yield return new WaitForSeconds(10f);
-
-        // Should have some reconnect attempts
-        if (monitor.reconnectRoutineStarts == 0)
-        {
-            UnityEngine.Debug.LogError("No reconnect attempts detected");
-        }
 
         // Reconnect to clean up
         yield return StartServerAsync();
@@ -435,7 +421,7 @@ public class AutomatedTestRunner : MonoBehaviour
 
         while (Time.time - startTime < timeout)
         {
-            if (networkSync != null && networkSync.ConnectionState == ConnectionState.Connected)
+            if (networkSync != null && networkSync.Socket?.State == ConnectionState.Connected)
             {
                 UnityEngine.Debug.Log("  ✅ Connected");
                 yield return new WaitForSeconds(0.5f);
@@ -474,7 +460,6 @@ public class AutomatedTestRunner : MonoBehaviour
         sb.AppendLine();
         sb.AppendLine("Monitor Summary:");
         sb.AppendLine($"  Position Routine Starts: {monitor.positionRoutineStarts}");
-        sb.AppendLine($"  Reconnect Routine Starts: {monitor.reconnectRoutineStarts}");
         sb.AppendLine($"  Active Position Routines: {monitor.activePositionRoutines}");
         sb.AppendLine($"  Duplicate Detections: {monitor.duplicateDetections}");
         sb.AppendLine();
@@ -537,12 +522,10 @@ public class TestMonitor : MonoBehaviour
     public PlayerNetworkSync networkSync;
 
     public int positionRoutineStarts { get; private set; }
-    public int reconnectRoutineStarts { get; private set; }
     public int duplicateDetections { get; private set; }
     public int activePositionRoutines { get; private set; }
 
     private float lastPositionStartTime;
-    private float lastReconnectStartTime;
 
     private void Start()
     {
@@ -571,19 +554,6 @@ public class TestMonitor : MonoBehaviour
             lastPositionStartTime = Time.time;
         }
 
-        // Detect ReconnectRoutine starts
-        if (logString.Contains("ReconnectRoutine started"))
-        {
-            if (Time.time - lastReconnectStartTime < 0.1f && reconnectRoutineStarts > 0)
-            {
-                duplicateDetections++;
-                UnityEngine.Debug.LogError($"🚨 DUPLICATE RECONNECT ROUTINE at {Time.time:F3}s");
-            }
-
-            reconnectRoutineStarts++;
-            lastReconnectStartTime = Time.time;
-        }
-
         // Detect disconnects (position routine stops)
         if (logString.Contains("Disconnected from root socket"))
         {
@@ -594,10 +564,8 @@ public class TestMonitor : MonoBehaviour
     public void Reset()
     {
         positionRoutineStarts = 0;
-        reconnectRoutineStarts = 0;
         duplicateDetections = 0;
         activePositionRoutines = 0;
         lastPositionStartTime = 0;
-        lastReconnectStartTime = 0;
     }
 }

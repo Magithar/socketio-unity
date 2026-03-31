@@ -11,6 +11,12 @@
  * - Adapted for Socket.IO protocol requirements
  * - Custom threading utilities added
  * - Added ResetStatics() for domain reload cleanup (v1.0.1)
+ * - Added CancelConnection() for both WebGL and non-WebGL paths
+ * - Null-out-before-dispose in Connect() to prevent concurrent access during native teardown
+ * - State property: null check and ObjectDisposedException guard
+ * - SendMessage(): early bail-out for closing/null socket, await instead of t.Wait()
+ * - Receive(): skip CloseAsync response to avoid SIGPIPE crashes on Mono/ARM64
+ * - Close(): null/state checks and exception handling for already-closed sockets
  *
  * See NOTICE.md for full license text
  */
@@ -45,8 +51,13 @@ public class MainThreadUtil : MonoBehaviour
 
     public static void Run(IEnumerator waitForUpdate)
     {
-        synchronizationContext.Post(_ => Instance.StartCoroutine(
-                    waitForUpdate), null);
+        if (Instance == null || synchronizationContext == null)
+            return;
+        synchronizationContext.Post(_ =>
+        {
+            if (Instance != null)
+                Instance.StartCoroutine(waitForUpdate);
+        }, null);
     }
 
     void Awake()
@@ -392,6 +403,7 @@ namespace NativeWebSocket
         private Dictionary<string, string> headers;
         private List<string> subprotocols;
         private ClientWebSocket m_Socket = new ClientWebSocket();
+        private volatile bool m_Closing;
 
         private CancellationTokenSource m_TokenSource;
         private CancellationToken m_CancellationToken;
@@ -472,6 +484,7 @@ namespace NativeWebSocket
         {
             try
             {
+                m_Closing = false;
                 m_TokenSource = new CancellationTokenSource();
                 m_CancellationToken = m_TokenSource.Token;
 
@@ -498,11 +511,21 @@ namespace NativeWebSocket
             }
             finally
             {
-                if (m_Socket != null)
+                m_Closing = true;
+                try
                 {
-                    m_TokenSource.Cancel();
-                    m_Socket.Dispose();
+                    m_TokenSource?.Cancel();
                 }
+                catch (Exception) { }
+                // Null out socket reference BEFORE Dispose to prevent
+                // concurrent access from other threads during native teardown.
+                var socket = m_Socket;
+                m_Socket = null;
+                try
+                {
+                    socket?.Dispose();
+                }
+                catch (Exception) { }
             }
         }
 
@@ -510,6 +533,10 @@ namespace NativeWebSocket
         {
             get
             {
+                if (m_Socket == null)
+                    return WebSocketState.Closed;
+                try
+                {
                 switch (m_Socket.State)
                 {
                     case System.Net.WebSockets.WebSocketState.Connecting:
@@ -527,6 +554,11 @@ namespace NativeWebSocket
 
                     default:
                         return WebSocketState.Closed;
+                }
+                }
+                catch (ObjectDisposedException)
+                {
+                    return WebSocketState.Closed;
                 }
             }
         }
@@ -547,14 +579,24 @@ namespace NativeWebSocket
 
         private async Task SendMessage(List<ArraySegment<byte>> queue, WebSocketMessageType messageType, ArraySegment<byte> buffer)
         {
-            // Return control to the calling method immediately.
-            // await Task.Yield ();
-
             // Make sure we have data.
             if (buffer.Count == 0)
             {
                 return;
             }
+
+            // Bail out early if the socket is closing/closed/disposed.
+            if (m_Closing || m_Socket == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (m_Socket.State != System.Net.WebSockets.WebSocketState.Open)
+                    return;
+            }
+            catch (ObjectDisposedException) { return; }
 
             // The state of the connection is contained in the context Items dictionary.
             bool sending;
@@ -576,15 +618,16 @@ namespace NativeWebSocket
                 if (!Monitor.TryEnter(m_Socket, 1000))
                 {
                     // If we couldn't obtain exclusive access to the socket in one second, something is wrong.
-                    await m_Socket.CloseAsync(WebSocketCloseStatus.InternalServerError, string.Empty, m_CancellationToken);
+                    try { await m_Socket.CloseAsync(WebSocketCloseStatus.InternalServerError, string.Empty, m_CancellationToken); }
+                    catch (Exception) { /* socket already closed */ }
                     return;
                 }
 
                 try
                 {
-                    // Send the message synchronously.
-                    var t = m_Socket.SendAsync(buffer, messageType, true, m_CancellationToken);
-                    t.Wait(m_CancellationToken);
+                    // Send the message — await instead of blocking with t.Wait()
+                    // to avoid freezing the main thread when the connection dies.
+                    await m_Socket.SendAsync(buffer, messageType, true, m_CancellationToken);
                 }
                 finally
                 {
@@ -636,7 +679,7 @@ namespace NativeWebSocket
         // simple dispatcher for queued messages.
         public void DispatchMessageQueue()
         {
-            if (m_MessageList.Count == 0)
+            if (m_Closing || m_MessageList.Count == 0)
             {
                 return;
             }
@@ -664,7 +707,7 @@ namespace NativeWebSocket
             ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[8192]);
             try
             {
-                while (m_Socket.State == System.Net.WebSockets.WebSocketState.Open)
+                while (m_Socket != null && m_Socket.State == System.Net.WebSockets.WebSocketState.Open)
                 {
                     WebSocketReceiveResult result = null;
 
@@ -701,7 +744,9 @@ namespace NativeWebSocket
                         }
                         else if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            await Close();
+                            // Don't send a close response — the server may already be dead.
+                            // Attempting CloseAsync on a broken connection can cause native
+                            // SIGPIPE crashes on Mono/ARM64.
                             closeCode = WebSocketHelpers.ParseCloseCodeEnum((int)result.CloseStatus);
                             break;
                         }
@@ -710,21 +755,33 @@ namespace NativeWebSocket
             }
             catch (Exception)
             {
-                m_TokenSource.Cancel();
+                m_Closing = true;
+                m_TokenSource?.Cancel();
             }
             finally
             {
-                await new WaitForUpdate();
+                m_Closing = true;
+                try
+                {
+                    await new WaitForUpdate();
+                }
+                catch (Exception) { /* main thread no longer available (domain unload) */ }
                 OnClose?.Invoke(closeCode);
             }
         }
 
         public async Task Close()
         {
-            if (State == WebSocketState.Open)
+            if (m_Socket == null)
+                return;
+            try
             {
-                await m_Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, m_CancellationToken);
+                if (State == WebSocketState.Open)
+                {
+                    await m_Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, m_CancellationToken);
+                }
             }
+            catch (Exception) { /* socket already closed/disposed or token cancelled */ }
         }
     }
 #endif

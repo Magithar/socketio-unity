@@ -7,6 +7,7 @@ namespace SocketIOUnity.Runtime
     internal sealed class ReconnectController
     {
         private readonly Action _reconnectAction;
+        private readonly Action _onExhausted;
 
         // Store as private copy - prevent external mutation
         private ReconnectConfig _config = new ReconnectConfig();
@@ -27,9 +28,12 @@ namespace SocketIOUnity.Runtime
 
         public bool IsRunning => _enabled;
 
-        public ReconnectController(Action reconnectAction)
+        /// <param name="reconnectAction">Called each time a reconnect attempt should fire.</param>
+        /// <param name="onExhausted">Called once when max attempts are reached. Optional.</param>
+        internal ReconnectController(Action reconnectAction, Action onExhausted = null)
         {
             _reconnectAction = reconnectAction;
+            _onExhausted = onExhausted;
         }
 
         /// <summary>
@@ -72,8 +76,9 @@ namespace SocketIOUnity.Runtime
                 // Check if we've exceeded max attempts
                 if (_config.maxAttempts > 0 && _attempt >= _config.maxAttempts)
                 {
-                    SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Max reconnect attempts ({_config.maxAttempts}) reached");
+                    SocketIOTrace.Protocol(TraceCategory.Reconnect, $"Max reconnect attempts ({_config.maxAttempts}) reached — giving up");
                     Stop();
+                    _onExhausted?.Invoke();
                     return;
                 }
 

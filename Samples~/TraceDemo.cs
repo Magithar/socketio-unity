@@ -1,3 +1,5 @@
+// TraceConfig is intentionally [Obsolete] as a v2.0 stability marker — this sample is its canonical usage.
+#pragma warning disable CS0618
 using UnityEngine;
 using SocketIOUnity.Debugging;
 

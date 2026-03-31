@@ -28,7 +28,6 @@ public class CoroutineDebugger : MonoBehaviour
 
     // Stats
     private int totalPositionRoutineStarts = 0;
-    private int totalReconnectRoutineStarts = 0;
     private int duplicateDetections = 0;
 
     private void Start()
@@ -58,15 +57,6 @@ public class CoroutineDebugger : MonoBehaviour
         {
             totalPositionRoutineStarts++;
             ParseAndRecordEvent(logString, "SendPosition", "started");
-        }
-        else if (logString.Contains("ReconnectRoutine started"))
-        {
-            totalReconnectRoutineStarts++;
-            ParseAndRecordEvent(logString, "Reconnect", "started");
-        }
-        else if (logString.Contains("ReconnectRoutine ended"))
-        {
-            ParseAndRecordEvent(logString, "Reconnect", "ended");
         }
         else if (logString.Contains("Disconnected from root socket"))
         {
@@ -228,7 +218,6 @@ public class CoroutineDebugger : MonoBehaviour
         sb.AppendLine();
         sb.AppendLine("Lifecycle Events:");
         sb.AppendLine($"  SendPositionRoutine starts: {totalPositionRoutineStarts}");
-        sb.AppendLine($"  ReconnectRoutine starts:    {totalReconnectRoutineStarts}");
         sb.AppendLine();
         sb.AppendLine("Currently Active:");
         sb.AppendLine($"  Active coroutines: {activeInstances.Count}");
@@ -251,7 +240,7 @@ public class CoroutineDebugger : MonoBehaviour
 
         sb.AppendLine();
         sb.AppendLine("Connection State:");
-        sb.AppendLine($"  Current: {networkSync.ConnectionState}");
+        sb.AppendLine($"  Current: {networkSync.Socket?.State.ToString() ?? "No socket"}");
         sb.AppendLine($"  Reconnect Attempts: {networkSync.ReconnectAttempt}");
         sb.AppendLine("==================================");
 
@@ -279,8 +268,7 @@ public class CoroutineDebugger : MonoBehaviour
 
         GUI.Label(new Rect(Screen.width - 240, 90, 220, 20), "🔬 Coroutine Debugger", labelStyle);
         GUI.Label(new Rect(Screen.width - 240, 110, 220, 20), $"Position starts: {totalPositionRoutineStarts}", labelStyle);
-        GUI.Label(new Rect(Screen.width - 240, 130, 220, 20), $"Reconnect starts: {totalReconnectRoutineStarts}", labelStyle);
-        GUI.Label(new Rect(Screen.width - 240, 150, 220, 20), $"Active: {activeInstances.Count}", labelStyle);
+        GUI.Label(new Rect(Screen.width - 240, 130, 220, 20), $"Active: {activeInstances.Count}", labelStyle);
 
         labelStyle.normal.textColor = color;
         GUI.Label(new Rect(Screen.width - 240, 170, 220, 20), status, labelStyle);

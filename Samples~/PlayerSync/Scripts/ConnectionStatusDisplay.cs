@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using SocketIOUnity.Runtime;
 
 public class ConnectionStatusDisplay : MonoBehaviour
 {
@@ -11,7 +12,7 @@ public class ConnectionStatusDisplay : MonoBehaviour
         if (networkSync == null || statusText == null)
             return;
 
-        var state = networkSync.ConnectionState;
+        var state = networkSync.Socket?.State ?? ConnectionState.Disconnected;
 
         switch (state)
         {
