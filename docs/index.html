@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Socket.IO Unity Client — real-time multiplayer for Unity. Lobby system, player sync, WebGL-ready. Live browser demo." />
+  <title>Socket.IO Unity — Live Multiplayer Demo</title>
+
+  <!-- Font pairing: Inter (UI) + JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Design tokens ──────────────────────────────── */
+    :root {
+      /* Surface */
+      --bg-base:      #0a0a0a;
+      --bg-surface:   #111111;
+      --bg-elevated:  #1a1a1a;
+      --bg-overlay:   #222222;
+
+      /* Border */
+      --border-subtle:  rgba(255,255,255,0.06);
+      --border-default: rgba(255,255,255,0.11);
+      --border-strong:  rgba(255,255,255,0.22);
+
+      /* Accent — white */
+      --accent:       #ffffff;
+      --accent-light: #ffffff;
+      --accent-dim:   rgba(255,255,255,0.06);
+      --accent-glow:  rgba(255,255,255,0.04);
+
+      /* Semantic */
+      --success:  #3dd68c;
+      --warning:  #f5a623;
+      --danger:   #f05252;
+
+      /* Text */
+      --text-primary:   #f0f0f0;   /* ~16:1 on bg-base */
+      --text-secondary: #888888;   /* ~5:1 */
+      --text-muted:     #444444;   /* on elevated surfaces */
+
+      /* Spacing scale (4px base) */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      --space-16: 64px;
+
+      /* Radius */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+
+      /* Type scale */
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.375rem;
+      --text-2xl:  1.75rem;
+      --text-3xl:  2.25rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-in:  cubic-bezier(0.55, 0, 1, 0.45);
+      --dur-fast: 150ms;
+      --dur-base: 220ms;
+      --dur-slow: 350ms;
+    }
+
+    /* ── Reset ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      font-size: var(--text-base);
+      line-height: 1.6;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* Skip link */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: var(--space-4);
+      z-index: 1000;
+      background: var(--accent);
+      color: #fff;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      text-decoration: none;
+      transition: top var(--dur-fast) var(--ease-out);
+    }
+    .skip-link:focus { top: var(--space-4); }
+
+    /* Focus ring — global */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Ambient glow ───────────────────────────────── */
+    .glow-orb { display: none; }
+
+    /* ── Layout wrapper ─────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 920px;
+      padding: 0 var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    header {
+      padding-top: var(--space-12);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .eyebrow-line {
+      width: 28px;
+      height: 1px;
+      background: #e03030;
+      opacity: 0.7;
+    }
+
+    .eyebrow-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #e03030;
+    }
+
+    h1 {
+      font-size: clamp(var(--text-2xl), 5vw, var(--text-3xl));
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--text-primary);
+    }
+
+    .header-desc {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: 1.65;
+      max-width: 520px;
+    }
+
+    /* tags */
+    .tags {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      white-space: nowrap;
+    }
+
+    .tag.live {
+      border-color: rgba(74,222,128,0.35);
+      color: var(--success);
+      background: rgba(74,222,128,0.06);
+    }
+
+    .tag.live .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: blink 1.8s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.25; }
+    }
+
+    /* ── Player ─────────────────────────────────────── */
+    .player-section { display: flex; flex-direction: column; gap: var(--space-3); }
+
+    .player-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    #unity-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px var(--border-subtle),
+        0 24px 48px rgba(0,0,0,0.6);
+    }
+
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      display: none;
+      outline: none;
+    }
+
+    /* ── Placeholder overlay ────────────────────────── */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-5);
+      background: var(--bg-surface);
+      padding: var(--space-8);
+      text-align: center;
+      transition: opacity var(--dur-base) var(--ease-out);
+    }
+
+    .overlay-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-md);
+      background: var(--bg-overlay);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .overlay-icon svg {
+      color: var(--accent-light);
+      opacity: 0.7;
+    }
+
+    .overlay h2 {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .overlay-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .overlay p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .overlay-steps {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      text-align: left;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      text-align: left;
+    }
+
+    .step span:last-child {
+      flex: 1;
+      min-width: 0;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid var(--border-default);
+      background: var(--bg-overlay);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    code {
+      font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+      font-size: 0.8em;
+      background: var(--bg-overlay);
+      border: 1px solid var(--border-subtle);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--accent-light);
+    }
+
+    /* ── Loading bar ────────────────────────────────── */
+    #unity-loading-bar {
+      display: none;
+      position: absolute;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--space-4);
+      background: var(--bg-surface);
+    }
+
+    #unity-loading-bar.show { display: flex; }
+
+    .loading-text {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    #unity-progress-bar-empty {
+      width: 200px;
+      height: 3px;
+      background: var(--border-default);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #unity-progress-bar-full {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.25s var(--ease-out);
+    }
+
+    /* ── Info grid ──────────────────────────────────── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-3);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: var(--space-5) var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      transition: border-color var(--dur-base) var(--ease-out),
+                  background   var(--dur-base) var(--ease-out);
+    }
+
+    .card:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elevated);
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-dim);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-icon svg { color: var(--accent-light); }
+
+    .card h3 {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+
+    .card ul li {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      text-wrap: balance;
+    }
+
+    .card ul li::before {
+      content: "";
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--border-strong);
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    .card p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    /* ── Divider ────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer {
+      padding: var(--space-8) 0 var(--space-10);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color var(--dur-fast) var(--ease-out);
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    .footer-links a:hover { color: var(--text-primary); }
+
+    .footer-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+
+    .footer-copy {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 600px) {
+      .page { padding: 0 var(--space-4); gap: var(--space-6); }
+      header { padding-top: var(--space-8); }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Reduced motion ─────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#demo" class="skip-link">Skip to demo</a>
+  <div class="glow-orb" aria-hidden="true"></div>
+
+  <main class="page">
+
+    <!-- ── Header ── -->
+    <header>
+      <div class="eyebrow" aria-hidden="true">
+        <div class="eyebrow-line"></div>
+        <span class="eyebrow-label">Live Demo</span>
+      </div>
+
+      <h1>Socket.IO Unity<br /><em>Multiplayer in the browser</em></h1>
+
+      <p class="header-desc">
+        Real-time multiplayer for Unity — lobby system, player sync, and host migration
+        over Socket.IO v4. Open two tabs to see it live.
+      </p>
+
+      <div class="tags" role="list" aria-label="Package attributes">
+        <span class="tag live" role="listitem">
+          <span class="dot" aria-hidden="true"></span>
+          WebGL Ready
+        </span>
+        <span class="tag" role="listitem">Socket.IO v4</span>
+        <span class="tag" role="listitem">Unity 2020.1+</span>
+        <span class="tag" role="listitem">v1.2.0</span>
+        <span class="tag" role="listitem">MIT</span>
+      </div>
+    </header>
+
+    <!-- ── Player ── -->
+    <section class="player-section" aria-labelledby="demo-label">
+      <span class="player-label" id="demo-label">Interactive Demo</span>
+
+      <div id="unity-container" role="application" aria-label="Unity WebGL multiplayer demo">
+
+        <!-- loading -->
+        <div id="unity-loading-bar" role="status" aria-label="Loading demo">
+          <span class="loading-text">Loading…</span>
+          <div id="unity-progress-bar-empty" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="unity-progress-bar-full"></div>
+          </div>
+        </div>
+
+        <!-- placeholder when build not deployed -->
+        <div class="overlay" id="build-missing" aria-live="polite">
+          <div class="overlay-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+
+          <div class="overlay-body">
+            <h2>WebGL build not deployed yet</h2>
+            <p>Add the Unity WebGL output to <code>docs/Build/</code> and push — this page loads the game automatically.</p>
+
+            <div class="overlay-steps" aria-label="Deployment steps">
+              <div class="step">
+                <span class="step-num" aria-label="Step 1">1</span>
+                <span>Unity → File → Build Settings → WebGL → <strong>Build</strong></span>
+              </div>
+              <div class="step">
+                <span class="step-num" aria-label="Step 2">2</span>
+                <span>Copy output into <code>docs/Build/</code></span>
+              </div>
+              <div class="step">
+                <span class="step-num" aria-label="Step 3">3</span>
+                <span>GitHub Settings → Pages → Source: <code>/docs</code> → Save</span>
+              </div>
+              <div class="step">
+                <span class="step-num" aria-label="Step 4">4</span>
+                <span>Open two tabs at this URL — each becomes a separate player</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <canvas id="unity-canvas" tabindex="0" aria-label="Game canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- ── Info cards ── -->
+    <section aria-label="Demo details">
+      <div class="info-grid">
+
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">
+            <!-- users icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h3>How to test multiplayer</h3>
+          <ul>
+            <li>Open two tabs at this URL</li>
+            <li>Both connect to the same server</li>
+            <li>Move in one — see it in the other</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">
+            <!-- layers icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </div>
+          <h3>What this demo shows</h3>
+          <ul>
+            <li>Lobby creation and join flow</li>
+            <li>Real-time position synchronization</li>
+            <li>Host migration on disconnect</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">
+            <!-- terminal icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+          </div>
+          <h3>Deploy your own build</h3>
+          <p>Unity → File → Build Settings → WebGL → Build. Copy the output to <code>docs/Build/</code> and push to enable the live player above.</p>
+        </article>
+
+      </div>
+    </section>
+
+    <div class="divider" role="separator"></div>
+
+    <!-- ── Footer ── -->
+    <footer>
+      <nav class="footer-links" aria-label="Project links">
+        <a href="https://github.com/Magithar/socketio-unity" rel="noopener">GitHub</a>
+        <span class="footer-dot" aria-hidden="true"></span>
+        <a href="https://github.com/Magithar/socketio-unity/tree/main/Samples~" rel="noopener">Samples</a>
+        <span class="footer-dot" aria-hidden="true"></span>
+        <a href="https://github.com/Magithar/socketio-unity/blob/main/CHANGELOG.md" rel="noopener">Changelog</a>
+        <span class="footer-dot" aria-hidden="true"></span>
+        <a href="https://github.com/Magithar/socketio-unity/blob/main/Documentation~/GETTING_STARTED.md" rel="noopener">Getting Started</a>
+      </nav>
+      <p class="footer-copy">Socket.IO Unity v1.2.0 &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; by Magithar</p>
+    </footer>
+
+  </main>
+
+  <script>
+    const LOADER_URL = "Build/Build.loader.js";
+
+    const canvas      = document.getElementById("unity-canvas");
+    const loadingBar  = document.getElementById("unity-loading-bar");
+    const progressBar = document.getElementById("unity-progress-bar-full");
+    const progressEl  = document.getElementById("unity-progress-bar-empty");
+    const placeholder = document.getElementById("build-missing");
+
+    function showPlaceholder() {
+      placeholder.style.display = "flex";
+      loadingBar.classList.remove("show");
+    }
+
+    function startUnity() {
+      placeholder.style.display = "none";
+      canvas.style.display = "block";
+      loadingBar.classList.add("show");
+
+      const config = {
+        dataUrl:            "Build/Build.data",
+        frameworkUrl:       "Build/Build.framework.js",
+        codeUrl:            "Build/Build.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName:        "Magithar",
+        productName:        "Socket.IO Unity Demo",
+        productVersion:     "1.2.0",
+      };
+
+      createUnityInstance(canvas, config, (progress) => {
+        const pct = Math.round(progress * 100);
+        progressBar.style.width = pct + "%";
+        progressEl.setAttribute("aria-valuenow", pct);
+      }).then(() => {
+        loadingBar.classList.remove("show");
+        canvas.focus();
+      }).catch((err) => {
+        console.error("Unity failed to load:", err);
+        canvas.style.display = "none";
+        showPlaceholder();
+      });
+    }
+
+    // HEAD probe — show placeholder if no build present
+    fetch(LOADER_URL, { method: "HEAD" })
+      .then((res) => {
+        if (!res.ok) { showPlaceholder(); return; }
+        const script = document.createElement("script");
+        script.src = LOADER_URL;
+        script.onload  = startUnity;
+        script.onerror = showPlaceholder;
+        document.head.appendChild(script);
+      })
+      .catch(showPlaceholder);
+  </script>
+</body>
+</html>

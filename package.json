@@ -2,7 +2,7 @@
     "name": "com.magithar.socketio-unity",
     "version": "1.2.0",
     "displayName": "Socket.IO Unity Client",
-    "description": "Open-source Socket.IO v4 client for Unity (Standalone & WebGL)",
+    "description": "Real-time multiplayer infrastructure for Unity — lobby systems, player sync, and live backend over Socket.IO v4. WebGL-ready.",
     "unity": "2020.1",
     "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.2.2"
@@ -11,7 +11,12 @@
         "socketio",
         "websocket",
         "networking",
-        "realtime"
+        "realtime",
+        "multiplayer",
+        "lobby",
+        "webgl",
+        "matchmaking",
+        "player-sync"
     ],
     "author": {
         "name": "Magithar",

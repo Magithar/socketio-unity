@@ -2,9 +2,9 @@
 
 # socketio-unity
 
-Production-ready Socket.IO v4 client for Unity. Supports WebGL, binary payloads, namespaces, authentication, and CI-tested stability.
+**Real-time multiplayer infrastructure for Unity** — lobby systems, player synchronization, and live backend communication, all over Socket.IO v4.
 
-Built for serious multiplayer and live backend systems.
+WebGL-ready. Production-tested. Zero paid dependencies.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/Magithar/socketio-unity/releases)
@@ -12,9 +12,15 @@ Built for serious multiplayer and live backend systems.
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<!-- TODO: Replace with lobby-demo.gif once recorded -->
+<!-- ![Lobby Demo](Documentation~/images/lobby-demo.gif) -->
+
+**Lobby with host migration** · **Real-time player sync** · **WebGL browser multiplayer** · **Binary payloads** · **Reconnect recovery**
+
 ---
 
 **Getting Started** &nbsp;·&nbsp;
+📖 [Start Here](Documentation~/GETTING_STARTED.md) &nbsp;·&nbsp;
 ⚡ [Quick Start](#-quick-start-2-minutes) &nbsp;·&nbsp;
 🎬 [Demo](#-demo) &nbsp;·&nbsp;
 🚀 [Installation](#-installation) &nbsp;·&nbsp;
@@ -51,7 +57,7 @@ Built for serious multiplayer and live backend systems.
 
 ---
 
-💡 New here? Start with **[Quick Start](#-quick-start-2-minutes) → [Basic Chat Sample](#-basic-chat-sample)**.
+**New here?** Read [Getting Started](Documentation~/GETTING_STARTED.md) — zero to multiplayer in 5 minutes, step by step.
 
 </div>
 
@@ -88,6 +94,19 @@ Open the **Basic Chat** sample and press Play. → [Full guide](#-basic-chat-sam
 
 ---
 
+## What Can You Build With This?
+
+| Use Case | How |
+|----------|-----|
+| **Multiplayer lobby system** | Create/join rooms, ready-up, host migration, reconnect recovery — [Lobby sample included](#-lobby-sample) |
+| **Real-time player sync** | Position, rotation, state sync across players at 20Hz — [PlayerSync sample included](#-playersync-sample) |
+| **WebGL browser multiplayer** | Same code runs in browser builds with zero changes — [WebGL verified](#-webgl-status-production-verified) |
+| **Live backend communication** | Chat, notifications, dashboards, admin panels — [Basic Chat sample included](#-basic-chat-sample) |
+| **Mobile multiplayer** | Android & iOS with touch input and runtime server config |
+| **Signaling layer for Mirror/Netcode** | Use Socket.IO for lobby & matchmaking, hand off to gameplay transport |
+
+---
+
 ## Why socketio-unity?
 
 Most Unity Socket.IO clients are either closed-source assets, incomplete protocol ports, or tied to a specific platform. This project was built to fill that gap.
@@ -118,7 +137,7 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 | Clean-room implementation | ✅ | ❌ Unknown |
 | CI-tested on every commit | ✅ GitHub Actions | ❌ Rare |
 
-> If you're building a real multiplayer game in Unity and need a transparent, inspectable Socket.IO client — this project is designed for that use case.
+> If you're building real-time multiplayer in Unity — lobby systems, player sync, or live backend features — and need a transparent, inspectable networking layer, this project is built for that.
 
 ---
 
@@ -737,6 +756,57 @@ void OnApplicationQuit()
 
 ## 🧱 Architecture Overview
 
+```mermaid
+graph TD
+    Server["<b>Socket.IO Server</b><br/>Node.js / Python / Any backend"]
+
+    subgraph Transport ["ITransport"]
+        WS["<b>WebSocketTransport</b><br/>Standalone / Editor<br/>System.Net.WebSockets"]
+        WebGL["<b>WebGLWebSocketTransport</b><br/>Browser JS bridge (.jslib)"]
+    end
+
+    subgraph Engine ["EngineIOClient"]
+        Handshake["Handshake"]
+        Heartbeat["HeartbeatController"]
+        RTT["PingRttTracker"]
+    end
+
+    subgraph SocketIO ["SocketIOClient — Public API: On / Emit / Off / Of / Connect"]
+        NSManager["NamespaceManager"]
+        NS["NamespaceSocket<br/>EventRegistry · AckRegistry"]
+        Reconnect["ReconnectController<br/>ReconnectConfig"]
+        Binary["BinaryPacketAssembler"]
+    end
+
+    Manager["<b>SocketIOManager</b> <i>(optional)</i><br/>Unity singleton · scene lifecycle"]
+
+    subgraph Unity ["Unity Integration (cross-cutting)"]
+        Tick["UnityTickDriver"]
+        Dispatch["UnityMainThreadDispatcher"]
+    end
+
+    subgraph Debug ["Debug / Observability (opt-in)"]
+        Trace["SocketIOTrace → ITraceSink"]
+        Profiler["ProfilerMarkers · ProfilerCounters"]
+        Throughput["ThroughputTracker · Network HUD"]
+    end
+
+    Server -- "WebSocket frames" --> Transport
+    Transport -- "transport abstraction" --> Engine
+    Engine -- "Engine.IO protocol" --> SocketIO
+    SocketIO -- "owns" --> Manager
+
+    NSManager --> NS
+
+    Tick -. "drives Update()" .-> Engine
+    Dispatch -. "marshals callbacks" .-> SocketIO
+    Trace -. "observes" .-> SocketIO
+    Profiler -. "instruments" .-> Engine
+```
+
+<details>
+<summary>ASCII version (for terminals / offline viewing)</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Socket.IO Server                      │
@@ -749,53 +819,32 @@ void OnApplicationQuit()
 │  ┌────────────────────────┐  ┌────────────────────────┐ │
 │  │  WebSocketTransport    │  │ WebGLWebSocketTransport│ │
 │  │  Standalone / Editor   │  │ Browser JS bridge      │ │
-│  │  System.Net.WebSockets │  │ (.jslib)               │ │
 │  └────────────────────────┘  └────────────────────────┘ │
 └──────────────────────────┬──────────────────────────────┘
-                           │ transport abstraction
+                           │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   EngineIOClient                         │
-│     handshake · heartbeat · packet framing               │
-│     HeartbeatController · PingRttTracker                 │
+│     Handshake · HeartbeatController · PingRttTracker     │
 └──────────────────────────┬──────────────────────────────┘
-                           │ uses Engine.IO protocol
+                           │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   SocketIOClient                         │
 │          Public API: On / Emit / Off / Of / Connect      │
-│  ┌─────────────────────┐   ┌──────────────────────────┐ │
-│  │  NamespaceManager   │   │   ReconnectController    │ │
-│  │  Dict<string,       │   │   ReconnectConfig        │ │
-│  │    NamespaceSocket> │   └──────────────────────────┘ │
-│  └─────────────────────┘   ┌──────────────────────────┐ │
-│  ┌─────────────────────┐   │  BinaryPacketAssembler   │ │
-│  │  NamespaceSocket    │   └──────────────────────────┘ │
-│  │  EventRegistry      │                                 │
-│  │  AckRegistry        │                                 │
-│  └─────────────────────┘                                 │
+│  NamespaceManager · ReconnectController                  │
+│  NamespaceSocket · EventRegistry · AckRegistry           │
+│  BinaryPacketAssembler                                   │
 └──────────────────────────┬──────────────────────────────┘
-                           │ owns
+                           │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │           SocketIOManager  (optional helper)             │
 │        Unity singleton wrapper · scene lifecycle         │
 └─────────────────────────────────────────────────────────┘
-
-Unity Integration (cross-cutting)
-┌─────────────────────────────────────────────────────────┐
-│ UnityTickDriver — drives EngineIOClient via Update()     │
-│ UnityMainThreadDispatcher — marshals callbacks to main   │
-└─────────────────────────────────────────────────────────┘
-
-Debug / Observability (opt-in)
-┌─────────────────────────────────────────────────────────┐
-│ SocketIOTrace → ITraceSink                               │
-│ ProfilerMarkers        (define: SOCKETIO_PROFILER)       │
-│ ProfilerCounters (define: SOCKETIO_PROFILER_COUNTERS)   │
-│ SocketIOThroughputTracker · Editor Network HUD           │
-└─────────────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ### Directory Structure (UPM Package)
 
