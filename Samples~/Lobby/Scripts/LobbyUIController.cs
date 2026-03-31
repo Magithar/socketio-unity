@@ -108,7 +108,8 @@ public class LobbyUIController : MonoBehaviour
             playerNameInput.onEndEdit.AddListener(name => PlayerPrefs.SetString(PREF_PLAYER_NAME, name));
         }
 
-        SetStatus("Connecting...", Color.yellow);
+        // Connection status is driven by store.OnConnected/OnDisconnected, which
+        // derive from socket.State via LobbyStateStore.SetSocket — no manual init needed.
         ShowLobbySelection();
     }
 
@@ -215,8 +216,6 @@ public class LobbyUIController : MonoBehaviour
         }
         _joinInFlight = false;
 
-        SetStatus("Connected", Color.green);
-
         // Auto-show room panel on successful auto-rejoin
         if (!roomPanel.activeSelf) ShowRoomPanel();
 
@@ -263,7 +262,7 @@ public class LobbyUIController : MonoBehaviour
         StartCoroutine(FlashStatusMessage(message, Color.yellow));
     }
 
-    private void HandleError(string error)
+    private void HandleError(SocketIOUnity.Runtime.SocketError error)
     {
         _joinInFlight = false;
         Debug.LogWarning($"[Lobby] Error: {error}");

@@ -74,14 +74,10 @@ public class PlayerNetworkSync : MonoBehaviour
     private string playerId;
     private bool isNamespaceConnected = false;
     private Coroutine positionRoutine; // Track the coroutine to prevent duplicates
-    private Coroutine reconnectRoutine; // Track reconnection attempts
 
-    // Public API for UI
-    public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
+    // Public API for UI — ConnectionState reads from socket.State (SOT-07/09/10/11)
     public int ReconnectAttempt { get; private set; } = 0;
 
-    private float lastReconnectCheckTime;
-    private bool isReconnecting = false;
     private bool isDestroyed = false;
 
     /// <summary>
@@ -127,11 +123,11 @@ public class PlayerNetworkSync : MonoBehaviour
             Debug.Log("Creating SocketIOClient...");
             rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
 
-            // Disable built-in reconnection — it creates a fresh NamespaceManager
-            // which wipes our /playersync event handlers. We use manual ReconnectRoutine instead.
-            rootSocket.ReconnectConfig = new ReconnectConfig { autoReconnect = false };
+            // Apply inspector-configured reconnect settings (autoReconnect = true by default).
+            // The built-in ReconnectController now survives namespace re-subscription correctly.
+            rootSocket.ReconnectConfig = reconnectConfig;
 
-            Debug.Log("SocketIOClient created (built-in reconnect disabled, using manual reconnect)");
+            Debug.Log("SocketIOClient created");
         }
         catch (System.Exception e)
         {
@@ -141,7 +137,6 @@ public class PlayerNetworkSync : MonoBehaviour
 
         // Connect to root first
         Debug.Log($"Connecting to root: {serverUrl}");
-        ConnectionState = ConnectionState.Connecting;
         AttachSocketHandlers();
         ConnectToServer();  // This already calls SetupNamespace() internally
     }
@@ -156,23 +151,20 @@ public class PlayerNetworkSync : MonoBehaviour
         {
             if (isDestroyed) return;
 
-            Debug.LogError($"❌ Socket Error: {error}");
+            Debug.LogError($"❌ Socket Error: {error.Type}: {error.Message}");
 
-            if (ConnectionState == ConnectionState.Connecting || ConnectionState == ConnectionState.Connected)
+            // Each error = one failed reconnect attempt by the built-in ReconnectController.
+            ReconnectAttempt++;
+            isNamespaceConnected = false;
+            controller.CanMove = false;
+
+            if (positionRoutine != null)
             {
-                ConnectionState = ConnectionState.Reconnecting;
-                ReconnectAttempt = ConnectionState == ConnectionState.Connecting ? 1 : ReconnectAttempt + 1;
-                isNamespaceConnected = false;
-                controller.CanMove = false;
-
-                if (positionRoutine != null)
-                {
-                    StopCoroutine(positionRoutine);
-                    positionRoutine = null;
-                }
-
-                spawner.RemoveAllRemotePlayers();
+                StopCoroutine(positionRoutine);
+                positionRoutine = null;
             }
+
+            spawner.RemoveAllRemotePlayers();
         };
 
         rootSocket.OnDisconnected += () =>
@@ -182,8 +174,6 @@ public class PlayerNetworkSync : MonoBehaviour
             Debug.LogWarning("❌ Disconnected from root socket");
             isNamespaceConnected = false;
             controller.CanMove = false;
-            ConnectionState = ConnectionState.Reconnecting;
-            ReconnectAttempt = 0;
 
             if (positionRoutine != null)
             {
@@ -192,12 +182,6 @@ public class PlayerNetworkSync : MonoBehaviour
             }
 
             spawner.RemoveAllRemotePlayers();
-
-            // Start manual reconnection (built-in reconnect is disabled)
-            if (reconnectRoutine == null && !isReconnecting)
-            {
-                reconnectRoutine = StartCoroutine(ReconnectRoutine());
-            }
         };
     }
 
@@ -219,16 +203,7 @@ public class PlayerNetworkSync : MonoBehaviour
 
             Debug.Log("✅ Connected to /playersync namespace!");
             isNamespaceConnected = true;
-            ConnectionState = ConnectionState.Connected;
             ReconnectAttempt = 0; // Reset attempt counter on successful connection
-            isReconnecting = false;
-
-            // Stop reconnection attempts if running
-            if (reconnectRoutine != null)
-            {
-                StopCoroutine(reconnectRoutine);
-                reconnectRoutine = null;
-            }
         };
 
         namespaceSocket.OnDisconnected += () =>
@@ -238,8 +213,6 @@ public class PlayerNetworkSync : MonoBehaviour
             Debug.LogWarning("❌ Disconnected from /playersync");
             isNamespaceConnected = false;
             controller.CanMove = false;
-            ConnectionState = ConnectionState.Reconnecting;
-            ReconnectAttempt = 1; // First attempt
 
             // Stop position updates
             if (positionRoutine != null)
@@ -333,91 +306,6 @@ public class PlayerNetworkSync : MonoBehaviour
         });
     }
 
-    private void Update()
-    {
-        // Track reconnect attempts while disconnected
-        if (ConnectionState == ConnectionState.Reconnecting &&
-            rootSocket != null &&
-            !isNamespaceConnected)
-        {
-            // Increment attempt counter every 2 seconds (approximate exponential backoff check)
-            if (Time.time - lastReconnectCheckTime > 2f)
-            {
-                lastReconnectCheckTime = Time.time;
-                ReconnectAttempt++;
-            }
-        }
-    }
-
-    private IEnumerator ReconnectRoutine()
-    {
-        isReconnecting = true;
-        ReconnectAttempt = 0;
-
-        // NOTE: This sample demonstrates manual reconnection control for UI state tracking.
-        // SocketIOClient also has built-in automatic reconnection (configured via ReconnectConfig).
-        // Use the built-in reconnection for production; this is for demonstration only.
-
-        while (!isNamespaceConnected && ConnectionState == ConnectionState.Reconnecting)
-        {
-            // Check max attempts if configured
-            if (reconnectConfig.maxAttempts > 0 && ReconnectAttempt >= reconnectConfig.maxAttempts)
-            {
-                Debug.LogWarning($"⚠️ Max reconnect attempts ({reconnectConfig.maxAttempts}) reached");
-                ConnectionState = ConnectionState.Disconnected;
-                isReconnecting = false;
-                break;
-            }
-
-            ReconnectAttempt++;
-
-            // Calculate delay using configurable exponential backoff
-            float baseDelay = reconnectConfig.initialDelay * Mathf.Pow(reconnectConfig.multiplier, ReconnectAttempt - 1);
-            float delay = Mathf.Min(baseDelay, reconnectConfig.maxDelay);
-
-            // Apply jitter if configured
-            if (reconnectConfig.jitterPercent > 0f)
-            {
-                float jitterAmount = delay * reconnectConfig.jitterPercent;
-                delay += UnityEngine.Random.Range(-jitterAmount, jitterAmount);
-                delay = Mathf.Max(delay, 0.1f);
-            }
-
-            Debug.Log($"🔄 Reconnection attempt {ReconnectAttempt} in {delay:0.2f} seconds...");
-            yield return new WaitForSeconds(delay);
-
-            if (isNamespaceConnected)
-            {
-                Debug.Log("✅ Already reconnected, stopping reconnection routine");
-                break;
-            }
-
-            try
-            {
-                Debug.Log($"🔌 Attempting to reconnect to {serverUrl}...");
-
-                // Properly shut down old socket (stops built-in reconnect + unregisters from tick driver)
-                if (rootSocket != null)
-                {
-                    rootSocket.Shutdown();
-                    rootSocket = null;
-                }
-
-                rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
-                rootSocket.ReconnectConfig = new ReconnectConfig { autoReconnect = false }; // Disable built-in reconnect
-                AttachSocketHandlers(); // Re-attach handlers to new socket instance
-                ConnectToServer();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"❌ Reconnection attempt {ReconnectAttempt} failed: {e.Message}");
-            }
-        }
-
-        isReconnecting = false;
-        reconnectRoutine = null;
-    }
-
     private void OnDestroy()
     {
         // Set flag FIRST to prevent event handlers from executing
@@ -430,12 +318,6 @@ public class PlayerNetworkSync : MonoBehaviour
         {
             StopCoroutine(positionRoutine);
             positionRoutine = null;
-        }
-
-        if (reconnectRoutine != null)
-        {
-            StopCoroutine(reconnectRoutine);
-            reconnectRoutine = null;
         }
 
         // Disconnect socket properly
@@ -514,12 +396,4 @@ public class PlayerNetworkSync : MonoBehaviour
             return new Vector3(x, y, z);
         }
     }
-}
-
-public enum ConnectionState
-{
-    Disconnected,
-    Connecting,
-    Connected,
-    Reconnecting
 }

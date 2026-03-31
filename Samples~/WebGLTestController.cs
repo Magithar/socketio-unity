@@ -116,7 +116,7 @@ namespace SocketIOUnity.Samples
             Debug.Log("[WebGLTest] Disconnected");
         }
         
-        private void HandleError(string error)
+        private void HandleError(SocketError error)
         {
             _status = $"⚠️ Error: {error}";
             _isConnecting = false;

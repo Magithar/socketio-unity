@@ -35,20 +35,18 @@ public class LobbyNetworkManager : MonoBehaviour
             store.FireError(err);
         };
 
-        _root.OnDisconnected += () =>
-        {
-            if (_destroyed) return;
-            store.SetConnected(false);
-        };
-
-        ConnectToLobby();
+        SetupNamespace();           // create _lobby before injecting into store
+        store.SetSocket(_root, _lobby);
+        _root.Connect(serverUrl);
     }
 
     private void ConnectToLobby()
     {
         _root.Connect(serverUrl);
-        if (_lobby == null) SetupNamespace();
     }
+
+    /// <summary>Socket reference exposed for consumers that need to read socket.State directly.</summary>
+    public SocketIOClient Socket => _root;
 
     private void SetupNamespace()
     {
@@ -58,14 +56,12 @@ public class LobbyNetworkManager : MonoBehaviour
         {
             if (_destroyed) return;
             Debug.Log("✅ Connected to /lobby");
-            store.SetConnected(true);
         };
 
         _lobby.OnDisconnected += () =>
         {
             if (_destroyed) return;
             Debug.LogWarning("❌ Disconnected from /lobby");
-            store.SetConnected(false);
         };
 
         _lobby.On("match_started", (string json) =>
@@ -135,7 +131,7 @@ public class LobbyNetworkManager : MonoBehaviour
             {
                 string error = result?.Value<string>("error") ?? ack;
                 Debug.LogWarning($"join_room failed: {error}");
-                store.FireError(error);
+                store.FireError(new SocketError(ErrorType.Auth, error));
             }
         });
     }
@@ -183,7 +179,7 @@ public class LobbyNetworkManager : MonoBehaviour
             {
                 string error = result?.Value<string>("error") ?? ack;
                 Debug.LogWarning($"reconnect_player failed: {error}");
-                store.FireError(error);
+                store.FireError(new SocketError(ErrorType.Auth, error));
             }
         });
     }

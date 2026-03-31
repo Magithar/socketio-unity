@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SocketIOUnity.Runtime;
 
 /// <summary>
 /// Owns all authoritative lobby state and fires semantic events to consumers
@@ -16,9 +17,12 @@ public class LobbyStateStore : MonoBehaviour
     public string LocalPlayerId { get; private set; }
     /// <summary>Secret token issued by the server at join time. Required to reconnect.</summary>
     public string SessionToken { get; private set; }
-    public bool IsConnected { get; private set; }
+    /// <summary>Derived from socket.State — no shadow bool.</summary>
+    public bool IsConnected => _socket?.State == ConnectionState.Connected;
     public bool IsHost => CurrentRoom != null && CurrentRoom.hostId == LocalPlayerId;
 
+    private SocketIOClient _socket;
+    private bool _destroyed;
     private int _lastRoomVersion;
 
     // ---- Events ----
@@ -32,25 +36,36 @@ public class LobbyStateStore : MonoBehaviour
     public event Action<string> OnPlayerLeft;   // playerId
     /// <summary>Fired when the server explicitly removes a player with a reason.</summary>
     public event Action<string, string, string> OnPlayerRemoved; // playerId, name, reason
-    public event Action<string> OnError;
+    public event Action<SocketIOUnity.Runtime.SocketError> OnError;
     public event Action<string> OnMatchStarted; // sceneName (may be null)
 
     // =========================================================
     // Write API — called only by LobbyNetworkManager
     // =========================================================
 
-    public void SetConnected(bool connected)
+    /// <summary>
+    /// Inject socket references so this store can derive state instead of caching it.
+    /// Call once in LobbyNetworkManager.Start() after creating the root socket and lobby namespace.
+    /// OnConnected fires from lobbyNamespace.OnConnected (namespace-level, not root-level).
+    /// OnDisconnected fires from socket.OnStateChanged → Disconnected (root-level).
+    /// </summary>
+    public void SetSocket(SocketIOClient socket, NamespaceSocket lobbyNamespace)
     {
-        IsConnected = connected;
-        if (connected)
+        _socket = socket;
+        socket.OnStateChanged += state =>
         {
+            if (_destroyed) return;
+            if (state == ConnectionState.Disconnected)
+            {
+                Reset(); // server session gone — stale room/player state is invalid
+                OnDisconnected?.Invoke();
+            }
+        };
+        lobbyNamespace.OnConnected += () =>
+        {
+            if (_destroyed) return;
             OnConnected?.Invoke();
-        }
-        else
-        {
-            Reset(); // server session gone — stale room/player state is invalid
-            OnDisconnected?.Invoke();
-        }
+        };
     }
 
     public void SetLocalPlayerId(string id) => LocalPlayerId = id;
@@ -74,7 +89,7 @@ public class LobbyStateStore : MonoBehaviour
     public void FirePlayerRemoved(string playerId, string name, string reason) =>
         OnPlayerRemoved?.Invoke(playerId, name, reason);
 
-    public void FireError(string error) => OnError?.Invoke(error);
+    public void FireError(SocketIOUnity.Runtime.SocketError error) => OnError?.Invoke(error);
 
     public void FireMatchStarted(string sceneName) => OnMatchStarted?.Invoke(sceneName);
 
@@ -86,6 +101,8 @@ public class LobbyStateStore : MonoBehaviour
         SessionToken = null;
         _lastRoomVersion = 0;
     }
+
+    private void OnDestroy() => _destroyed = true;
 
     // =========================================================
     // Private: player list diffing
