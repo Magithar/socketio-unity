@@ -27,6 +27,11 @@ namespace SocketIOUnity.Runtime
         public bool IsConnected => _engine != null && _engine.IsConnected;
 
         /// <summary>
+        /// The current connection state. Stable public API since v1.2.0.
+        /// </summary>
+        public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
+
+        /// <summary>
         /// Configuration for automatic reconnection behavior.
         /// Added in v1.1.0. Setting this property creates a defensive copy to prevent external mutation.
         ///
@@ -63,7 +68,13 @@ namespace SocketIOUnity.Runtime
 
         public event Action OnConnected;
         public event Action OnDisconnected;
-        public event Action<string> OnError;
+        public event Action<SocketError> OnError;
+
+        /// <summary>
+        /// Fired whenever <see cref="State"/> changes. Provides the new state value.
+        /// Added in v1.2.1.
+        /// </summary>
+        public event Action<ConnectionState> OnStateChanged;
 
         // --------------------------------------------------
         // CONSTRUCTOR
@@ -75,7 +86,7 @@ namespace SocketIOUnity.Runtime
                 ?? throw new ArgumentNullException(nameof(transportFactory));
 
             // 🔥 CRITICAL: Create ReconnectController ONCE (not on every reconnect)
-            _reconnect = new ReconnectController(AttemptReconnect);
+            _reconnect = new ReconnectController(AttemptReconnect, HandleReconnectExhausted);
             _reconnect.Config = new ReconnectConfig(_reconnectConfig); // Initialize with default config
 
             CreateFreshEngine();
@@ -84,7 +95,7 @@ namespace SocketIOUnity.Runtime
         }
 
         // --------------------------------------------------
-        // ENGINE LIFECYCLE (🔥 THE FIX)
+        // ENGINE LIFECYCLE
         // --------------------------------------------------
 
         private void CreateFreshEngine()
@@ -100,9 +111,30 @@ namespace SocketIOUnity.Runtime
             _engine.OnMessage += HandleEngineMessage;
             _engine.OnBinary += HandleEngineBinary;
 
-            // 🔥 CRITICAL: Recreate ALL state on reconnect
+            // Fresh connection: initialize namespace manager and binary assembler
             _namespaces = new NamespaceManager(this);
             _defaultNamespace = _namespaces.Get("/");
+            _binaryAssembler = new BinaryPacketAssembler();
+        }
+
+        /// <summary>
+        /// Recreates only the transport + engine layer. Namespace registrations are preserved.
+        /// Called on each reconnect attempt so that On() event handlers survive across reconnects.
+        /// </summary>
+        private void ReconnectEngine()
+        {
+            DestroyEngine();
+
+            var transport = _transportFactory.Invoke();
+
+            _engine = new EngineIOClient(transport);
+            _engine.OnOpen += HandleEngineOpen;
+            _engine.OnClose += HandleEngineClose;
+            _engine.OnError += HandleEngineError;
+            _engine.OnMessage += HandleEngineMessage;
+            _engine.OnBinary += HandleEngineBinary;
+
+            // _namespaces intentionally NOT recreated — all On() registrations survive
             _binaryAssembler = new BinaryPacketAssembler();
         }
 
@@ -112,7 +144,26 @@ namespace SocketIOUnity.Runtime
             _engine = null;
         }
 
-        private void AttemptReconnect()
+        // --------------------------------------------------
+        // STATE MANAGEMENT
+        // --------------------------------------------------
+
+        private void SetState(ConnectionState newState)
+        {
+            if (State == newState)
+                return;
+
+            State = newState;
+            OnStateChanged?.Invoke(newState);
+        }
+
+        private void HandleReconnectExhausted()
+        {
+            SocketIOTrace.Protocol(TraceCategory.Reconnect, "Reconnect exhausted — transitioning to Disconnected");
+            SetState(ConnectionState.Disconnected);
+        }
+
+        internal void AttemptReconnect()
         {
             // Safety check: ensure we have a URL to reconnect to
             if (string.IsNullOrEmpty(_lastUrl))
@@ -121,7 +172,8 @@ namespace SocketIOUnity.Runtime
                 return;
             }
 
-            CreateFreshEngine();
+            SetState(ConnectionState.Reconnecting);
+            ReconnectEngine();
             _engine.Connect(_lastUrl);
         }
 
@@ -136,6 +188,7 @@ namespace SocketIOUnity.Runtime
             SocketIOTrace.Protocol(TraceCategory.SocketIO, $"Connecting to {url}");
             _lastUrl = url;
             _intentionalDisconnect = false;
+            SetState(ConnectionState.Connecting);
             _engine.Connect(url);
         }
 
@@ -143,6 +196,7 @@ namespace SocketIOUnity.Runtime
         {
             SocketIOTrace.Protocol(TraceCategory.SocketIO, "Intentional disconnect");
             _intentionalDisconnect = true;
+            SetState(ConnectionState.Disconnected);
             _reconnect.Stop();
             DestroyEngine();
         }
@@ -150,6 +204,7 @@ namespace SocketIOUnity.Runtime
         public void Shutdown()
         {
             _intentionalDisconnect = true;
+            SetState(ConnectionState.Disconnected);
             _reconnect.Stop();
             DestroyEngine();
             UnityTickDriver.Unregister(this);
@@ -162,9 +217,7 @@ namespace SocketIOUnity.Runtime
 
         public void Tick()
         {
-            // Cache namespace list to avoid iteration issues if collection is modified during Tick
-            var namespacesToTick = _namespaces.All.ToArray();
-            foreach (var ns in namespacesToTick)
+            foreach (var ns in _namespaces.All)
                 ns.Tick();
 
             _reconnect.Tick();
@@ -258,32 +311,34 @@ namespace SocketIOUnity.Runtime
         {
             OnDisconnected?.Invoke();
 
-            // Reset namespaces before disconnect handlers
-            _namespaces.ResetAll();
-
-            // Cache namespace list to avoid iteration issues if handlers modify the collection
-            var namespacesToNotify = _namespaces.All.ToArray();
-            foreach (var ns in namespacesToNotify)
+            // Notify each namespace — HandleDisconnect() fires events then sets _connected = false.
+            // Do NOT call ResetAll() first: it would set _connected = false before HandleDisconnect()
+            // runs, causing its early-return guard to silently swallow all namespace disconnect events.
+            foreach (var ns in _namespaces.All)
                 ns.HandleDisconnect();
 
             if (_intentionalDisconnect)
                 return;
 
-            // 🔥 SAFETY: Don't reconnect if already connected (race condition guard)
+            // Race condition guard: engine recovered before this callback ran
             if (IsConnected)
                 return;
 
-            // Check if auto-reconnect is disabled
             if (!_reconnectConfig.autoReconnect)
+            {
+                SetState(ConnectionState.Disconnected);
                 return;
+            }
+
+            SetState(ConnectionState.Reconnecting);
 
             if (!_reconnect.IsRunning)
                 _reconnect.Start();
         }
 
-        private void HandleEngineError(string error)
+        private void HandleEngineError(SocketError error)
         {
-            SocketIOTrace.Error(TraceCategory.SocketIO, $"Engine error: {error}");
+            SocketIOTrace.Error(TraceCategory.SocketIO, $"Engine error: {error.Message}");
             OnError?.Invoke(error);
         }
 
@@ -298,7 +353,7 @@ namespace SocketIOUnity.Runtime
                 // Defensive: parser returns null for malformed packets
                 if (packet == null)
                 {
-                    OnError?.Invoke("Malformed Socket.IO packet received");
+                    OnError?.Invoke(new SocketError(ErrorType.Protocol, "Malformed Socket.IO packet received"));
                     return;
                 }
                 
@@ -308,7 +363,7 @@ namespace SocketIOUnity.Runtime
             {
                 // Safety net - should not happen with defensive parser
                 SocketIOTrace.Error(TraceCategory.SocketIO, $"Parse error: {ex.Message}");
-                OnError?.Invoke($"Socket.IO parse error: {ex.Message}");
+                OnError?.Invoke(new SocketError(ErrorType.Protocol, $"Socket.IO parse error: {ex.Message}"));
                 return;
             }
 
@@ -323,6 +378,7 @@ namespace SocketIOUnity.Runtime
 
                     if (packet.Namespace == "/")
                     {
+                        SetState(ConnectionState.Connected);
                         _reconnect.Reset();
                         OnConnected?.Invoke();
 

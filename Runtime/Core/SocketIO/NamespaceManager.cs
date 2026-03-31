@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using SocketIOUnity.Debugging;
 
 namespace SocketIOUnity.Runtime
@@ -8,6 +8,7 @@ namespace SocketIOUnity.Runtime
     {
         private readonly Dictionary<string, NamespaceSocket> _namespaces = new();
         private readonly SocketIOClient _root;
+        private NamespaceSocket[] _allCached = Array.Empty<NamespaceSocket>();
 
         public NamespaceManager(SocketIOClient root)
         {
@@ -30,6 +31,7 @@ namespace SocketIOUnity.Runtime
 
             socket = new NamespaceSocket(ns, _root, auth);
             _namespaces[ns] = socket;
+            RebuildCache();
 
 #if SOCKETIO_PROFILER_COUNTERS && UNITY_2020_2_OR_NEWER
             SocketIOProfilerCounters.SetActiveNamespaces(_namespaces.Count);
@@ -60,8 +62,17 @@ namespace SocketIOUnity.Runtime
         public int Count => _namespaces.Count;
 
         /// <summary>
-        /// Returns a snapshot of all namespace sockets. Safe to iterate even if collection is modified.
+        /// Cached snapshot of all namespace sockets. Rebuilt only when a namespace is added.
+        /// Safe to iterate even if a namespace is added during iteration (snapshot semantics).
+        /// Zero allocation per frame.
         /// </summary>
-        public IEnumerable<NamespaceSocket> All => _namespaces.Values.ToArray();
+        public NamespaceSocket[] All => _allCached;
+
+        private void RebuildCache()
+        {
+            var arr = new NamespaceSocket[_namespaces.Count];
+            _namespaces.Values.CopyTo(arr, 0);
+            _allCached = arr;
+        }
     }
 }
