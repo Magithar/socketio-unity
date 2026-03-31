@@ -63,7 +63,7 @@ public class BasicChatUI : MonoBehaviour
         Debug.Log("[Chat] Disconnected - reconnecting...");
     }
 
-    private void OnError(string error)
+    private void OnError(SocketIOUnity.Runtime.SocketError error)
     {
         AppendSystemMessage($"Error: {error}");
         Debug.LogError($"[Chat] Error: {error}");
