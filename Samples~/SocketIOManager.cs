@@ -8,6 +8,28 @@ public sealed class SocketIOManager : MonoBehaviour
 
     public SocketIOClient Socket { get; private set; }
 
+    private SocketIODiagnosticsOverlay _overlay;
+
+    /// <summary>
+    /// Toggle the runtime diagnostics overlay on/off.
+    /// Creates the overlay on first use (adds it as a child "DiagnosticsPanel" GameObject).
+    /// </summary>
+    public bool ShowDiagnostics
+    {
+        get => _overlay != null && _overlay.gameObject.activeSelf;
+        set
+        {
+            if (value && _overlay == null)
+            {
+                var go = new GameObject("DiagnosticsPanel");
+                go.transform.SetParent(transform);
+                _overlay = go.AddComponent<SocketIODiagnosticsOverlay>();
+            }
+            if (_overlay != null)
+                _overlay.gameObject.SetActive(value);
+        }
+    }
+
     private void Awake()
     {
         if (Instance != null)
