@@ -690,7 +690,7 @@
   </main>
 
   <script>
-    const LOADER_URL = "Build/Build.loader.js";
+    const LOADER_URL = "Build/LiveDemo.loader.js";
 
     const canvas      = document.getElementById("unity-canvas");
     const loadingBar  = document.getElementById("unity-loading-bar");
@@ -709,9 +709,9 @@
       loadingBar.classList.add("show");
 
       const config = {
-        dataUrl:            "Build/Build.data",
-        frameworkUrl:       "Build/Build.framework.js",
-        codeUrl:            "Build/Build.wasm",
+        dataUrl:            "Build/LiveDemo.data",
+        frameworkUrl:       "Build/LiveDemo.framework.js",
+        codeUrl:            "Build/LiveDemo.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName:        "Magithar",
         productName:        "Socket.IO Unity Demo",
