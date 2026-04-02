@@ -1,7 +1,5 @@
 # PlayerSync Sample
 
-**📺 Video Walkthrough**: [Watch on YouTube](https://www.youtube.com/watch?v=pdLP2jB7iEE)
-
 ## Overview
 
 This sample demonstrates real-time multiplayer player synchronization using Socket.IO with Unity. Players can move around and see other connected players in real-time. The sample includes:
@@ -119,12 +117,24 @@ After opening the scene, configure these references in the Inspector:
 
 ### Server Setup
 
-A dedicated server for this sample is included in `TestServer~/` at the project root.
+1. Navigate to the server directory (create if it doesn't exist):
 
 ```bash
-cd TestServer~
-npm install
-npm run start:playersync   # or: npm run dev:playersync (auto-restart with nodemon)
+cd server
+```
+
+2. Install dependencies:
+
+```bash
+npm install socket.io
+```
+
+3. Create `server.js` with the Socket.IO server (see server code below)
+
+4. Start the server:
+
+```bash
+node server.js
 ```
 
 Server should be running on `http://localhost:3000`
@@ -453,10 +463,10 @@ When `OnDestroy()` is called, Unity destroys the component but socket events may
 
 ```csharp
 // ALL event handlers check this flag first
-rootSocket.OnError += (SocketError err) =>
+rootSocket.OnError += (error) =>
 {
     if (isDestroyed) return; // ← Exit immediately if destroyed
-    Debug.LogError($"[{err.Type}] {err.Message}");
+    // ... rest of handler
 };
 ```
 
@@ -534,7 +544,7 @@ Then open `http://localhost:8080` in browser.
 **Debug Steps:**
 ```bash
 # Check server logs
-cd TestServer~ && npm run start:playersync
+node server.js
 
 # Should see:
 # ✅ /playersync CONNECTED: [socket_id]
@@ -576,7 +586,7 @@ Watch the **Connection Status** (top-left):
    - Your blue player stops moving
    - All red players disappear
    - Attempt counter increments with each retry
-4. **Restart server**: Run `npm run start:playersync` again (from `TestServer~/`)
+4. **Restart server**: Run `node server.js` again
 5. **Verify reconnection**:
    - Unity automatically reconnects within a few seconds (exponential backoff)
    - Status changes to "[OK] Connected" in green
@@ -591,7 +601,6 @@ Watch the **Connection Status** (top-left):
 - **Optional jitter**: Can add random variance (jitterPercent) to prevent thundering herd when many clients reconnect simultaneously
 - **Max attempts**: Optionally limit reconnection attempts (default: unlimited)
 - **Fresh socket creation**: New SocketIOClient instance created on each reconnection attempt
-- **Re-attached event handlers**: All socket event handlers (`OnConnected`, `OnDisconnected`, `OnError`, namespace events) are re-registered after each reconnect — fixes v1.1.1 regression where handlers were silently dropped
 - **Clean state**: Remote players removed on disconnect, position updates stopped
 - **Fresh sync**: New player ID and full state sync on reconnect
 - **No duplicates**: Only one position update coroutine and one reconnection coroutine running at a time
@@ -599,7 +608,42 @@ Watch the **Connection Status** (top-left):
 
 ## Server Code Example
 
-See the full server code: [`TestServer~/playersync-server.js`](../../TestServer~/playersync-server.js)
+```javascript
+const io = require("socket.io")(3000, {
+  cors: { origin: "*" },
+});
+
+const playersyncNsp = io.of("/playersync");
+const players = {};
+
+playersyncNsp.on("connection", (socket) => {
+  console.log(`Player connected: ${socket.id}`);
+
+  players[socket.id] = { x: 0, y: 0, z: 0 };
+
+  // Send player their ID
+  socket.emit("player_id", socket.id);
+
+  // Send existing players
+  socket.emit("existing_players", players);
+
+  // Notify others
+  socket.broadcast.emit("player_join", socket.id);
+
+  socket.on("player_move", (data) => {
+    players[data.id] = data.position;
+    socket.broadcast.emit("player_move", data);
+  });
+
+  socket.on("disconnect", () => {
+    delete players[socket.id];
+    socket.broadcast.emit("player_leave", socket.id);
+    console.log(`Player disconnected: ${socket.id}`);
+  });
+});
+
+console.log("Server running on http://localhost:3000");
+```
 
 ## Customizing Reconnection Behavior
 
@@ -797,8 +841,6 @@ void Update()
 ## Production Checklist
 
 - ✅ Proper namespace connection pattern
-- ✅ `ConnectionState` + `OnStateChanged` for reactive UI
-- ✅ Typed `SocketError` handling (Transport / Auth / Timeout / Protocol)
 - ✅ Separation of UI and network logic
 - ✅ Dependency injection via SerializeField
 - ✅ Clean logging (important events only, no high-frequency spam)

@@ -9,9 +9,11 @@ using Newtonsoft.Json;
 public class PlayerNetworkSync : MonoBehaviour
 {
     [Header("Server Configuration")]
+#pragma warning disable CS0414 // Field assigned but never used (false positive - used in #if UNITY_EDITOR blocks)
     [SerializeField]
     [Tooltip("Default server URL for Unity Editor (development)")]
     private string editorServerUrl = "http://localhost:3000";
+#pragma warning restore CS0414
 
 #pragma warning disable CS0414 // Field assigned but never used (false positive - used in non-Editor builds)
     [SerializeField]
@@ -79,6 +81,7 @@ public class PlayerNetworkSync : MonoBehaviour
     public int ReconnectAttempt { get; private set; } = 0;
 
     private bool isDestroyed = false;
+    private Vector3 _lastSentPosition;
 
     /// <summary>
     /// Computes the server URL based on platform and user preferences.
@@ -286,7 +289,15 @@ public class PlayerNetworkSync : MonoBehaviour
         {
             if (isDestroyed) return; // Don't process events after destruction
 
-            var data = JsonConvert.DeserializeObject<MovePacket>(response);
+            MovePacket data;
+            try { data = JsonConvert.DeserializeObject<MovePacket>(response); }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"player_move: failed to parse JSON: {e.Message}");
+                return;
+            }
+
+            if (data == null || data.position == null) return;
 
             if (data.id == playerId)
                 return;
@@ -304,6 +315,37 @@ public class PlayerNetworkSync : MonoBehaviour
             Debug.Log($"Player left: {id}");
             spawner.RemoveRemotePlayer(id);
         });
+    }
+
+    /// <summary>
+    /// Stops position sync and disconnects from the PlayerSync server.
+    /// Called by GameOrchestrator when returning to lobby or on lobby disconnect.
+    /// After StopGame() the component is inert — re-enable the layer to restart.
+    /// </summary>
+    public void StopGame()
+    {
+        if (isDestroyed) return;
+        isDestroyed = true; // reuse guard: all event handlers check this flag
+
+        Debug.Log("🛑 PlayerNetworkSync.StopGame() — disconnecting from PlayerSync server");
+
+        if (positionRoutine != null)
+        {
+            StopCoroutine(positionRoutine);
+            positionRoutine = null;
+        }
+
+        isNamespaceConnected = false;
+        if (controller != null) controller.CanMove = false;
+
+        if (rootSocket != null)
+        {
+            try { rootSocket.Disconnect(); }
+            catch (Exception e) { Debug.LogError($"StopGame: disconnect error: {e.Message}"); }
+        }
+
+        if (spawner != null)
+            spawner.RemoveAllRemotePlayers();
     }
 
     private void OnDestroy()
@@ -357,10 +399,16 @@ public class PlayerNetworkSync : MonoBehaviour
                 continue;
             }
 
+            Vector3 currentPosition = localPlayerTransform.position;
+            if (Vector3.Distance(currentPosition, _lastSentPosition) < 0.01f)
+                continue;
+
+            _lastSentPosition = currentPosition;
+
             var packet = new MovePacket
             {
                 id = playerId,
-                position = new PositionData(localPlayerTransform.position)
+                position = new PositionData(currentPosition)
             };
 
             // Send position updates (20x/sec) - don't log every one

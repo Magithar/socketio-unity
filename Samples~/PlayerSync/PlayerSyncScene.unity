@@ -445,6 +445,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 647060955}
+  - component: {fileID: 647060956}
   m_Layer: 0
   m_Name: PlayerSyncManager
   m_TagString: Untagged
@@ -469,6 +470,22 @@ Transform:
   - {fileID: 1197141193}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &647060956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 647060954}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2e63a66b860449768091eaa7206dc88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkSync: {fileID: 1933016761}
+  enableLogging: 1
+  detectDuplicates: 1
+  detectionWindow: 0.1
 --- !u!1 &1088962767
 GameObject:
   m_ObjectHideFlags: 0

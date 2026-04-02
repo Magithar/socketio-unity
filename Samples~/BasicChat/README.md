@@ -47,12 +47,12 @@ This sample requires a Socket.IO server that echoes `chat` events.
 
 #### Option A: Use the Included Test Server
 
-The test server is included in `TestServer~/` at the project root:
+If you have the `socketio-test-server` from the repository:
 
 ```bash
-cd TestServer~
+cd socketio-test-server
 npm install
-npm start          # or: npm run dev (auto-restart with nodemon)
+node server.js
 ```
 
 The server will start on `ws://localhost:3000`.
@@ -113,7 +113,7 @@ socket = SocketIOManager.Instance.Socket;
 // 2. Subscribe to events (in Start())
 socket.OnConnected += OnConnected;
 socket.OnDisconnected += OnDisconnected;
-socket.OnError += OnError;           // void OnError(SocketError err)
+socket.OnError += OnError;
 socket.On("chat", OnChatMessage);
 
 // 3. Connect to server
@@ -161,10 +161,7 @@ All APIs used in this sample are **frozen for v1.x**:
 | `Emit(string eventName, string data)` | ✅ Stable |
 | `On(string eventName, Action<string> handler)` | ✅ Stable |
 | `Off(string eventName, Action<string> handler)` | ✅ Stable |
-| `OnConnected`, `OnDisconnected` | ✅ Stable |
-| `OnError` (`Action<SocketError>`) | ✅ Stable (v1.3.0+) |
-| `State` (`ConnectionState`) | ✅ Stable (v1.2.0+) |
-| `OnStateChanged` | ✅ Stable (v1.3.0+) |
+| `OnConnected`, `OnDisconnected`, `OnError` | ✅ Stable |
 
 **No breaking changes** will occur in any v1.x release.
 
