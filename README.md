@@ -7,7 +7,7 @@
 WebGL-ready. Production-tested. Zero paid dependencies.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.3.0-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -22,6 +22,7 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 **Getting Started** &nbsp;·&nbsp;
 📖 [Start Here](Documentation~/GETTING_STARTED.md) &nbsp;·&nbsp;
 ⚡ [Quick Start](#-quick-start-2-minutes) &nbsp;·&nbsp;
+🌐 [Live Demo](https://magithar.github.io/socketio-unity/) &nbsp;·&nbsp;
 🎬 [Demo](#-demo) &nbsp;·&nbsp;
 🚀 [Installation](#-installation) &nbsp;·&nbsp;
 📦 [Dependencies](#-dependencies)
@@ -147,6 +148,8 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 
 ## 🎬 Demo
 
+**[▶ Play Live Demo in Browser](https://magithar.github.io/socketio-unity/)** — WebGL build, no install required.
+
 | Sample | Video |
 |--------|-------|
 | Basic Chat | [▶ Watch on YouTube](https://youtu.be/7dU89B9O50c) |
@@ -156,7 +159,7 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.2.0 (2026-03-18) + unreleased — Typed errors, connection state tracking, diagnostics overlay, LiveDemo sample, dedicated per-sample servers, and WebSocket lifecycle hardening.
+**Current:** v1.3.0 (2026-04-03) — Typed errors, connection state tracking, diagnostics overlay, LiveDemo sample, dedicated per-sample servers, and WebSocket lifecycle hardening.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -168,7 +171,7 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 
 ## 🚧 Implementation Status
 
-### 🔜 Unreleased (post v1.2.0)
+### ✅ v1.3.0 Milestone (2026-04-03)
 
 * **Typed `SocketError`** — `OnError` now delivers a `SocketError` struct with `ErrorType` (Transport, Auth, Timeout, Protocol) and `Message`, replacing raw strings
 * **`ConnectionState` tracking** — `socket.State` property (`Disconnected` / `Connecting` / `Connected` / `Reconnecting`) and `OnStateChanged` event for reactive UI

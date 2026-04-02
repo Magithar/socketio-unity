@@ -5,11 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-04-03
 
 ### Added
+
 - **Typed `SocketError`** — `OnError` now delivers `SocketError { ErrorType, Message }` instead of a raw string
-  - `ErrorType` enum: `Transport`, `Auth`, `Timeout`, `Protocol`
+  - `ErrorTypdie` enum: `Transport`, `Auth`, `Timeout`, `Protocol`
   - Lets callers branch on error category without string parsing
 - **`ConnectionState` enum** — `Disconnected` / `Connecting` / `Connected` / `Reconnecting`
   - `SocketIOClient.State` property for synchronous reads
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`player_identity` event handling** — Lobby sample now handles server-assigned player identity and fixes `IsHost` race condition
 
 ### Changed
+
 - **`SocketIOClient.OnError`** — event type changed from `Action<string>` to `Action<SocketError>` (breaking change for any code using the old string form; see migration below)
 - WebSocket lifecycle hardened — reconnect controller prevents race conditions, safety check ensures URL is set before attempting connect, WebSocket events rebound when a new socket instance is created
 
@@ -47,6 +49,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 **Minor release** — New Lobby sample. No API changes.
 
 ### Added
+
 - **Lobby Sample** (`Samples~/Lobby/`): Production-style multiplayer lobby demonstrating reconnect recovery, host migration, and session identity
   - Room creation and join-by-code (6-character codes, e.g. `C9N7GR`)
   - Persistent `playerId` + `sessionToken` stored in `PlayerPrefs` — survives crashes and app restarts
@@ -59,6 +62,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 - **`package.json` `samples` array**: All three samples (Basic Chat, Player Sync, Lobby) now appear in the Unity Package Manager Samples tab
 
 ### Stability
+
 - **No API Changes**: New sample only
 - **Backward Compatible**: Safe upgrade from v1.1.2
 
@@ -67,6 +71,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 **Patch release** — Reconnection stability fixes. No API changes.
 
 ### Fixed
+
 - **`SocketIOClient.CreateFreshEngine()`**: Fully recreates engine, namespaces, and binary assembler on each reconnect — prevents stale state from a previous connection leaking into the new one
 - **`SocketIOClient.Tick()`**: Caches the namespace list before iterating to avoid a `InvalidOperationException` (collection modified during enumeration) that could occur mid-reconnect
 - **`SocketIOClient.HandleEngineClose()`**: Added race-condition guard (`if (IsConnected) return`) and calls `_namespaces.ResetAll()` before invoking disconnect handlers — prevents double-teardown and ensures namespace state is clean before user code runs
@@ -75,6 +80,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 - **`PlayerNetworkSync` sample**: Re-attaches socket event handlers on reconnect to match the core reconnection fixes
 
 ### Stability
+
 - **No API Changes**: All fixes are internal implementation changes
 - **Backward Compatible**: Safe upgrade from v1.1.1
 
@@ -83,22 +89,26 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 **Patch release** — PlayerSync sample bug fixes. No API changes.
 
 ### Fixed
+
 - **PlayerSync / RemotePlayer prefab**: Canvas render mode was `Screen Space - Overlay` instead of `World Space`
   - Label rendered on top of the entire screen UI rather than in 3D space above the player
 - **PlayerSync / RemotePlayer prefab**: Canvas `Transform.localScale` was `(0, 0, 0)` — label was invisible at runtime
 - **PlayerSync / RemotePlayer prefab**: Canvas `RectTransform.sizeDelta` was `(0, 0)` — no surface area to render text onto
 
 ### Added
+
 - **`BillboardCanvas`** script (`Samples/PlayerSync/Scripts/BillboardCanvas.cs`)
   - Attaches to the RemotePlayer Canvas child; copies camera rotation each `LateUpdate` so the label always faces the viewer regardless of camera angle or player direction
 
 ### Stability
+
 - **No API Changes**: All fixes are confined to the PlayerSync sample assets
 - **Backward Compatible**: Safe upgrade from v1.1.0
 
 ## [1.1.0] - 2026-02-28
 
 ### Added
+
 - **ReconnectConfig**: Configurable reconnection strategy replacing hardcoded exponential backoff
   - `initialDelay`, `multiplier`, `maxDelay`, `maxAttempts`, `autoReconnect`, `jitterPercent` fields
   - `ReconnectConfig.Default()` — matches v1.0.x behavior (1s initial, 2x multiplier, 30s cap)
@@ -120,9 +130,11 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
   - `Library/` folder cached via `actions/cache` keyed on `package.json` + `TestProject~/Packages/manifest.json`
 
 ### Fixed
+
 - `DontDestroyOnLoad` now skipped in EditMode/CI where `Application.isPlaying` is false
 
 ### Changed
+
 - Updated README with v1.1.0 preview and PlayerSync sample reference
 - Added `ReconnectConfig` to API stability contract
 
@@ -131,11 +143,13 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 **Patch release** — Critical bug fixes with no API changes.
 
 ### Added
+
 - **Regression Tests**: Comprehensive test suite for all 4 bug fixes
   - `BugRegressionTests.cs` in `Tests/Runtime/`
   - Tests malformed JSON handling, ACK ID overflow, and wraparound behavior
 
 ### Fixed
+
 - **BinaryPacketAssembler**: Added try-catch around `JArray.Parse()` to handle malformed JSON payloads gracefully
   - Previously could throw unhandled exception on invalid binary event JSON
   - Now logs error and uses empty array as fallback
@@ -154,6 +168,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
   - Affects: `AckRegistry.Register()` (internal ACK tracking)
 
 ### Changed
+
 - No API changes — all fixes are internal implementation improvements
 - Backward compatible — safe upgrade from v1.0.0
 - Public API unchanged: `Connect()`, `Disconnect()`, `Emit()`, `On()`, `Off()`, `Of()` remain frozen
@@ -163,6 +178,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 **First stable release** — Production-ready Socket.IO v4 client for Unity.
 
 ### Added
+
 - **AssemblyInfo.cs**: Assembly metadata with `InternalsVisibleTo` for test access
 - **Basic Chat Sample**: Production-ready "Hello World" onboarding experience
   - Demonstrates connection lifecycle, event handling, reconnection, proper cleanup
@@ -178,6 +194,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
   - Disconnect packet parsing (with/without trailing comma)
 
 ### Changed
+
 - Moved **Toggle Network HUD** menu from `Tools → SocketIO` to top-level `SocketIO` menu
 - Public API frozen for v1.x: `Connect`, `Disconnect`, `Emit`, `On`, `Off`, `Of`
 - Internal APIs hidden — implementation details not exposed to consumers
@@ -194,6 +211,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
   - Common error scenarios table
 
 ### Fixed
+
 - **Protocol Hardening**:
   - Empty packets now return null instead of throwing
   - Invalid type characters (e.g., "4X") safely rejected
@@ -212,6 +230,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 ## [0.3.0-alpha] - 2026-01-22
 
 ### Added
+
 - **Debugging & Tracing System**: Comprehensive diagnostic tools for development
   - `SocketIOTrace` static API with configurable trace levels (None/Errors/Protocol/Verbose)
   - `ITraceSink` interface for custom log destinations (file, UI overlay, network)
@@ -240,10 +259,12 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 - **Shutdown() Method**: Clean disconnect with full state reset
 
 ### Fixed
+
 - **WebGL jslib missing symbols**: Added all required NativeWebSocket functions to `SocketIOWebGL.jslib`
 - **WebGL namespace connection loops**: Fixed socket disposal and event handler cleanup in connection logic
 
 ### Changed
+
 - Added DEBUGGING_GUIDE.md with comprehensive troubleshooting guide
 - Documented all trace levels, categories, and custom sink examples
 - Documented Unity Profiler integration and available markers/counters
@@ -252,6 +273,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 ## [0.2.0-alpha] - 2026-01-11
 
 ### Added
+
 - **WebGL Support**: Full WebGL transport implementation
   - `WebGLWebSocketTransport` for browser-based WebSocket connections
   - `WebGLSocketBridge` MonoBehaviour for JavaScript ↔ C# interop
@@ -271,6 +293,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 - Development & Testing section in README with Node.js test server code
 
 ### Changed
+
 - Refactored transport layer to use factory pattern for WebGL compatibility
 - `ReconnectController` lifetime now persists across reconnects for proper exponential backoff
 - Improved namespace authentication with proper CONNECT packet formatting
@@ -283,6 +306,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 - Added NativeWebSocket third-party attribution in WebSocket.cs
 
 ### Fixed
+
 - Transport state leakage during reconnects
 - Constructor mismatches in transport layer
 - Event dispatch on non-main thread causing Unity API errors
@@ -291,6 +315,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 ## [0.1.1-alpha] - 2026-01-05
 
 ### Added
+
 - Engine.IO v4 handshake and heartbeat
 - Socket.IO v4 packet framing
 - Event-based API (On/Emit)
@@ -300,6 +325,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 - Standalone platform support
 
 ### Fixed
+
 - Fixed WebSocketTransport implementation
 - Added robust Socket.IO packet parser with namespace and ACK support
 - Implemented spec-correct heartbeat and Unity tick integration
@@ -309,6 +335,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 > ⚠️ **This release is deprecated due to critical bugs. Use v0.1.1-alpha instead.**
 
 ### Added
+
 - Initial alpha release
 - Basic Engine.IO v4 implementation
 - Basic Socket.IO v4 implementation
@@ -318,6 +345,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 ## [0.0.1-prep] - 2024-12-27
 
 ### Added
+
 - Initial repository setup
 - README with project scope and goals
 - MIT License
@@ -329,11 +357,13 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 ## Version Guidelines
 
 ### Pre-1.0.0 (Alpha/Beta)
+
 - **0.x.y-alpha**: Early development, expect breaking changes
 - **0.x.y-beta**: Feature-complete for milestone, stabilizing
 - API may change without notice before 1.0.0
 
 ### Post-1.0.0 (Stable)
+
 - **Major (x.0.0)**: Breaking API changes
 - **Minor (0.x.0)**: New features, backward-compatible
 - **Patch (0.0.x)**: Bug fixes, backward-compatible
