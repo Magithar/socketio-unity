@@ -12,13 +12,13 @@ public class PlayerNetworkSync : MonoBehaviour
 #pragma warning disable CS0414 // Field assigned but never used (false positive - used in #if UNITY_EDITOR blocks)
     [SerializeField]
     [Tooltip("Default server URL for Unity Editor (development)")]
-    private string editorServerUrl = "http://localhost:3000";
+    private string editorServerUrl = "http://localhost:3003";
 #pragma warning restore CS0414
 
 #pragma warning disable CS0414 // Field assigned but never used (false positive - used in non-Editor builds)
     [SerializeField]
     [Tooltip("Default server URL for production builds (will be overridden if user sets custom URL). Use localhost for local testing.")]
-    private string productionServerUrl = "http://localhost:3000";
+    private string productionServerUrl = "http://localhost:3003";
 #pragma warning restore CS0414
 
     // Public API for UI components to check if URL changes are allowed

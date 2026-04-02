@@ -120,6 +120,29 @@ function lobbyLog(traceId, roomId, playerId, msg) {
     console.log(`[Lobby]${t}${r}${p} ${msg}`);
 }
 
+/** Validate a player name: non-empty string, max 32 chars after trimming. */
+function validateName(name) {
+    if (!name || typeof name !== 'string') return false;
+    const trimmed = name.trim();
+    return trimmed.length > 0 && trimmed.length <= 32;
+}
+
+// Per-socket, per-event rate limiting — 100ms minimum between same-event fires.
+const lastEventTime = new Map(); // socket.id → Map<eventName, timestamp>
+
+function isRateLimited(socketId, eventName) {
+    let events = lastEventTime.get(socketId);
+    if (!events) {
+        events = new Map();
+        lastEventTime.set(socketId, events);
+    }
+    const now  = Date.now();
+    const last = events.get(eventName) || 0;
+    if (now - last < 100) return true;
+    events.set(eventName, now);
+    return false;
+}
+
 function parsePayload(data) {
     if (typeof data === 'string') {
         try { return JSON.parse(data); } catch { return {}; }
@@ -151,6 +174,10 @@ function broadcastRoomState(roomId) {
  * Permanently removes a player from their room.
  * Emits player_removed to remaining members, migrates host if needed,
  * deletes the room if empty, and broadcasts the new room_state.
+ *
+ * @param {string} playerId
+ * @param {string} roomId
+ * @param {'left'|'reconnect_timeout'} reason
  */
 function removePlayerFromRoom(playerId, roomId, reason = 'left') {
     const room = rooms.get(roomId);
@@ -203,8 +230,8 @@ lobby.on('connection', socket => {
     // ------------------------------------------------------------------
     socket.on('create_room', (data, ack) => {
         const { name } = parsePayload(data);
-        if (!name || !name.trim())
-            return ack(JSON.stringify({ ok: false, error: 'Name required' }));
+        if (!validateName(name))
+            return ack(JSON.stringify({ ok: false, error: 'Name required (max 32 chars)' }));
 
         const roomId       = generateRoomId();
         const playerId     = generatePlayerId();
@@ -224,6 +251,8 @@ lobby.on('connection', socket => {
         socket.join(roomId);
 
         lobbyLog(traceId, roomId, playerId, `🏠 room created by "${player.name}" socket=${shortSocket(socket.id)}`);
+        // Emit identity before ACK and room_state so client knows who it is
+        socket.emit('player_identity', JSON.stringify({ playerId, sessionToken }));
         ack(JSON.stringify({ ok: true, roomId, playerId, sessionToken }));
         broadcastRoomState(roomId);
     });
@@ -235,8 +264,8 @@ lobby.on('connection', socket => {
         const { roomId: rawId, name } = parsePayload(data);
         const roomId = (rawId || '').toUpperCase();
 
-        if (!name || !name.trim())
-            return ack(JSON.stringify({ ok: false, error: 'Name required' }));
+        if (!validateName(name))
+            return ack(JSON.stringify({ ok: false, error: 'Name required (max 32 chars)' }));
 
         const room = rooms.get(roomId);
         if (!room)
@@ -255,6 +284,8 @@ lobby.on('connection', socket => {
         socket.join(roomId);
 
         lobbyLog(traceId, roomId, playerId, `🚪 "${player.name}" joined socket=${shortSocket(socket.id)}`);
+        // Emit identity before ACK and room_state so client knows who it is
+        socket.emit('player_identity', JSON.stringify({ playerId, sessionToken }));
         ack(JSON.stringify({ ok: true, roomId, playerId, sessionToken }));
         broadcastRoomState(roomId);
     });
@@ -304,6 +335,7 @@ lobby.on('connection', socket => {
     // player_ready
     // ------------------------------------------------------------------
     socket.on('player_ready', data => {
+        if (isRateLimited(socket.id, 'player_ready')) return;
         const entry = socketToPlayer.get(socket.id);
         if (!entry) return;
         const { playerId, roomId } = entry;
@@ -321,6 +353,7 @@ lobby.on('connection', socket => {
     // start_match — host only
     // ------------------------------------------------------------------
     socket.on('start_match', data => {
+        if (isRateLimited(socket.id, 'start_match')) return;
         const entry = socketToPlayer.get(socket.id);
         if (!entry) return;
         const { playerId, roomId } = entry;
@@ -355,6 +388,8 @@ lobby.on('connection', socket => {
     // disconnect — start grace period; evict on expiry
     // ------------------------------------------------------------------
     socket.on('disconnect', () => {
+        lastEventTime.delete(socket.id);
+
         const entry = socketToPlayer.get(socket.id);
         if (!entry) {
             console.log(`[Lobby] 🔌 socket disconnected (no session): ${socket.id}`);

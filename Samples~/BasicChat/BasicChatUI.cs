@@ -31,7 +31,7 @@ public class BasicChatUI : MonoBehaviour
         socket.On("chat", OnChatMessage);
 
         statusText.text = "Connecting...";
-        socket.Connect("ws://localhost:3000");
+        socket.Connect("ws://localhost:3002");
     }
 
     private void OnDestroy()
