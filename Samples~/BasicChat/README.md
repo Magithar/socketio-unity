@@ -47,22 +47,20 @@ This sample requires a Socket.IO server that echoes `chat` events.
 
 #### Option A: Use the Included Test Server
 
-If you have the `socketio-test-server` from the repository:
-
 ```bash
-cd socketio-test-server
+cd TestServer~
 npm install
-node server.js
+npm run start:basicchat
 ```
 
-The server will start on `ws://localhost:3000`.
+The server will start on `http://localhost:3002`.
 
 #### Option B: Minimal Server (3 Lines)
 
 Create your own echo server:
 
 ```js
-const io = require('socket.io')(3000);
+const io = require('socket.io')(3002);
 
 io.on('connection', socket => {
   socket.on('chat', msg => socket.emit('chat', msg));
@@ -117,7 +115,7 @@ socket.OnError += OnError;
 socket.On("chat", OnChatMessage);
 
 // 3. Connect to server
-socket.Connect("ws://localhost:3000");
+socket.Connect("ws://localhost:3002");
 
 // 4. Send events
 socket.Emit("chat", messageText);
@@ -197,7 +195,7 @@ Ready for multiplayer? Check out the **PlayerSync** sample for production-grade 
 ## 🐛 Troubleshooting
 
 ### "Connection failed"
-- Verify the server is running on `localhost:3000`
+- Verify the server is running on `localhost:3002`
 - Check server console for error messages
 - Ensure firewall allows WebSocket connections
 
@@ -214,7 +212,7 @@ Ready for multiplayer? Check out the **PlayerSync** sample for production-grade 
 
 ### WebGL-Specific Issues
 - WebGL requires **CORS enabled** on the server
-- Use `ws://localhost:3000` (not `https://` for local testing)
+- Use `ws://localhost:3002` (not `https://` for local testing)
 - Check browser console for CORS errors
 
 ---

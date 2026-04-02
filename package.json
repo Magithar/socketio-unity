@@ -38,6 +38,11 @@
             "displayName": "Lobby",
             "description": "Multiplayer lobby with host migration, session identity, and reconnect recovery.",
             "path": "Samples~/Lobby"
+        },
+        {
+            "displayName": "Live Demo",
+            "description": "End-to-end lobby-to-match flow combining Lobby and PlayerSync in a single scene.",
+            "path": "Samples~/LiveDemo"
         }
     ]
 }

@@ -151,6 +151,10 @@ socketio-unity/                 # Package root
 │   │   ├── LobbyScene.unity
 │   │   ├── Scripts/
 │   │   └── Prefab/
+│   ├── LiveDemo/               # End-to-end lobby → match demo
+│   │   ├── README.md
+│   │   ├── LiveDemo.unity
+│   │   └── Scripts/
 │   ├── Diagnostics/            # Runtime diagnostics overlay
 │   │   └── SocketIODiagnosticsOverlay.cs
 │   ├── SocketIOManager.cs      # ShowDiagnostics toggle
@@ -164,6 +168,7 @@ socketio-unity/                 # Package root
     ├── ARCHITECTURE.md
     ├── BINARY_EVENTS.md
     ├── DEBUGGING_GUIDE.md
+    ├── GETTING_STARTED.md
     ├── RECONNECT_BEHAVIOR.md
     └── WEBGL_NOTES.md
 ```

@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`LobbyStateIntegrationTests`** — runtime integration tests for socket state invariants and namespace connection timing
 - **`StressTests` (EditMode)** — high packet rate (1 000 events), large binary bursts (1 MB / 10 MB), ACK storms (100 pending), reconnect floods (50 rapid cycles), memory footprint validation (1 000 subscribe/unsubscribe)
 - **`InternalsVisibleTo` for stress assembly** — `SocketIOUnity.Tests.Stress` can access internals for deeper validation
+- **LiveDemo sample** (`Samples~/LiveDemo/`) — End-to-end multiplayer demo combining Lobby and PlayerSync into a single scene with `GameOrchestrator` layer toggling, dual-server architecture, and seamless lobby → match transitions
+- **Dedicated per-sample servers** — Each sample now runs on its own port: `basicchat-server.js` (:3002), `playersync-server.js` (:3003), `lobby-server.js` (:3001), `server.js` (:3000 for binary/auth tests)
+- **WebGL clipboard plugin** — Native clipboard support for WebGL builds via `WebGLClipboard.jslib`
+- **`player_identity` event handling** — Lobby sample now handles server-assigned player identity and fixes `IsHost` race condition
 
 ### Changed
 - **`SocketIOClient.OnError`** — event type changed from `Action<string>` to `Action<SocketError>` (breaking change for any code using the old string form; see migration below)

@@ -37,7 +37,8 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 **Samples** &nbsp;·&nbsp;
 💬 [Basic Chat](#-basic-chat-sample) &nbsp;·&nbsp;
 🎮 [PlayerSync](#-playersync-sample) &nbsp;·&nbsp;
-🏠 [Lobby](#-lobby-sample)
+🏠 [Lobby](#-lobby-sample) &nbsp;·&nbsp;
+🎬 [LiveDemo](#-livedemo-sample)
 
 **Platform & Production** &nbsp;·&nbsp;
 📦 [Platforms](#-supported-platforms) &nbsp;·&nbsp;
@@ -83,14 +84,14 @@ socket.OnConnected += () => Debug.Log("Connected!");
 
 socket.On("chat", msg => Debug.Log("Server: " + msg));
 
-socket.Connect("ws://localhost:3000");
+socket.Connect("ws://localhost:3002");
 socket.Emit("chat", "Hello from Unity!");
 ```
 
 **3. Run the test server:**
 
 ```bash
-cd TestServer~ && npm install && npm start
+cd TestServer~ && npm install && npm run start:basicchat
 ```
 
 Open the **Basic Chat** sample and press Play. → [Full guide](#-basic-chat-sample)
@@ -155,7 +156,7 @@ Most Unity Socket.IO clients are either closed-source assets, incomplete protoco
 
 > ✅ **Stable for production use** — Public API frozen for v1.x
 
-**Current:** v1.2.0 (2026-03-18) + unreleased — Typed errors, connection state tracking, diagnostics overlay, and WebSocket lifecycle hardening.
+**Current:** v1.2.0 (2026-03-18) + unreleased — Typed errors, connection state tracking, diagnostics overlay, LiveDemo sample, dedicated per-sample servers, and WebSocket lifecycle hardening.
 
 Open-source, clean-room Socket.IO v4 client for Unity — written from scratch against the public
 protocol spec with no dependency on paid or closed-source assets.
@@ -174,6 +175,9 @@ Provides a familiar **event-based `On` / `Emit` API** across **Standalone, WebGL
 * **Diagnostics Overlay** — Runtime in-game panel (`SocketIOManager.Instance.ShowDiagnostics = true`) showing state, RTT, namespace count, pending ACKs, and live event log
 * **Namespace preservation across reconnects** — `On()` handlers and namespace registrations survive reconnect cycles without re-registration
 * **WebSocket lifecycle hardening** — Improved reconnect controller, race condition guards, and proper event rebinding on new socket instances
+* **LiveDemo sample** — End-to-end lobby → match flow combining Lobby and PlayerSync in a single scene with `GameOrchestrator` layer toggling
+* **Dedicated per-sample servers** — Each sample now has its own server on a dedicated port (`basicchat-server.js` :3002, `playersync-server.js` :3003, `lobby-server.js` :3001, `server.js` :3000 for binary/auth tests)
+* **WebGL clipboard plugin** — Native clipboard support for WebGL builds
 * **Stress tests** — EditMode tests for high packet rate, large binary bursts (10 MB), ACK stress (100 pending), reconnect storms (50 rapid cycles), and memory footprint validation
 * **Lobby integration tests** — Runtime tests for socket state invariants and namespace connection timing
 
@@ -385,9 +389,8 @@ All network code is accessed through the `ITransport` interface, enabling:
 1. **Create an empty GameObject** in your scene (e.g., `SocketIOManager`)
 2. **Attach the `SocketIOManager` script** to it
 3. **(Optional) For testing:**
-   - Attach `GameSocketTest` script to the same GameObject
-   - Attach `AdminNamespaceTest` script to the same GameObject
-4. **Configure the URL** in `SocketIOManager.cs` if needed (default: `ws://localhost:3000`)
+   - Attach `BinaryEventTest` or `NamespaceAuthTest` scripts from `Samples~/`
+4. **Configure the URL** in your connecting script (each sample sets its own server URL)
 
 The `SocketIOManager` uses Unity's singleton pattern and persists across scenes.
 
@@ -952,6 +955,10 @@ socketio-unity/
 │   │   ├── LobbyScene.unity
 │   │   ├── Scripts/
 │   │   └── Prefab/
+│   ├── LiveDemo/               # End-to-end lobby → match demo
+│   │   ├── README.md
+│   │   ├── LiveDemo.unity
+│   │   └── Scripts/
 │   ├── Diagnostics/            # Runtime diagnostics overlay
 │   │   └── SocketIODiagnosticsOverlay.cs
 │   ├── SocketIOManager.cs      # Singleton (ShowDiagnostics toggle)
@@ -965,6 +972,7 @@ socketio-unity/
 │   ├── ARCHITECTURE.md
 │   ├── BINARY_EVENTS.md
 │   ├── DEBUGGING_GUIDE.md
+│   ├── GETTING_STARTED.md
 │   ├── RECONNECT_BEHAVIOR.md
 │   └── WEBGL_NOTES.md
 │
@@ -999,7 +1007,7 @@ socket.OnConnected += OnConnected;
 socket.On("chat", OnChatMessage);
 
 // Connect and send
-socket.Connect("ws://localhost:3000");
+socket.Connect("ws://localhost:3002");
 socket.Emit("chat", "Hello!");
 
 // Clean up in OnDestroy
@@ -1038,7 +1046,7 @@ The **PlayerSync** sample is a production-grade real-time multiplayer demo (adde
 ```csharp
 // Connect to root, then get namespace
 rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
-rootSocket.Connect("ws://localhost:3000");
+rootSocket.Connect("ws://localhost:3003");
 var ns = rootSocket.Of("/playersync");
 
 // Configure reconnection with jitter
@@ -1065,7 +1073,7 @@ ns.Emit("player_move", JsonConvert.SerializeObject(movePacket));
 
 **Key Features:**
 - Namespace pattern (`rootSocket.Of("/playersync")`) over a single WebSocket
-- 9 components, pre-configured scene, and 3 Node.js server examples
+- 9 components, pre-configured scene, and dedicated Node.js server (`playersync-server.js` on port 3003)
 - Scales comfortably to 2–20 players (see scaling guide in the README)
 - Works on Editor, Standalone, WebGL, and Mobile
 
@@ -1147,6 +1155,40 @@ Server output:
 
 ---
 
+## 🎬 LiveDemo Sample
+
+The **LiveDemo** sample combines Lobby and PlayerSync into a single scene with seamless phase transitions. It demonstrates:
+
+- ✅ Multi-phase gameplay: lobby room creation → real-time player movement
+- ✅ Layer-based scene management (two activatable layers, no scene loading)
+- ✅ Dual-server architecture (Lobby :3001 + PlayerSync :3003)
+- ✅ Graceful transitions (match start, leave game, lobby disconnect)
+
+### Quick Start
+
+```bash
+# Terminal 1 — lobby server
+npm run start:lobby           # http://localhost:3001
+
+# Terminal 2 — playersync server
+npm run start:playersync      # http://localhost:3003
+```
+
+```
+Open LiveDemo scene → Play → Enter name → Create/Join Room → Start Match
+```
+
+**📚 Full Documentation**: See [LiveDemo/README.md](Samples~/LiveDemo/README.md)
+
+**Key Features:**
+- `GameOrchestrator` bridges both systems — listens for `match_started` and lobby disconnect to toggle layers
+- Same inspector wiring as standalone Lobby and PlayerSync samples
+- Works on Editor, Standalone, and WebGL
+
+> **Prerequisites:** Complete [Basic Chat](#-basic-chat-sample), [Player Sync](#-playersync-sample), and [Lobby](#-lobby-sample) first.
+
+---
+
 ## 🧪 Sample Test Scripts Reference
 
 > **Note**: For a complete production example, start with the [Basic Chat Sample](#-basic-chat-sample) above.
@@ -1172,7 +1214,12 @@ All test scripts below are in `Samples~/`. Import them via Package Manager → S
 ### Test Server Requirements
 
 ```bash
-cd TestServer~ && npm install && npm start
+cd TestServer~ && npm install
+
+npm run start:basicchat    # BasicChat echo server (port 3002)
+npm start                  # Binary/auth test server (port 3000)
+npm run start:playersync   # PlayerSync server (port 3003)
+npm run start:lobby        # Lobby server (port 3001)
 ```
 
 ### Testing Checklist
@@ -1498,17 +1545,19 @@ Node.js test servers are included in `TestServer~/`. To run them:
 cd TestServer~
 npm install
 
-npm start                  # Echo server (port 3000) — BasicChat + binary + auth tests
-npm run start:playersync   # PlayerSync server (port 3000)
+npm run start:basicchat    # BasicChat echo server (port 3002)
+npm start                  # Binary/auth test server (port 3000)
+npm run start:playersync   # PlayerSync server (port 3003)
 npm run start:lobby        # Lobby server (port 3001)
 
 # Auto-restart on file changes (development)
+npm run dev:basicchat
 npm run dev
-npm run dev:lobby
 npm run dev:playersync
+npm run dev:lobby
 ```
 
-**The echo server (`server.js`) runs on `http://localhost:3000` and provides:**
+**The test server (`server.js`) runs on `http://localhost:3000` and provides:**
 
 * **Root namespace (`/`)** — No auth, binary events support
 * **Admin namespace (`/admin`)** — Requires `token: "test-secret"`

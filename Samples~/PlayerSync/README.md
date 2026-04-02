@@ -117,27 +117,15 @@ After opening the scene, configure these references in the Inspector:
 
 ### Server Setup
 
-1. Navigate to the server directory (create if it doesn't exist):
+1. Start the included test server:
 
 ```bash
-cd server
+cd TestServer~
+npm install
+npm run start:playersync
 ```
 
-2. Install dependencies:
-
-```bash
-npm install socket.io
-```
-
-3. Create `server.js` with the Socket.IO server (see server code below)
-
-4. Start the server:
-
-```bash
-node server.js
-```
-
-Server should be running on `http://localhost:3000`
+Server should be running on `http://localhost:3003`
 
 ## How to Run
 
@@ -163,7 +151,7 @@ The **PlayerSyncMobile** scene is a copy of PlayerSyncScene pre-configured for m
 ```bash
 ipconfig getifaddr en0
 ```
-2. Set `productionServerUrl` in **PlayerNetworkSync** Inspector to `http://192.168.x.x:3000`
+2. Set `productionServerUrl` in **PlayerNetworkSync** Inspector to `http://192.168.x.x:3003`
 3. Or use the in-app `ServerUrlInput` panel:
    - Enter URL → tap **Save** → restart the app
 
@@ -191,7 +179,7 @@ Drag finger anywhere on screen to move. Implemented via `#if UNITY_ANDROID || UN
 
 **Firewall note:**
 
-If the device can't connect, ensure macOS firewall allows incoming connections on port 3000:
+If the device can't connect, ensure macOS firewall allows incoming connections on port 3003:
 **System Settings → Network → Firewall → Options → add `node` → Allow incoming**
 
 ---
@@ -222,7 +210,7 @@ npx serve -p 8080
 Your Socket.IO server **must have CORS enabled** for WebGL to work:
 
 ```javascript
-const io = require("socket.io")(3000, {
+const io = require("socket.io")(3003, {
   cors: {
     origin: "*",  // Or specify your domain
     methods: ["GET", "POST"]
@@ -236,11 +224,11 @@ The sample server code already includes this configuration.
 
 The sample uses platform-specific server URLs configured in the Unity Inspector:
 
-- **Editor**: Uses `editorServerUrl` (default: `http://localhost:3000`)
-- **WebGL/Standalone/Mobile**: Uses `productionServerUrl` (default: `http://localhost:3000` for local testing)
+- **Editor**: Uses `editorServerUrl` (default: `http://localhost:3003`)
+- **WebGL/Standalone/Mobile**: Uses `productionServerUrl` (default: `http://localhost:3003` for local testing)
 
 **For Local Testing (WebGL):**
-- The default `productionServerUrl` is set to `http://localhost:3000` ✅
+- The default `productionServerUrl` is set to `http://localhost:3003` ✅
 - WebGL builds will connect to your local Socket.IO server
 - No configuration changes needed for local development
 
@@ -329,7 +317,7 @@ Quick reference for all events used in this sample:
 ```csharp
 // Connect to root first
 rootSocket = new SocketIOClient(TransportFactoryHelper.CreateDefault());
-rootSocket.Connect("http://localhost:3000");
+rootSocket.Connect("http://localhost:3003");
 
 // Then get namespace
 namespaceSocket = rootSocket.Of("/playersync");
@@ -609,7 +597,7 @@ Watch the **Connection Status** (top-left):
 ## Server Code Example
 
 ```javascript
-const io = require("socket.io")(3000, {
+const io = require("socket.io")(3003, {
   cors: { origin: "*" },
 });
 
@@ -642,7 +630,7 @@ playersyncNsp.on("connection", (socket) => {
   });
 });
 
-console.log("Server running on http://localhost:3000");
+console.log("Server running on http://localhost:3003");
 ```
 
 ## Customizing Reconnection Behavior

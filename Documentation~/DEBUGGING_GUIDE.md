@@ -368,8 +368,9 @@ The test servers live in `TestServer~/` at the project root:
 ```bash
 cd TestServer~
 npm install
-npm start                  # Echo server on port 3000 (BasicChat, binary, auth tests)
-npm run start:playersync   # PlayerSync server on port 3000
+npm run start:basicchat    # BasicChat echo server on port 3002
+npm start                  # Binary/auth test server on port 3000
+npm run start:playersync   # PlayerSync server on port 3003
 npm run start:lobby        # Lobby server on port 3001
 ```
 

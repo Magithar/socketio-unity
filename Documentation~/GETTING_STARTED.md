@@ -33,13 +33,13 @@ You need Node.js installed. ([Download here](https://nodejs.org) if you don't ha
 ```bash
 cd TestServer~
 npm install
-npm start
+npm run start:basicchat
 ```
 
 You should see:
 
 ```
-✅ HTTP + WebSocket listening on 3000
+BasicChat server listening on :3002
 ```
 
 Leave this terminal open.
@@ -75,11 +75,11 @@ You should see your message echoed back in the chat log.
 ```
 Unity (BasicChatUI)
     │
-    ├── socket.Connect("ws://localhost:3000")    ← opens WebSocket
+    ├── socket.Connect("ws://localhost:3002")    ← opens WebSocket
     ├── socket.Emit("chat", "Hello!")            ← sends event to server
     └── socket.On("chat", msg => ...)            ← receives echo back
 
-Node.js (server.js)
+Node.js (basicchat-server.js)
     └── socket.on("chat", msg => socket.emit("chat", msg))  ← echo
 ```
 
@@ -90,8 +90,8 @@ The key APIs — `Connect`, `Emit`, `On`, `Off` — are the same across all plat
 ## Common Issues
 
 **"Connection failed" / status stays "Connecting"**
-- Is the server running? Check the terminal for `Server listening on port 3000`
-- Is port 3000 blocked by a firewall? Try disabling it temporarily
+- Is the server running? Check the terminal for `BasicChat server listening on :3002`
+- Is port 3002 blocked by a firewall? Try disabling it temporarily
 
 **"NullReferenceException on SocketIOManager.Instance"**
 - The `SocketIOManager` GameObject must be in the scene — it's included in `BasicChatScene.unity`

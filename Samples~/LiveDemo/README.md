@@ -14,7 +14,7 @@ An end-to-end multiplayer demo that combines the [Lobby](../Lobby/README.md) and
 
 - **Multi-phase gameplay**: Lobby room creation/joining flows directly into real-time player movement
 - **Layer-based scene management**: A single Unity scene with two activatable layers instead of scene loading
-- **Dual-server architecture**: Lobby server (port 3001) + PlayerSync server (port 3000) running side by side
+- **Dual-server architecture**: Lobby server (port 3001) + PlayerSync server (port 3003) running side by side
 - **Graceful transitions**: Match start, leave game, and lobby disconnect all handled cleanly
 
 ---
@@ -28,7 +28,7 @@ npm install
 npm run start:lobby        # http://localhost:3001, namespace /lobby
 
 # Terminal 2 — playersync server
-node server-playersync.js  # http://localhost:3000, namespace /playersync
+npm run start:playersync   # http://localhost:3003, namespace /playersync
 ```
 
 ```
@@ -82,8 +82,8 @@ LiveDemo Scene
 
 ```
          ┌────────────────────┐     ┌────────────────────┐
-         │   lobby-server.js  │     │ server-playersync.js│
-         │   port 3001        │     │   port 3000         │
+         │   lobby-server.js  │     │playersync-server.js │
+         │   port 3001        │     │   port 3003         │
          │   namespace /lobby │     │ namespace /playersync│
          └────────┬───────────┘     └────────┬───────────┘
                   │                           │
