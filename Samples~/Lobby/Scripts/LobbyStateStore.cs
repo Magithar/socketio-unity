@@ -68,7 +68,15 @@ public class LobbyStateStore : MonoBehaviour
         };
     }
 
-    public void SetLocalPlayerId(string id) => LocalPlayerId = id;
+    public void SetLocalPlayerId(string id)
+    {
+        LocalPlayerId = id;
+        // Re-fire room state so consumers re-evaluate IsHost.
+        // ACK and room_state can arrive in any order on the same frame,
+        // so always re-fire if we have a room — even if just set.
+        if (CurrentRoom != null)
+            OnRoomStateChanged?.Invoke(CurrentRoom);
+    }
 
     public void SetSessionToken(string token) => SessionToken = token;
 

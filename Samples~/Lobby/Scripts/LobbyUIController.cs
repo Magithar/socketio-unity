@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -11,6 +12,11 @@ using TMPro;
 /// </summary>
 public class LobbyUIController : MonoBehaviour
 {
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern void WebGL_CopyToClipboard(string text);
+#endif
+
     [Header("Network")]
     [SerializeField] private LobbyNetworkManager networkManager;
     [SerializeField] private LobbyStateStore store;
@@ -135,6 +141,17 @@ public class LobbyUIController : MonoBehaviour
         store.OnPlayerRemoved    -= HandlePlayerRemoved;
         store.OnError            -= HandleError;
         store.OnMatchStarted     -= HandleMatchStarted;
+    }
+
+    /// <summary>
+    /// Continuously sync Start Match button visibility with store.IsHost.
+    /// Needed because the ACK (which sets LocalPlayerId) and room_state
+    /// can arrive in any order across frames.
+    /// </summary>
+    private void Update()
+    {
+        if (startMatchButton != null && roomPanel.activeSelf)
+            startMatchButton.gameObject.SetActive(store.IsHost);
     }
 
     // =========================================================
@@ -371,6 +388,8 @@ public class LobbyUIController : MonoBehaviour
         PlayerPrefs.DeleteKey(PREF_PLAYER_ID);
         PlayerPrefs.DeleteKey(PREF_SESSION_TOKEN);
         _hadRoomBeforeDisconnect = false;
+        _joinInFlight = false;
+        store.Reset(); // clear room state + version counter so next room_state v1 isn't ignored
         ClearPlayerList();
         _currentRoomId = null;
         ShowLobbySelection();
@@ -400,7 +419,11 @@ public class LobbyUIController : MonoBehaviour
     private void OnCopyRoomCodeClicked()
     {
         if (string.IsNullOrEmpty(_currentRoomId)) return;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        WebGL_CopyToClipboard(_currentRoomId);
+#else
         GUIUtility.systemCopyBuffer = _currentRoomId;
+#endif
         Debug.Log($"[Lobby] Room code copied: {_currentRoomId}");
 
         // Brief label feedback

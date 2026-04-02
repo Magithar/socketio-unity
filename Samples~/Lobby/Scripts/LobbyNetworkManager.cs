@@ -64,6 +64,17 @@ public class LobbyNetworkManager : MonoBehaviour
             Debug.LogWarning("❌ Disconnected from /lobby");
         };
 
+        // Server emits player_identity before ACK and room_state to guarantee
+        // the client knows its playerId before IsHost is evaluated.
+        _lobby.On("player_identity", (string json) =>
+        {
+            if (_destroyed) return;
+            var obj = JObject.Parse(json);
+            store.SetLocalPlayerId(obj.Value<string>("playerId"));
+            store.SetSessionToken(obj.Value<string>("sessionToken"));
+            Debug.Log($"🆔 Identity received: {store.LocalPlayerId}");
+        });
+
         _lobby.On("match_started", (string json) =>
         {
             if (_destroyed) return;
