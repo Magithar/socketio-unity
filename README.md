@@ -1,5 +1,7 @@
 <div align="center">
 
+![Socket.IO Unity Client](Documentation%7E/banner.png)
+
 # socketio-unity
 
 **Real-time multiplayer infrastructure for Unity** — lobby systems, player synchronization, and live backend communication, all over Socket.IO v4.
