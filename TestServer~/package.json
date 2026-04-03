@@ -11,7 +11,9 @@
     "start:lobby": "node lobby-server.js",
     "dev:lobby": "nodemon lobby-server.js",
     "start:playersync": "node playersync-server.js",
-    "dev:playersync": "nodemon playersync-server.js"
+    "dev:playersync": "nodemon playersync-server.js",
+    "start:livedemo": "node livedemo-server.js",
+    "dev:livedemo": "nodemon livedemo-server.js"
   },
   "dependencies": {
     "express": "^5.2.1",
