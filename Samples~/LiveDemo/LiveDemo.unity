@@ -409,7 +409,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68397c4008ecf4f89bf123236c8a4f8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: http://localhost:3001
+  serverUrl: https://socketio-unity.onrender.com
   store: {fileID: 215754250}
 --- !u!114 &215754250
 MonoBehaviour:
@@ -1032,7 +1032,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   editorServerUrl: http://localhost:3003
-  productionServerUrl: http://localhost:3003
+  productionServerUrl: https://socketio-unity.onrender.com
   localPlayerTransform: {fileID: 1395233081}
   controller: {fileID: 1395233080}
   spawner: {fileID: 170729856}
