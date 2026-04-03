@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using SocketIOUnity.Runtime;
 using SocketIOUnity.Transport;
@@ -69,10 +70,17 @@ public class LobbyNetworkManager : MonoBehaviour
         _lobby.On("player_identity", (string json) =>
         {
             if (_destroyed) return;
-            var obj = JObject.Parse(json);
-            store.SetLocalPlayerId(obj.Value<string>("playerId"));
-            store.SetSessionToken(obj.Value<string>("sessionToken"));
-            Debug.Log($"🆔 Identity received: {store.LocalPlayerId}");
+            try 
+            {
+                var obj = JObject.Parse(json);
+                store.SetLocalPlayerId(obj.Value<string>("playerId"));
+                store.SetSessionToken(obj.Value<string>("sessionToken"));
+                Debug.Log($"🆔 Identity received: {store.LocalPlayerId}");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[Lobby] Failed to parse player_identity: {ex.Message}\nRaw JSON: {json}");
+            }
         });
 
         _lobby.On("match_started", (string json) =>
@@ -86,7 +94,16 @@ public class LobbyNetworkManager : MonoBehaviour
         _lobby.On("room_state", (string json) =>
         {
             if (_destroyed) return;
-            store.ApplyRoomState(JsonConvert.DeserializeObject<RoomState>(json));
+            try 
+            {
+                var state = JsonConvert.DeserializeObject<RoomState>(json);
+                Debug.Log($"[Lobby] room_state parsed. ID={state?.roomId}, P-Count={state?.players?.Count}");
+                store.ApplyRoomState(state);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[Lobby] Failed to parse room_state: {ex.Message}\nRaw JSON: {json}");
+            }
         });
 
         _lobby.On("player_removed", json =>
@@ -210,7 +227,21 @@ public class LobbyNetworkManager : MonoBehaviour
 
     private static JObject ParseAck(string ack)
     {
-        try { return JObject.Parse(ack); }
+        try
+        {
+            // Socket.IO wraps ACK data in a JSON array: ["{...}"]
+            // Try parsing as array first, extracting the first element.
+            var token = Newtonsoft.Json.Linq.JToken.Parse(ack);
+            if (token is Newtonsoft.Json.Linq.JArray arr && arr.Count > 0)
+            {
+                var first = arr[0];
+                if (first.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                    return JObject.Parse(first.ToString());
+                if (first.Type == Newtonsoft.Json.Linq.JTokenType.Object)
+                    return (JObject)first;
+            }
+            return token as JObject ?? JObject.Parse(ack);
+        }
         catch { return null; }
     }
 }

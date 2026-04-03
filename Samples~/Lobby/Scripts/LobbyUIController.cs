@@ -15,6 +15,8 @@ public class LobbyUIController : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern void WebGL_CopyToClipboard(string text);
+    [DllImport("__Internal")]
+    private static extern void WebGL_InitPasteListener(string gameObjectName);
 #endif
 
     [Header("Network")]
@@ -117,6 +119,19 @@ public class LobbyUIController : MonoBehaviour
         // Connection status is driven by store.OnConnected/OnDisconnected, which
         // derive from socket.State via LobbyStateStore.SetSocket — no manual init needed.
         ShowLobbySelection();
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        WebGL_InitPasteListener(gameObject.name);
+#endif
+    }
+
+    /// <summary>Called from browser paste event via jslib SendMessage.</summary>
+    public void OnBrowserPaste(string text)
+    {
+        if (joinRoomCodeInput != null && joinRoomCodeInput.isFocused)
+            joinRoomCodeInput.text = text.Trim();
+        else if (playerNameInput != null && playerNameInput.isFocused)
+            playerNameInput.text = text.Trim();
     }
 
     private void OnEnable()

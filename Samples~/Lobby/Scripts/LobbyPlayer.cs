@@ -1,16 +1,18 @@
 using System;
 using Newtonsoft.Json;
+using UnityEngine.Scripting;
 
 /// <summary>
 /// LOB-26: Per-player data model inside a RoomState.
 /// LOB-27: Deserialized from the players array in room_state JSON.
 /// </summary>
 [Serializable]
+[Preserve]
 public class LobbyPlayer
 {
-    [JsonProperty("id")]     public string id;
-    [JsonProperty("name")]   public string name;
-    [JsonProperty("ready")]  public bool ready;
+    [Preserve] [JsonProperty("id")]     public string id;
+    [Preserve] [JsonProperty("name")]   public string name;
+    [Preserve] [JsonProperty("ready")]  public bool ready;
     /// <summary>"connected" or "disconnected" (grace period active).</summary>
-    [JsonProperty("status")] public string status;
+    [Preserve] [JsonProperty("status")] public string status;
 }
