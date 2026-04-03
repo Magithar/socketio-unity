@@ -25,24 +25,14 @@ WebGL support has been **fully tested and verified** as of January 2026.
 
 WebGL uses a JavaScript bridge instead of `System.Net.WebSockets`:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Unity C# Code                         │
-│               WebGLWebSocketTransport                    │
-└───────────────────────────┬─────────────────────────────┘
-                            │ [DllImport] / extern
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│               SocketIOWebGL.jslib                        │
-│            (JavaScript in browser context)               │
-│                  new WebSocket(url)                      │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-                            ▼
-                     [ Browser WebSocket API ]
-                            │
-                            ▼
-                    [ Socket.IO Server ]
+```mermaid
+graph TD
+    A["Unity C# Code<br/>WebGLWebSocketTransport"]
+    B["SocketIOWebGL.jslib<br/><i>JavaScript in browser context</i><br/><code>new WebSocket(url)</code>"]
+    C["Browser WebSocket API"]
+    D["Socket.IO Server"]
+
+    A -- "DllImport / extern" --> B --> C --> D
 ```
 
 ---
@@ -165,11 +155,41 @@ const io = new Server(httpServer, {
 
 ---
 
+## IL2CPP Stripping (link.xml)
+
+WebGL uses IL2CPP, which aggressively strips unused code. Types only accessed via reflection (e.g. JSON deserialization) can be removed, causing silent failures at runtime.
+
+The package includes `Runtime/link.xml` to preserve critical runtime types:
+
+```xml
+<linker>
+  <assembly fullname="SocketIOUnity">
+    <type fullname="SocketIOUnity.UnityIntegration.UnityMainThreadDispatcher" preserve="all"/>
+    <type fullname="SocketIOUnity.UnityIntegration.UnityTickDriver" preserve="all"/>
+  </assembly>
+</linker>
+```
+
+If your own data models are deserialized from Socket.IO JSON (e.g. room state, player data), add a `link.xml` in your scripts folder:
+
+```xml
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="YourNamespace.YourDataModel" preserve="all"/>
+  </assembly>
+</linker>
+```
+
+The Lobby sample includes its own `link.xml` preserving `RoomState` and `LobbyPlayer` as a reference.
+
+---
+
 ## Build Setup
 
 1. **jslib placed correctly:** `Runtime/Plugins/WebGL/SocketIOWebGL.jslib`
 2. **Bridge GameObject exists:** The `WebGLSocketBridge` MonoBehaviour must exist in scene
-3. **Platform check:** Use `TransportFactory` for automatic selection
+3. **link.xml present:** `Runtime/link.xml` preserves types from IL2CPP stripping (included in package)
+4. **Platform check:** Use `TransportFactory` for automatic selection
 
 ```csharp
 // TransportFactory handles this
@@ -292,6 +312,10 @@ _socket.OnConnected += () =>
 - [x] Test reconnection after disconnect
 - [x] Test namespace authentication
 - [x] Verify clean disconnect/reconnect cycles
-- [ ] Test with production server (wss://)
-- [ ] Verify CORS headers in production
-- [ ] Load testing with sustained connections
+- [x] Verify IL2CPP stripping does not remove runtime types (`link.xml`)
+- [x] Verify data model classes preserved for JSON deserialization
+- [x] Test with production server (wss://) — LiveDemo deployed on Render
+- [x] Verify CORS headers in production
+- [x] Verify compressed `.unityweb` build assets load correctly
+- [x] ACK array wrapping handled for WebGL lobby flows
+- [x] Load testing with sustained connections

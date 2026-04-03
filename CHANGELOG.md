@@ -5,12 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.3.1] - 2026-04-04
+
+### Added
+
+- **Combined LiveDemo server** (`livedemo-server.js`) — single-process server merging `/lobby` and `/playersync` namespaces for simpler deployment (Render, Railway, Fly)
+- **Runtime `link.xml`** for IL2CPP stripping — preserves `UnityMainThreadDispatcher` and `UnityTickDriver` so IL2CPP builds (WebGL, iOS) don't strip critical runtime types
+- **Lobby sample `link.xml`** — preserves `RoomState` and `LobbyPlayer` data models from IL2CPP stripping to fix JSON deserialization in WebGL builds
+
+### Fixed
+
+- **WebGL lobby ACK array wrapping** — server ACK responses wrapped in an array by Socket.IO are now unwrapped correctly on the client, fixing room creation and join failures in WebGL builds
+- **IL2CPP stripping breaking lobby** — `RoomState` and `LobbyPlayer` classes were stripped by IL2CPP in WebGL builds, causing silent JSON deserialization failures
+
+### Changed
+
+- **WebGL build uses compressed assets** — switched from uncompressed `.data`/`.wasm`/`.framework.js` to `.unityweb` compressed format, reducing download size significantly
+- **LiveDemo points at production server** — WebGL demo now connects to the deployed server instead of `localhost`
+
 ## [1.3.0] - 2026-04-03
 
 ### Added
 
 - **Typed `SocketError`** — `OnError` now delivers `SocketError { ErrorType, Message }` instead of a raw string
-  - `ErrorTypdie` enum: `Transport`, `Auth`, `Timeout`, `Protocol`
+  - `ErrorType` enum: `Transport`, `Auth`, `Timeout`, `Protocol`
   - Lets callers branch on error category without string parsing
 - **`ConnectionState` enum** — `Disconnected` / `Connecting` / `Connected` / `Reconnecting`
   - `SocketIOClient.State` property for synchronous reads
@@ -370,7 +390,9 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/Magithar/socketio-unity/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/Magithar/socketio-unity/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Magithar/socketio-unity/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/Magithar/socketio-unity/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Magithar/socketio-unity/compare/v1.1.0...v1.1.1

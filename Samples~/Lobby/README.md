@@ -53,31 +53,16 @@ To test multiplayer: build a standalone or open a second Unity Editor instance.
 
 Three clean layers — no layer crosses its boundary:
 
-```
-         ┌──────────────────────┐
-         │   Socket.IO Server   │
-         │   lobby-server.js    │
-         └──────────┬───────────┘
-                    │  room_state snapshots
-                    ▼
-         ┌──────────────────────┐
-         │  LobbyNetworkManager │  transport layer
-         │  namespace /lobby    │  emits & receives events
-         └──────────┬───────────┘
-                    │  ApplyRoomState / FireX
-                    ▼
-         ┌──────────────────────┐
-         │    LobbyStateStore   │  single source of truth
-         │  CurrentRoom         │  fires semantic C# events
-         │  LocalPlayerId       │  diffs player lists
-         │  SessionToken        │
-         └──────────┬───────────┘
-                    │  OnRoomStateChanged / OnPlayerJoined / etc.
-                    ▼
-         ┌──────────────────────┐
-         │   LobbyUIController  │  view layer
-         │   no socket access   │  reacts to store events only
-         └──────────────────────┘
+```mermaid
+graph TD
+    Server["Socket.IO Server<br/>lobby-server.js"]
+    NM["LobbyNetworkManager<br/><i>transport layer — namespace /lobby</i>"]
+    Store["LobbyStateStore<br/><i>single source of truth</i><br/>CurrentRoom · LocalPlayerId · SessionToken"]
+    UI["LobbyUIController<br/><i>view layer — no socket access</i>"]
+
+    Server -- "room_state snapshots" --> NM
+    NM -- "ApplyRoomState / FireX" --> Store
+    Store -- "OnRoomStateChanged / OnPlayerJoined / etc." --> UI
 ```
 
 ### Component Responsibilities
@@ -94,53 +79,21 @@ Three clean layers — no layer crosses its boundary:
 
 ## Reconnect Flow
 
-```
-Disconnect detected
-  → store.SetConnected(false)
-  → ReconnectPanel shown
-  → _hadRoomBeforeDisconnect = true (if in a room)
-  → server marks player status="disconnected"
-  → server starts 10s grace timer
+```mermaid
+graph TD
+    A["Disconnect detected"] --> B["store.SetConnected(false)<br/>ReconnectPanel shown<br/>Server starts 10s grace timer"]
+    B --> C["Player clicks Reconnect"]
+    C --> D["ConnectToLobby() re-establishes socket"]
+    D --> E["store.SetConnected(true)"]
+    E --> F{"Had room before disconnect?"}
+    F -- No --> G["Return to lobby selection"]
+    F -- Yes --> H["ReconnectSession()<br/>Server cancels grace timer<br/>5s rejoin timeout starts"]
 
-Player clicks Reconnect
-  → networkManager.Reconnect()
-  → ConnectToLobby() re-establishes socket
-
-On reconnect:
-  → store.SetConnected(true)
-  → if _hadRoomBeforeDisconnect:
-      → ReconnectSession(savedPlayerId, savedRoomId, savedToken)
-      → server cancels grace timer, restores player slot
-      → RejoinTimeout coroutine starts (5s client-side guard)
-
-      ┌─────────────────────────────────┐
-      │ room_state received within 5s   │
-      │ → timeout cancelled             │
-      │ → UI restored to room view      │
-      └─────────────────────────────────┘
-
-      ┌─────────────────────────────────┐
-      │ 5s timeout expires              │
-      │ → saved room ID cleared         │
-      │ → return to lobby selection     │
-      │ → "Room no longer available"    │
-      └─────────────────────────────────┘
-
-      ┌─────────────────────────────────┐
-      │ reconnect_player ack = error    │
-      │ (room gone, token invalid, etc) │
-      │ → timeout cancelled immediately │
-      │ → return to lobby selection     │
-      │ → "Previous room no longer      │
-      │    available"                   │
-      └─────────────────────────────────┘
-
-If 10s server grace expires before reconnect:
-  → player removed from room
-  → room_state broadcast to remaining players
-  → client ReconnectSession ack returns error
-  → HandleError fast-fail path triggers immediately
-  → UI falls back to lobby selection (no 5s wait)
+    H --> I{"Outcome"}
+    I -- "room_state received<br/>within 5s" --> J["Timeout cancelled<br/>UI restored to room view"]
+    I -- "5s timeout expires" --> K["Room ID cleared<br/>Return to lobby selection"]
+    I -- "ACK = error<br/>(room gone / token invalid)" --> L["Timeout cancelled immediately<br/>Return to lobby selection"]
+    I -- "10s server grace<br/>already expired" --> M["ACK returns error<br/>Fast-fail to lobby selection"]
 ```
 
 ---

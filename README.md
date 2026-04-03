@@ -7,7 +7,7 @@
 WebGL-ready. Production-tested. Zero paid dependencies.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.3.0-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.3.1-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -299,6 +299,10 @@ Features: room creation, join-by-code, persistent identity across reconnects, se
 Combines Lobby and PlayerSync into a single scene — lobby room creation flows into real-time player movement via `GameOrchestrator` layer toggling.
 
 ```bash
+# Single-process (recommended for deployment)
+npm run start:livedemo     # :3000 — /lobby + /playersync
+
+# Or split servers for development
 npm run start:lobby        # Terminal 1 — :3001
 npm run start:playersync   # Terminal 2 — :3003
 ```
@@ -426,6 +430,7 @@ npm run start:basicchat    # Port 3002
 npm start                  # Port 3000 (binary/auth)
 npm run start:playersync   # Port 3003
 npm run start:lobby        # Port 3001
+npm run start:livedemo     # Port 3000 (combined lobby + playersync)
 ```
 
 ### Test Suite

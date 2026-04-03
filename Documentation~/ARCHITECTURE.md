@@ -6,44 +6,43 @@
 
 ## Component Hierarchy
 
-```
-SocketIOClient                          ← Main entry point
- │
- ├── ConnectionState                    ← socket.State + OnStateChanged event
- │
- ├── EngineIOClient (IDisposable)       ← Engine.IO v4 layer
- │    ├── HandshakeInfo                 ← Session ID, ping intervals
- │    ├── HeartbeatController           ← Ping/pong watchdog
- │    ├── PingRttTracker                ← RTT measurement (uses Time.time)
- │    └── ITransport                    ← Platform abstraction
- │         ├── WebSocketTransport       ← Desktop/Editor
- │         └── WebGLWebSocketTransport  ← WebGL browser
- │
- ├── NamespaceManager                   ← Namespace multiplexing (preserved across reconnects)
- │    └── NamespaceSocket[]             ← Per-namespace state
- │         ├── EventRegistry            ← Event handlers (On/Off)
- │         └── AckRegistry              ← ACK callbacks (timeout-protected)
- │
- ├── BinaryPacketAssembler              ← Binary frame collection
- ├── ReconnectController                ← Exponential backoff
- └── UnityTickDriver                    ← Main-thread dispatch
+```mermaid
+graph TD
+    SIO["SocketIOClient<br/><i>Main entry point</i>"]
 
-Error Handling
- └── SocketError { ErrorType, Message } ← Typed error struct
-      ├── ErrorType.Transport
-      ├── ErrorType.Auth
-      ├── ErrorType.Timeout
-      └── ErrorType.Protocol
+    SIO --> CS["ConnectionState<br/><i>socket.State + OnStateChanged</i>"]
 
-Debug Subsystem
- ├── SocketIODiagnosticsOverlay         ← Runtime in-game UI panel (Samples~/Diagnostics/)
- ├── SocketIOTrace                      ← Configurable packet tracing
- │    └── ITraceSink                    ← Custom output targets
- │         └── UnityDebugTraceSink      ← Default: Debug.Log
- │
- ├── ProfilerMarkers                    ← Performance instrumentation
- ├── SocketIOProfilerCounters           ← Real-time network metrics
- └── SocketIOThroughputTracker          ← Bytes/packets per second
+    SIO --> EIO["EngineIOClient (IDisposable)<br/><i>Engine.IO v4 layer</i>"]
+    EIO --> HS["HandshakeInfo<br/><i>Session ID, ping intervals</i>"]
+    EIO --> HB["HeartbeatController<br/><i>Ping/pong watchdog</i>"]
+    EIO --> RTT["PingRttTracker<br/><i>RTT measurement</i>"]
+    EIO --> IT["ITransport"]
+    IT --> WST["WebSocketTransport<br/><i>Desktop / Editor</i>"]
+    IT --> WGLT["WebGLWebSocketTransport<br/><i>WebGL browser</i>"]
+
+    SIO --> NM["NamespaceManager<br/><i>Preserved across reconnects</i>"]
+    NM --> NS["NamespaceSocket[]"]
+    NS --> ER["EventRegistry<br/><i>On / Off</i>"]
+    NS --> AR["AckRegistry<br/><i>Timeout-protected</i>"]
+
+    SIO --> BPA["BinaryPacketAssembler"]
+    SIO --> RC["ReconnectController<br/><i>Exponential backoff</i>"]
+    SIO --> UTD["UnityTickDriver<br/><i>Main-thread dispatch</i>"]
+
+    SE["SocketError { ErrorType, Message }"]
+    SE --> ET1["Transport"]
+    SE --> ET2["Auth"]
+    SE --> ET3["Timeout"]
+    SE --> ET4["Protocol"]
+
+    DBG["Debug Subsystem"]
+    DBG --> DIAG["SocketIODiagnosticsOverlay<br/><i>Runtime UI panel</i>"]
+    DBG --> TRACE["SocketIOTrace"]
+    TRACE --> SINK["ITraceSink"]
+    SINK --> UDSINK["UnityDebugTraceSink"]
+    DBG --> PM["ProfilerMarkers"]
+    DBG --> SPC["SocketIOProfilerCounters"]
+    DBG --> STT["SocketIOThroughputTracker"]
 ```
 
 ---
@@ -119,8 +118,9 @@ socketio-unity/                 # Package root
 │   │   ├── UnityTickDriver.cs
 │   │   └── UnityMainThreadDispatcher.cs
 │   │
-│   └── Plugins/WebGL/
-│       └── SocketIOWebGL.jslib
+│   ├── Plugins/WebGL/
+│   │   └── SocketIOWebGL.jslib
+│   └── link.xml                    ← IL2CPP stripping preservation
 │
 ├── Editor/                     # Editor-only code
 │   ├── SocketIOUnity.Editor.asmdef
@@ -214,40 +214,16 @@ socketio-unity/                 # Package root
 
 ## Data Flow
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Unity Game Code                       │
-│                  socket.Emit("event", data)              │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                    SocketIOClient                        │
-│   • Routes event to correct namespace                    │
-│   • Builds Socket.IO packet (type 2: EVENT)             │
-│   • Wraps in Engine.IO MESSAGE (type 4)                 │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                    EngineIOClient                        │
-│   • Prepends Engine.IO type byte ("4")                  │
-│   • Tracks bytes sent (throughput)                       │
-│   • Sends raw string via transport                       │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                     ITransport                           │
-│   • WebSocketTransport (Desktop)                         │
-│   • WebGLWebSocketTransport (Browser)                    │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-                            ▼
-                      [ WebSocket ]
-                            │
-                            ▼
-                    [ Socket.IO Server ]
+```mermaid
+graph TD
+    A["Unity Game Code<br/><code>socket.Emit('event', data)</code>"]
+    B["SocketIOClient<br/>Routes to namespace · Builds packet · Wraps in Engine.IO MESSAGE"]
+    C["EngineIOClient<br/>Prepends type byte · Tracks throughput · Sends via transport"]
+    D["ITransport<br/>WebSocketTransport (Desktop) · WebGLWebSocketTransport (Browser)"]
+    E["WebSocket"]
+    F["Socket.IO Server"]
+
+    A --> B --> C --> D --> E --> F
 ```
 
 ---
@@ -333,12 +309,17 @@ Uses `System.Net.WebSockets.ClientWebSocket`:
 
 Uses browser WebSocket via JavaScript interop:
 
-```
-SocketIOWebGL.jslib    →  JavaScript WebSocket API
-       ↑                           ↓
-WebGLSocketBridge.cs   ←  SendMessage() callbacks
-       ↑
-WebGLWebSocketTransport.cs (implements ITransport)
+```mermaid
+graph BT
+    WGLT["WebGLWebSocketTransport.cs<br/><i>implements ITransport</i>"]
+    Bridge["WebGLSocketBridge.cs"]
+    JSLIB["SocketIOWebGL.jslib"]
+    BrowserWS["JavaScript WebSocket API"]
+
+    WGLT --> Bridge
+    Bridge -- "DllImport" --> JSLIB
+    JSLIB --> BrowserWS
+    BrowserWS -- "SendMessage() callbacks" --> Bridge
 ```
 
 ---
@@ -347,13 +328,13 @@ WebGLWebSocketTransport.cs (implements ITransport)
 
 All namespaces share a single WebSocket:
 
-```
-WebSocket Connection
-       │
-       ├── / (default namespace)
-       ├── /admin (auth required)
-       ├── /public
-       └── /chat
+```mermaid
+graph TD
+    WS["WebSocket Connection"]
+    WS --> NS1["/ (default namespace)"]
+    WS --> NS2["/admin (auth required)"]
+    WS --> NS3["/public"]
+    WS --> NS4["/chat"]
 ```
 
 Each namespace has independent:

@@ -14,7 +14,7 @@ An end-to-end multiplayer demo that combines the [Lobby](../Lobby/README.md) and
 
 - **Multi-phase gameplay**: Lobby room creation/joining flows directly into real-time player movement
 - **Layer-based scene management**: A single Unity scene with two activatable layers instead of scene loading
-- **Dual-server architecture**: Lobby server (port 3001) + PlayerSync server (port 3000) running side by side
+- **Flexible server architecture**: Combined single-process server (`livedemo-server.js`) for deployment, or split lobby + playersync servers for development
 - **Graceful transitions**: Match start, leave game, and lobby disconnect all handled cleanly
 
 ---
@@ -24,11 +24,12 @@ An end-to-end multiplayer demo that combines the [Lobby](../Lobby/README.md) and
 ```bash
 npm install
 
-# Terminal 1 — lobby server
-npm run start:lobby        # http://localhost:3001, namespace /lobby
+# Option A: Single-process (recommended for deployment)
+npm run start:livedemo     # http://localhost:3000, namespaces /lobby + /playersync
 
-# Terminal 2 — playersync server
-node server-playersync.js  # http://localhost:3000, namespace /playersync
+# Option B: Split servers (for development)
+npm run start:lobby        # Terminal 1 — http://localhost:3001, namespace /lobby
+npm run start:playersync   # Terminal 2 — http://localhost:3003, namespace /playersync
 ```
 
 ```
@@ -60,15 +61,13 @@ LiveDemo Scene
 
 ### Flow
 
-```
-┌─────────────┐   host clicks    ┌──────────────┐
-│  Lobby       │   Start Match    │  PlayerSync   │
-│  Layer       │ ───────────────► │  Layer        │
-│  (active)    │   match_started  │  (activates)  │
-└─────────────┘                   └──────┬────────┘
-       ▲                                 │
-       │   leave game / lobby disconnect │
-       └─────────────────────────────────┘
+```mermaid
+graph LR
+    Lobby["Lobby Layer<br/>(active at start)"]
+    Game["PlayerSync Layer<br/>(activates on match)"]
+
+    Lobby -- "host clicks Start Match<br/>match_started" --> Game
+    Game -- "leave game /<br/>lobby disconnect" --> Lobby
 ```
 
 1. **Startup** — `GameOrchestrator.Awake()` activates LobbyLayer, deactivates PlayerSyncLayer
@@ -80,27 +79,17 @@ LiveDemo Scene
 
 ## Architecture
 
-```
-         ┌────────────────────┐     ┌────────────────────┐
-         │   lobby-server.js  │     │ server-playersync.js│
-         │   port 3001        │     │   port 3000         │
-         │   namespace /lobby │     │ namespace /playersync│
-         └────────┬───────────┘     └────────┬───────────┘
-                  │                           │
-                  ▼                           ▼
-         ┌────────────────────┐     ┌────────────────────┐
-         │LobbyNetworkManager │     │ PlayerNetworkSync   │
-         └────────┬───────────┘     └────────┬───────────┘
-                  │                           │
-                  ▼                           ▼
-         ┌────────────────────┐     ┌────────────────────┐
-         │  LobbyStateStore   │     │   PlayerSpawner     │
-         └────────┬───────────┘     └────────────────────┘
-                  │
-                  ▼
-         ┌────────────────────┐
-         │ GameOrchestrator   │  ← bridges both systems
-         └────────────────────┘
+```mermaid
+graph TD
+    Server["livedemo-server.js (combined)<br/>port 3000 — /lobby + /playersync"]
+
+    Server --> LNM["LobbyNetworkManager"]
+    Server --> PNS["PlayerNetworkSync"]
+
+    LNM --> LSS["LobbyStateStore"]
+    PNS --> PS["PlayerSpawner"]
+
+    LSS --> GO["GameOrchestrator<br/><i>bridges both systems</i>"]
 ```
 
 ### Components

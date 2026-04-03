@@ -84,22 +84,16 @@ socket.Emit("upload", payload, (response) =>
 
 The `BinaryPacketAssembler` handles reconstruction:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              Incoming Binary Event Flow                  │
-└─────────────────────────────────────────────────────────┘
-
-1. Receive "51-[...]" packet
-   └──→ Parse attachment count (1) and JSON payload
-   └──→ Store in BinaryPacketAssembler.Start()
-
-2. Receive binary frame
-   └──→ AddBinary() stores buffer
-   └──→ Returns true when count matches expected
-
-3. Build final event
-   └──→ ReplacePlaceholders() recursively swaps markers
-   └──→ Dispatch to event handlers
+```mermaid
+graph TD
+    A["Receive '51-[...]' packet"] --> B["Parse attachment count + JSON payload"]
+    B --> C["BinaryPacketAssembler.Start()"]
+    C --> D["Receive binary frame"]
+    D --> E["AddBinary() stores buffer"]
+    E --> F{"Count matches expected?"}
+    F -- No --> D
+    F -- Yes --> G["ReplacePlaceholders()<br/>Recursively swap markers"]
+    G --> H["Dispatch to event handlers"]
 ```
 
 ### Code Path

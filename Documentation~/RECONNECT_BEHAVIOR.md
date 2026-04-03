@@ -61,25 +61,16 @@ float delay = Mathf.Min(config.initialDelay * Mathf.Pow(config.multiplier, attem
 
 The `ConnectionState` enum tracks the client's lifecycle. Subscribe to `OnStateChanged` for reactive UI.
 
-```
-          ┌──────────────────────────────────────┐
-          │                                      │
-          ▼                                      │
-      Connected        ← OnStateChanged(Connected)
-          │                                      │
-          │ (connection lost)                    │
-          ▼                                      │
-      Reconnecting     ← OnStateChanged(Reconnecting)
-          │
-          │ (tick — wait for delay)
-          │
-          │ (delay elapsed — attempt connect)
-          ├──(fail)──→ Reconnecting (next attempt)
-          │
-          └──(success)──→ Connected
-
-Disconnected           ← initial state / after Disconnect()
-Connecting             ← during initial Connect() handshake
+```mermaid
+stateDiagram-v2
+    [*] --> Disconnected
+    Disconnected --> Connecting : Connect()
+    Connecting --> Connected : Handshake complete
+    Connected --> Reconnecting : Connection lost
+    Reconnecting --> Reconnecting : Attempt fails (next attempt)
+    Reconnecting --> Connected : Attempt succeeds
+    Connected --> Disconnected : Disconnect()
+    Reconnecting --> Disconnected : Disconnect()
 ```
 
 ```csharp

@@ -372,6 +372,7 @@ npm run start:basicchat    # BasicChat echo server on port 3002
 npm start                  # Binary/auth test server on port 3000
 npm run start:playersync   # PlayerSync server on port 3003
 npm run start:lobby        # Lobby server on port 3001
+npm run start:livedemo     # Combined lobby + playersync on port 3000
 ```
 
 ### Available Namespaces
