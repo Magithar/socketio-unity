@@ -6,43 +6,70 @@
 
 ## Component Hierarchy
 
+### Core
+
 ```mermaid
 graph TD
-    SIO["SocketIOClient<br/><i>Main entry point</i>"]
+    SIO["**SocketIOClient**<br/>Main entry point"]
 
-    SIO --> CS["ConnectionState<br/><i>socket.State + OnStateChanged</i>"]
-
-    SIO --> EIO["EngineIOClient (IDisposable)<br/><i>Engine.IO v4 layer</i>"]
-    EIO --> HS["HandshakeInfo<br/><i>Session ID, ping intervals</i>"]
-    EIO --> HB["HeartbeatController<br/><i>Ping/pong watchdog</i>"]
-    EIO --> RTT["PingRttTracker<br/><i>RTT measurement</i>"]
-    EIO --> IT["ITransport"]
-    IT --> WST["WebSocketTransport<br/><i>Desktop / Editor</i>"]
-    IT --> WGLT["WebGLWebSocketTransport<br/><i>WebGL browser</i>"]
-
-    SIO --> NM["NamespaceManager<br/><i>Preserved across reconnects</i>"]
-    NM --> NS["NamespaceSocket[]"]
-    NS --> ER["EventRegistry<br/><i>On / Off</i>"]
-    NS --> AR["AckRegistry<br/><i>Timeout-protected</i>"]
-
+    SIO --> CS["ConnectionState<br/>socket.State + OnStateChanged"]
+    SIO --> EIO["EngineIOClient<br/>Engine.IO v4 layer"]
+    SIO --> NM["NamespaceManager<br/>Preserved across reconnects"]
     SIO --> BPA["BinaryPacketAssembler"]
-    SIO --> RC["ReconnectController<br/><i>Exponential backoff</i>"]
-    SIO --> UTD["UnityTickDriver<br/><i>Main-thread dispatch</i>"]
+    SIO --> RC["ReconnectController<br/>Exponential backoff"]
+    SIO --> UTD["UnityTickDriver<br/>Main-thread dispatch"]
+```
 
-    SE["SocketError { ErrorType, Message }"]
+### Engine.IO Layer
+
+```mermaid
+graph TD
+    EIO["**EngineIOClient** (IDisposable)"]
+
+    EIO --> HS["HandshakeInfo<br/>Session ID, ping intervals"]
+    EIO --> HB["HeartbeatController<br/>Ping/pong watchdog"]
+    EIO --> RTT["PingRttTracker<br/>RTT measurement"]
+    EIO --> IT["ITransport"]
+    IT --> WST["WebSocketTransport<br/>Desktop / Editor"]
+    IT --> WGLT["WebGLWebSocketTransport<br/>WebGL browser"]
+```
+
+### Namespace Layer
+
+```mermaid
+graph TD
+    NM["**NamespaceManager**"]
+
+    NM --> NS["NamespaceSocket[]"]
+    NS --> ER["EventRegistry<br/>On / Off"]
+    NS --> AR["AckRegistry<br/>Timeout-protected"]
+```
+
+### Error Handling
+
+```mermaid
+graph TD
+    SE["**SocketError** { ErrorType, Message }"]
+
     SE --> ET1["Transport"]
     SE --> ET2["Auth"]
     SE --> ET3["Timeout"]
     SE --> ET4["Protocol"]
+```
 
-    DBG["Debug Subsystem"]
-    DBG --> DIAG["SocketIODiagnosticsOverlay<br/><i>Runtime UI panel</i>"]
+### Debug Subsystem
+
+```mermaid
+graph TD
+    DBG["**Debug Subsystem**"]
+
+    DBG --> DIAG["SocketIODiagnosticsOverlay<br/>Runtime UI panel"]
     DBG --> TRACE["SocketIOTrace"]
-    TRACE --> SINK["ITraceSink"]
-    SINK --> UDSINK["UnityDebugTraceSink"]
     DBG --> PM["ProfilerMarkers"]
     DBG --> SPC["SocketIOProfilerCounters"]
     DBG --> STT["SocketIOThroughputTracker"]
+    TRACE --> SINK["ITraceSink"]
+    SINK --> UDSINK["UnityDebugTraceSink"]
 ```
 
 ---
