@@ -10,7 +10,7 @@
 
 ```mermaid
 graph TD
-    SIO["**SocketIOClient**<br/>Main entry point"]
+    SIO["<b>SocketIOClient</b><br/>Main entry point"]
 
     SIO --> CS["ConnectionState<br/>socket.State + OnStateChanged"]
     SIO --> EIO["EngineIOClient<br/>Engine.IO v4 layer"]
@@ -24,7 +24,7 @@ graph TD
 
 ```mermaid
 graph TD
-    EIO["**EngineIOClient** (IDisposable)"]
+    EIO["<b>EngineIOClient</b> (IDisposable)"]
 
     EIO --> HS["HandshakeInfo<br/>Session ID, ping intervals"]
     EIO --> HB["HeartbeatController<br/>Ping/pong watchdog"]
@@ -38,7 +38,7 @@ graph TD
 
 ```mermaid
 graph TD
-    NM["**NamespaceManager**"]
+    NM["<b>NamespaceManager</b>"]
 
     NM --> NS["NamespaceSocket[]"]
     NS --> ER["EventRegistry<br/>On / Off"]
@@ -49,7 +49,7 @@ graph TD
 
 ```mermaid
 graph TD
-    SE["**SocketError** { ErrorType, Message }"]
+    SE["<b>SocketError</b> { ErrorType, Message }"]
 
     SE --> ET1["Transport"]
     SE --> ET2["Auth"]
@@ -61,7 +61,7 @@ graph TD
 
 ```mermaid
 graph TD
-    DBG["**Debug Subsystem**"]
+    DBG["<b>Debug Subsystem</b>"]
 
     DBG --> DIAG["SocketIODiagnosticsOverlay<br/>Runtime UI panel"]
     DBG --> TRACE["SocketIOTrace"]
@@ -243,7 +243,7 @@ socketio-unity/                 # Package root
 
 ```mermaid
 graph TD
-    A["Unity Game Code<br/><code>socket.Emit('event', data)</code>"]
+    A["Unity Game Code<br/>socket.Emit('event', data)"]
     B["SocketIOClient<br/>Routes to namespace · Builds packet · Wraps in Engine.IO MESSAGE"]
     C["EngineIOClient<br/>Prepends type byte · Tracks throughput · Sends via transport"]
     D["ITransport<br/>WebSocketTransport (Desktop) · WebGLWebSocketTransport (Browser)"]
