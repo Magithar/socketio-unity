@@ -81,8 +81,6 @@ Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. 
 
 ## Demo
 
-**[Play Live Demo in Browser](https://magithar.github.io/socketio-unity/)** — WebGL build, no install required.
-
 | Sample | Video |
 |---|---|
 | Basic Chat | [Watch on YouTube](https://youtu.be/7dU89B9O50c) |
