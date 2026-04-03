@@ -1,0 +1,6 @@
+<linker>
+  <assembly fullname="SocketIOUnity">
+    <type fullname="SocketIOUnity.UnityIntegration.UnityMainThreadDispatcher" preserve="all"/>
+    <type fullname="SocketIOUnity.UnityIntegration.UnityTickDriver" preserve="all"/>
+  </assembly>
+</linker>
