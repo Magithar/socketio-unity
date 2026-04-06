@@ -149,8 +149,15 @@
     .eyebrow-line {
       width: 28px;
       height: 1px;
-      background: #e03030;
+      background: linear-gradient(90deg, #e03030, #ff5a5a);
+      background-size: 200% 100%;
       opacity: 0.7;
+      animation: line-breath 2.4s ease-in-out infinite;
+    }
+
+    @keyframes line-breath {
+      0%, 100% { width: 20px; opacity: 0.4; background-position: 0% 0; }
+      50%       { width: 40px; opacity: 0.9; background-position: 100% 0; }
     }
 
     .eyebrow-label {
@@ -223,6 +230,39 @@
 
     /* ── Player ─────────────────────────────────────── */
     .player-section { display: flex; flex-direction: column; gap: var(--space-3); }
+
+    .player-notice {
+      font-size: var(--text-xs);
+      color: #e03030;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .player-notice .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #e03030;
+      flex-shrink: 0;
+      position: relative;
+      animation: blink 2.4s ease-in-out infinite;
+    }
+
+    .player-notice .pulse-dot::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1px solid #e03030;
+      opacity: 0;
+      animation: ripple 2.4s ease-out infinite;
+    }
+
+    @keyframes ripple {
+      0%   { transform: scale(0.6); opacity: 0.6; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
 
     .player-label {
       font-size: var(--text-xs);
@@ -559,14 +599,20 @@
         </span>
         <span class="tag" role="listitem">Socket.IO v4</span>
         <span class="tag" role="listitem">Unity 2020.1+</span>
-        <span class="tag" role="listitem">v1.2.0</span>
+        <span class="tag" role="listitem">v1.3.1</span>
         <span class="tag" role="listitem">MIT</span>
       </div>
     </header>
 
     <!-- ── Player ── -->
     <section class="player-section" aria-labelledby="demo-label">
-      <span class="player-label" id="demo-label">Interactive Demo</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-2);">
+        <span class="player-label" id="demo-label">Interactive Demo</span>
+        <span class="player-notice" aria-live="polite">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          First load may take ~40 seconds — server wakes from idle
+        </span>
+      </div>
 
       <div id="unity-container" role="application" aria-label="Unity WebGL multiplayer demo">
 
@@ -650,9 +696,9 @@
           </div>
           <h3>What this demo shows</h3>
           <ul>
-            <li>Lobby creation and join flow</li>
-            <li>Real-time position synchronization</li>
-            <li>Host migration on disconnect</li>
+            <li>Create or join a room by code</li>
+            <li>Host starts match, game begins</li>
+            <li>Real-time position sync at 20Hz</li>
           </ul>
         </article>
 
@@ -684,7 +730,7 @@
         <span class="footer-dot" aria-hidden="true"></span>
         <a href="https://github.com/Magithar/socketio-unity/blob/main/Documentation~/GETTING_STARTED.md" rel="noopener">Getting Started</a>
       </nav>
-      <p class="footer-copy">Socket.IO Unity v1.2.0 &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; by Magithar</p>
+      <p class="footer-copy">Socket.IO Unity v1.3.1 &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; by Magithar</p>
     </footer>
 
   </main>
@@ -715,7 +761,7 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName:        "Magithar",
         productName:        "Socket.IO Unity Demo",
-        productVersion:     "1.2.0",
+        productVersion:     "1.3.1",
       };
 
       createUnityInstance(canvas, config, (progress) => {
