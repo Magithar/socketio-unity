@@ -21,7 +21,7 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 | | |
 |---|---|
 | **Get Started** | [Getting Started](Documentation~/GETTING_STARTED.md) · [Quick Start](#quick-start) · [Installation](#installation) · [Dependencies](#dependencies) |
-| **Demo** | [Live Demo](https://magithar.github.io/socketio-unity/) *(server cold-starts in ~40s)* · [Videos](#demo) |
+| **Demo** | [Live Demo](https://magithar.github.io/socketio-unity/) · [Videos](#demo) |
 | **Learn** | [API Guide](#usage) · [Architecture](#architecture) · [API Stability](API_STABILITY.md) |
 | **Samples** | [Basic Chat](#basic-chat) · [PlayerSync](#playersync) · [Lobby](#lobby) · [LiveDemo](#livedemo) |
 | **Platform** | [Platforms](#supported-platforms) · [WebGL](#webgl) · [Production Readiness](#production-readiness) |
