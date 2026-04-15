@@ -43,6 +43,11 @@
             "displayName": "Live Demo",
             "description": "End-to-end lobby-to-match flow combining Lobby and PlayerSync in a single scene.",
             "path": "Samples~/LiveDemo"
+        },
+        {
+            "displayName": "Mirror Integration",
+            "description": "Hybrid architecture combining Socket.IO backend with Mirror in-scene networking. Requires Mirror to be installed first.",
+            "path": "Samples~/MirrorIntegration"
         }
     ]
 }
