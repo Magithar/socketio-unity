@@ -77,6 +77,7 @@ Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. 
 | Reconnect with backoff + jitter | **Yes** | Basic or hardcoded |
 | Unity Profiler integration | **Yes** | No |
 | CI-tested on every commit | **Yes** | Rare |
+| Mirror integration sample | **Yes** | No |
 
 **What you can build:** multiplayer lobbies, real-time player sync, WebGL browser multiplayer, chat/notification systems, mobile multiplayer, or a signaling layer for Mirror/Netcode.
 
@@ -113,11 +114,14 @@ Download or clone this repository and copy the `package/` subdirectory into your
 |---|---|---|
 | **Newtonsoft.Json** | `com.unity.nuget.newtonsoft-json` | JSON serialization (built into Unity 2020.1+) |
 | **NativeWebSocket** | [endel/NativeWebSocket](https://github.com/endel/NativeWebSocket) | WebSocket transport |
+| **Mirror** *(optional)* | [MirrorNetworking/Mirror](https://github.com/MirrorNetworking/Mirror) | Required only for the Mirror Integration sample |
 
 Install NativeWebSocket via Package Manager git URL:
 ```
 https://github.com/endel/NativeWebSocket.git#upm
 ```
+
+Mirror is not required for the core package or any other sample. Install it only if you intend to use the Mirror Integration sample — via Package Manager git URL or the `.unitypackage` from the [Mirror releases page](https://github.com/MirrorNetworking/Mirror/releases).
 
 > This project includes a modified `WebSocket.cs` from NativeWebSocket with domain reload safety fixes. See [NOTICE.md](NOTICE.md).
 
@@ -314,7 +318,7 @@ npm run start:lobby        # Terminal 1 — :3001
 npm run start:playersync   # Terminal 2 — :3003
 ```
 
-[Full docs](package/Samples~/LiveDemo/README.md)
+[Full docs](package/Samples~/LiveDemo/README.md) · Import via Package Manager → Samples → "Live Demo"
 
 ### Mirror Integration
 
