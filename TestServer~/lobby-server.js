@@ -361,10 +361,10 @@ lobby.on('connection', socket => {
         const room = rooms.get(roomId);
         if (!room || room.hostId !== playerId) return;
 
-        const { sceneName = null } = parsePayload(data);
+        const { sceneName = null, hostAddress = null } = parsePayload(data);
         const host = room.players.get(playerId);
-        lobbyLog(host?.traceId, roomId, playerId, `🎮 match started scene=${sceneName}`);
-        io.of('/lobby').to(roomId).emit('match_started', JSON.stringify({ sceneName }));
+        lobbyLog(host?.traceId, roomId, playerId, `🎮 match started scene=${sceneName} hostAddress=${hostAddress}`);
+        io.of('/lobby').to(roomId).emit('match_started', JSON.stringify({ sceneName, hostAddress }));
     });
 
     // ------------------------------------------------------------------
