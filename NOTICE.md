@@ -6,7 +6,7 @@ This project includes code from third-party sources. The following notices apply
 
 ## NativeWebSocket
 
-**File:** `Runtime/Transport/WebSocket.cs`
+**File:** `package/Runtime/Transport/WebSocket.cs`
 
 **Source:** https://github.com/endel/NativeWebSocket
 

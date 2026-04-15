@@ -28,7 +28,7 @@ TraceConfig.Level = TraceLevel.Verbose;
 
 ## Diagnostics Overlay
 
-The `SocketIODiagnosticsOverlay` component (in `Samples~/Diagnostics/`) renders a runtime UI panel — no Profiler window needed.
+The `SocketIODiagnosticsOverlay` component (in `package/Samples~/Diagnostics/`) renders a runtime UI panel — no Profiler window needed.
 
 ### Enable
 

@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `SocketIOClient.State` property for synchronous reads
   - `SocketIOClient.OnStateChanged` event fires on every transition
   - Used by samples to replace shadow-bool pattern for UI state
-- **`SocketIODiagnosticsOverlay`** sample — runtime in-game panel (`Samples~/Diagnostics/`)
+- **`SocketIODiagnosticsOverlay`** sample — runtime in-game panel (`package/Samples~/Diagnostics/`)
   - Toggle via `SocketIOManager.Instance.ShowDiagnostics = true`
   - Shows state (color-coded), RTT, active namespace count, pending ACK count, live event log
   - Optional throughput display (`SOCKETIO_PROFILER_COUNTERS` define required)
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`LobbyStateIntegrationTests`** — runtime integration tests for socket state invariants and namespace connection timing
 - **`StressTests` (EditMode)** — high packet rate (1 000 events), large binary bursts (1 MB / 10 MB), ACK storms (100 pending), reconnect floods (50 rapid cycles), memory footprint validation (1 000 subscribe/unsubscribe)
 - **`InternalsVisibleTo` for stress assembly** — `SocketIOUnity.Tests.Stress` can access internals for deeper validation
-- **LiveDemo sample** (`Samples~/LiveDemo/`) — End-to-end multiplayer demo combining Lobby and PlayerSync into a single scene with `GameOrchestrator` layer toggling, dual-server architecture, and seamless lobby → match transitions
+- **LiveDemo sample** (`package/Samples~/LiveDemo/`) — End-to-end multiplayer demo combining Lobby and PlayerSync into a single scene with `GameOrchestrator` layer toggling, dual-server architecture, and seamless lobby → match transitions
 - **Dedicated per-sample servers** — Each sample now runs on its own port: `basicchat-server.js` (:3002), `playersync-server.js` (:3003), `lobby-server.js` (:3001), `server.js` (:3000 for binary/auth tests)
 - **WebGL clipboard plugin** — Native clipboard support for WebGL builds via `WebGLClipboard.jslib`
 - **`player_identity` event handling** — Lobby sample now handles server-assigned player identity and fixes `IsHost` race condition
@@ -70,7 +70,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 
 ### Added
 
-- **Lobby Sample** (`Samples~/Lobby/`): Production-style multiplayer lobby demonstrating reconnect recovery, host migration, and session identity
+- **Lobby Sample** (`package/Samples~/Lobby/`): Production-style multiplayer lobby demonstrating reconnect recovery, host migration, and session identity
   - Room creation and join-by-code (6-character codes, e.g. `C9N7GR`)
   - Persistent `playerId` + `sessionToken` stored in `PlayerPrefs` — survives crashes and app restarts
   - Session token validation on reconnect prevents player slot spoofing
@@ -117,7 +117,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 
 ### Added
 
-- **`BillboardCanvas`** script (`Samples/PlayerSync/Scripts/BillboardCanvas.cs`)
+- **`BillboardCanvas`** script (`package/Samples~/PlayerSync/Scripts/BillboardCanvas.cs`)
   - Attaches to the RemotePlayer Canvas child; copies camera rotation each `LateUpdate` so the label always faces the viewer regardless of camera angle or player direction
 
 ### Stability
@@ -165,7 +165,7 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 ### Added
 
 - **Regression Tests**: Comprehensive test suite for all 4 bug fixes
-  - `BugRegressionTests.cs` in `Tests/Runtime/`
+  - `BugRegressionTests.cs` in `package/Tests/Runtime/`
   - Tests malformed JSON handling, ACK ID overflow, and wraparound behavior
 
 ### Fixed

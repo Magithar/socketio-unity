@@ -159,7 +159,7 @@ const io = new Server(httpServer, {
 
 WebGL uses IL2CPP, which aggressively strips unused code. Types only accessed via reflection (e.g. JSON deserialization) can be removed, causing silent failures at runtime.
 
-The package includes `Runtime/link.xml` to preserve critical runtime types:
+The package includes `package/Runtime/link.xml` to preserve critical runtime types:
 
 ```xml
 <linker>
@@ -186,9 +186,9 @@ The Lobby sample includes its own `link.xml` preserving `RoomState` and `LobbyPl
 
 ## Build Setup
 
-1. **jslib placed correctly:** `Runtime/Plugins/WebGL/SocketIOWebGL.jslib`
+1. **jslib placed correctly:** `package/Runtime/Plugins/WebGL/SocketIOWebGL.jslib`
 2. **Bridge GameObject exists:** The `WebGLSocketBridge` MonoBehaviour must exist in scene
-3. **link.xml present:** `Runtime/link.xml` preserves types from IL2CPP stripping (included in package)
+3. **link.xml present:** `package/Runtime/link.xml` preserves types from IL2CPP stripping (included in package)
 4. **Platform check:** Use `TransportFactory` for automatic selection
 
 ```csharp
