@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.magithar.socketio-unity": {
-      "version": "file:../../",
+      "version": "file:../../package",
       "depth": 0,
       "source": "local",
       "dependencies": {
