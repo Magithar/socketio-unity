@@ -161,6 +161,31 @@ Add `BillboardCanvas` to the Canvas object inside the player prefab so the name 
 
 ---
 
+## Local Test Server
+
+Use `TestServer~/mirror-server.js` to run the backend locally during development:
+
+```bash
+cd TestServer~
+npm install
+npm run start:mirror   # or: npm run dev:mirror (auto-restart on save)
+```
+
+The server runs on **port 3002** and exposes HTTP endpoints you can hit from a browser while Unity is in Play mode:
+
+| URL | What it does |
+|-----|-------------|
+| `localhost:3002/test` | List active rooms and player IDs |
+| `localhost:3002/test/score?roomId=X&playerId=Y&score=50` | Emit `score_update` to a room |
+| `localhost:3002/test/kill?roomId=X&victimId=Y` | Emit `player_killed` to a room |
+| `localhost:3002/test/round-end?roomId=X&winnerId=Y` | Emit `round_end` to a room |
+
+The server also prints its LAN IP on startup — pass it as `hostAddress` in `start_match` when testing P2P across two machines.
+
+For Unity scene setup and build target requirements, see [README.md](README.md#quick-start).
+
+---
+
 ## Graceful Shutdown — Mandatory Order
 
 ```csharp
@@ -219,9 +244,9 @@ If `StartClient()` fails (bad IP, NAT, relay timeout), Mirror fires `OnClientDis
 
 | I want to... | Go here |
 |---|---|
-| Understand socketio-unity's internal architecture | [ARCHITECTURE.md](../../ARCHITECTURE.md) |
+| Understand socketio-unity's internal architecture | [ARCHITECTURE.md](../../../Documentation~/ARCHITECTURE.md) |
 | See the lobby pattern this guide builds on | [Lobby/README.md](../Lobby/README.md) |
 | See the LiveDemo orchestrator this guide extends | [LiveDemo/README.md](../LiveDemo/README.md) |
-| Configure reconnection and the grace window | [RECONNECT_BEHAVIOR.md](../../RECONNECT_BEHAVIOR.md) |
-| Use Socket.IO in a WebGL build alongside Mirror | [WEBGL_NOTES.md](../../WEBGL_NOTES.md) |
-| Send binary payloads efficiently | [BINARY_EVENTS.md](../../BINARY_EVENTS.md) |
+| Configure reconnection and the grace window | [RECONNECT_BEHAVIOR.md](../../../Documentation~/RECONNECT_BEHAVIOR.md) |
+| Use Socket.IO in a WebGL build alongside Mirror | [WEBGL_NOTES.md](../../../Documentation~/WEBGL_NOTES.md) |
+| Send binary payloads efficiently | [BINARY_EVENTS.md](../../../Documentation~/BINARY_EVENTS.md) |

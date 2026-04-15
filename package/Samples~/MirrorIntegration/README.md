@@ -383,7 +383,8 @@ For cross-machine testing, pass the host's LAN IP in `start_match` — see `host
 | I want to... | Go here |
 |---|---|
 | Understand the full hybrid architecture | [MIRROR_INTEGRATION.md](MIRROR_INTEGRATION.md) |
-| Understand the lobby system this builds on | `Samples/Lobby/README.md` |
-| Configure reconnection and the grace window | [RECONNECT_BEHAVIOR.md](../../RECONNECT_BEHAVIOR.md) |
-| Use Socket.IO in a WebGL build alongside Mirror | [WEBGL_NOTES.md](../../WEBGL_NOTES.md) |
-| Understand the core library architecture | [ARCHITECTURE.md](../../ARCHITECTURE.md) |
+| Set up the local test backend (mirror-server.js) | [MIRROR_INTEGRATION.md — Local Test Server](MIRROR_INTEGRATION.md#local-test-server) |
+| Understand the lobby system this builds on | [Lobby/README.md](../Lobby/README.md) |
+| Configure reconnection and the grace window | [RECONNECT_BEHAVIOR.md](../../../Documentation~/RECONNECT_BEHAVIOR.md) |
+| Use Socket.IO in a WebGL build alongside Mirror | [WEBGL_NOTES.md](../../../Documentation~/WEBGL_NOTES.md) |
+| Understand the core library architecture | [ARCHITECTURE.md](../../../Documentation~/ARCHITECTURE.md) |
