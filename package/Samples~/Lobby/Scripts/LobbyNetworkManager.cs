@@ -86,9 +86,17 @@ public class LobbyNetworkManager : MonoBehaviour
         _lobby.On("match_started", (string json) =>
         {
             if (_destroyed) return;
-            string sceneName = JObject.Parse(json)["sceneName"]?.ToString();
-            Debug.Log($"🎮 Match started! scene={sceneName ?? "(none)"}");
-            store.FireMatchStarted(sceneName);
+            var obj = JObject.Parse(json);
+            string sceneName   = obj["sceneName"]?.ToString();
+            string hostAddress = obj["hostAddress"]?.ToString();
+
+            // Normalize: JS backends may serialize missing/undefined fields as "undefined" or "null".
+            hostAddress = hostAddress?.Trim();
+            if (string.IsNullOrWhiteSpace(hostAddress) || hostAddress == "undefined" || hostAddress == "null")
+                hostAddress = null;
+
+            Debug.Log($"🎮 Match started! scene={sceneName ?? "(none)"} hostAddress={hostAddress ?? "(none)"}");
+            store.FireMatchStarted(sceneName, hostAddress);
         });
 
         _lobby.On("room_state", (string json) =>

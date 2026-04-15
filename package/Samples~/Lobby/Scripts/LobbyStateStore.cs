@@ -37,7 +37,12 @@ public class LobbyStateStore : MonoBehaviour
     /// <summary>Fired when the server explicitly removes a player with a reason.</summary>
     public event Action<string, string, string> OnPlayerRemoved; // playerId, name, reason
     public event Action<SocketIOUnity.Runtime.SocketError> OnError;
-    public event Action<string> OnMatchStarted; // sceneName (may be null)
+    /// <summary>
+    /// Fired when the backend confirms a match has started.
+    /// sceneName: the scene to load (may be null).
+    /// hostAddress: the Mirror server address to connect to (null for non-Mirror flows — always null-check before use).
+    /// </summary>
+    public event Action<string, string> OnMatchStarted;
 
     // =========================================================
     // Write API — called only by LobbyNetworkManager
@@ -99,7 +104,7 @@ public class LobbyStateStore : MonoBehaviour
 
     public void FireError(SocketIOUnity.Runtime.SocketError error) => OnError?.Invoke(error);
 
-    public void FireMatchStarted(string sceneName) => OnMatchStarted?.Invoke(sceneName);
+    public void FireMatchStarted(string sceneName, string hostAddress) => OnMatchStarted?.Invoke(sceneName, hostAddress);
 
     /// <summary>Clear local state on leave or disconnect.</summary>
     public void Reset()

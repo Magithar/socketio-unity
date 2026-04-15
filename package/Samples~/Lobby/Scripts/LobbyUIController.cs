@@ -423,7 +423,7 @@ public class LobbyUIController : MonoBehaviour
         networkManager.StartMatch(matchSceneName);
     }
 
-    private void HandleMatchStarted(string sceneName)
+    private void HandleMatchStarted(string sceneName, string hostAddress)
     {
         Debug.Log($"[Lobby] Match started → loading scene: {sceneName}");
         if (!string.IsNullOrEmpty(sceneName))

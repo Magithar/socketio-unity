@@ -52,7 +52,7 @@ public class GameOrchestrator : MonoBehaviour
         store.OnDisconnected -= HandleLobbyDisconnected;
     }
 
-    private void HandleMatchStarted(string sceneName)
+    private void HandleMatchStarted(string sceneName, string hostAddress)
     {
         if (_inGame) return;
         _inGame = true;
