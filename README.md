@@ -12,6 +12,7 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 [![Release](https://img.shields.io/badge/release-v1.3.1-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
+[![Mirror Compatible](https://img.shields.io/badge/Mirror-Compatible-black)](package/Samples~/MirrorIntegration/README.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
@@ -23,7 +24,7 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 | **Get Started** | [Getting Started](Documentation~/GETTING_STARTED.md) · [Quick Start](#quick-start) · [Installation](#installation) · [Dependencies](#dependencies) |
 | **Demo** | [Live Demo](https://magithar.github.io/socketio-unity/) · [Videos](#demo) |
 | **Learn** | [API Guide](#usage) · [Architecture](#architecture) · [API Stability](API_STABILITY.md) |
-| **Samples** | [Basic Chat](#basic-chat) · [PlayerSync](#playersync) · [Lobby](#lobby) · [LiveDemo](#livedemo) |
+| **Samples** | [Basic Chat](#basic-chat) · [PlayerSync](#playersync) · [Lobby](#lobby) · [LiveDemo](#livedemo) · [Mirror Integration](#mirror-integration) |
 | **Platform** | [Platforms](#supported-platforms) · [WebGL](#webgl) · [Production Readiness](#production-readiness) |
 | **Tools** | [Diagnostics Overlay](#diagnostics-overlay) · [Profiler](#unity-profiler-integration) · [Packet Tracing](#packet-tracing) · [Testing](#development--testing) |
 | **Project** | [Changelog](CHANGELOG.md) · [Contributing](#contributing) · [License](#license) |
@@ -315,6 +316,20 @@ npm run start:playersync   # Terminal 2 — :3003
 
 [Full docs](package/Samples~/LiveDemo/README.md)
 
+### Mirror Integration
+
+Hybrid architecture sample — Socket.IO owns matchmaking, session identity, and server-authoritative events; Mirror owns in-scene transform/physics sync between peers. The two systems run in parallel and never cross their boundaries.
+
+```bash
+npm run start:mirror   # Port 3002 — lobby + /game namespace
+```
+
+Features: lobby-to-match handoff via `match_started` event, WASD player movement synced via Mirror `NetworkTransform`, `GameIdentityRegistry` bridging Mirror `netId` to Socket.IO `playerId`, `GameEventBridge` for backend events (`score_update`, `player_killed`) routed to Mirror objects, graceful shutdown emitting `leave_room` before stopping Mirror, HTTP endpoints to fire game events from a browser during testing.
+
+Requires Mirror (installed via Package Manager) and the Lobby sample imported first. **Build target must be Standalone** — WebGL build target prevents the native WebSocket transport in Play mode.
+
+[Sample docs](package/Samples~/MirrorIntegration/README.md) · [Architecture guide](package/Samples~/MirrorIntegration/MIRROR_INTEGRATION.md) · Import via Package Manager → Samples → "Mirror Integration"
+
 ---
 
 ## Architecture
@@ -437,6 +452,7 @@ npm start                  # Port 3000 (binary/auth)
 npm run start:playersync   # Port 3003
 npm run start:lobby        # Port 3001
 npm run start:livedemo     # Port 3000 (combined lobby + playersync)
+npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integration)
 ```
 
 ### Test Suite

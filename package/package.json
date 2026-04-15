@@ -46,7 +46,7 @@
         },
         {
             "displayName": "Mirror Integration",
-            "description": "Hybrid architecture combining Socket.IO backend with Mirror in-scene networking. Requires Mirror to be installed first.",
+            "description": "Hybrid architecture combining Socket.IO backend with Mirror in-scene networking. Requires Mirror (via UPM) and the Lobby sample to be imported first.",
             "path": "Samples~/MirrorIntegration"
         }
     ]

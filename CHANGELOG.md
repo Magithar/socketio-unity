@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Mirror Integration sample** (`package/Samples~/MirrorIntegration/`) — hybrid architecture combining Socket.IO backend with Mirror in-scene networking
+  - Socket.IO owns matchmaking, session identity, and server-authoritative events; Mirror owns transform/physics sync between peers
+  - `MirrorGameOrchestrator` — enforces startup/teardown order for the lobby→match transition; dual guard against duplicate `match_started` events
+  - `GameIdentityRegistry` — bridges Mirror `netId` to Socket.IO `playerId` for routing backend events to the correct spawned object
+  - `PlayerIdentityBridge` — registers each player's identity on spawn via Mirror `[Command]` and syncs the lobby display name to all clients
+  - `GameEventBridge` — subscribes to `/game` namespace events (`score_update`, `player_killed`) only after `match_started`; never active during lobby phase
+  - `MirrorPlayerController` — local player input only; red = local player, blue = remote peers
+  - Graceful shutdown: emits `leave_room` before stopping Mirror to skip the 10-second reconnect grace window
+- **`mirror-server.js`** test server (port 3002) — extends lobby server with `/game` namespace and HTTP endpoints to fire game events from a browser while Unity is running (`/test/score`, `/test/kill`, `/test/round-end`)
+- **`hostAddress` in `match_started`** — server-assigned LAN IP forwarded through the full event chain (`LobbyNetworkManager` → `LobbyStateStore` → `LobbyUIController` → `GameOrchestrator`) so clients can pass it directly to Mirror for P2P host mode; JS `"undefined"`/`"null"` string values normalized to C# null so callers can safely null-check
+- **Lobby sample assembly definition** (`SocketIOUnity.Samples.Lobby.asmdef`) — explicit asmdef allowing MirrorIntegration to reference Lobby types without circular dependencies
+- **`ConnectionState` runtime tests** — runtime NUnit tests covering connection state transitions, complementing the existing EditMode suite
+- **GitHub Pages deployment workflow** — automated live demo deployment on push to `main`
+
+### Changed
+
+- **Repo restructured** — all installable package content (Runtime, Editor, Samples, Tests, `package.json`) moved under `package/` subdirectory; `TestProject~/Packages/manifest.json` updated to reference the new path. Install URL is now `https://github.com/Magithar/socketio-unity.git?path=/package`.
+- **`SocketIOManager` and `SocketIODiagnosticsOverlay` consolidated into BasicChat sample** — previously split across `Samples~/` root and a standalone `Samples~/Diagnostics/` folder; both now live in `Samples~/BasicChat/`. Import via Package Manager → Samples → "Basic Chat".
+- **Test assemblies** — removed `UNITY_INCLUDE_TESTS` platform constraint from all test asmdefs; tests now compile and run on all platforms, not just in the Editor
+
 ## [1.3.1] - 2026-04-04
 
 ### Added
