@@ -6,7 +6,7 @@ This guide takes you from zero to a working multiplayer connection in Unity. No 
 
 ## What You'll Build
 
-A Unity scene that connects to a local server, sends a message, and receives it back. Once this works, you're ready for the [PlayerSync](../Samples~/PlayerSync/README.md) and [Lobby](../Samples~/Lobby/README.md) samples.
+A Unity scene that connects to a local server, sends a message, and receives it back. Once this works, you're ready for the [PlayerSync](../package/Samples~/PlayerSync/README.md) and [Lobby](../package/Samples~/Lobby/README.md) samples.
 
 ---
 
@@ -17,7 +17,7 @@ A Unity scene that connects to a local server, sends a message, and receives it 
 3. Paste:
 
 ```
-https://github.com/Magithar/socketio-unity.git
+https://github.com/Magithar/socketio-unity.git?path=/package
 ```
 
 4. Click **Add**
@@ -114,9 +114,9 @@ You've got the basics. Here's where to go next:
 
 | I want to... | Go here |
 |---|---|
-| Sync player positions across clients | [PlayerSync sample](../Samples~/PlayerSync/README.md) |
-| Build a multiplayer lobby with rooms | [Lobby sample](../Samples~/Lobby/README.md) |
-| See lobby + match flow end-to-end | [LiveDemo sample](../Samples~/LiveDemo/README.md) |
+| Sync player positions across clients | [PlayerSync sample](../package/Samples~/PlayerSync/README.md) |
+| Build a multiplayer lobby with rooms | [Lobby sample](../package/Samples~/Lobby/README.md) |
+| See lobby + match flow end-to-end | [LiveDemo sample](../package/Samples~/LiveDemo/README.md) |
 | See connection state / RTT in-game | Enable `SocketIOManager.Instance.ShowDiagnostics = true` |
 | Run on WebGL / browser | [WebGL Notes](WEBGL_NOTES.md) |
 | Understand the full API | [README API Guide](../README.md#-usage-current-api) |

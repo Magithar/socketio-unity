@@ -74,130 +74,139 @@ graph TD
 
 ---
 
-## Directory Structure (UPM Package Layout)
+## Directory Structure (Repo Layout)
 
 ```
-socketio-unity/                 # Package root
-├── package.json                # UPM manifest
+socketio-unity/                 # Repo root
 ├── README.md
 ├── CHANGELOG.md
+├── API_STABILITY.md
+├── CONTRIBUTING.md
 │
-├── Runtime/                    # Runtime code (included in builds)
-│   ├── SocketIOUnity.asmdef
-│   ├── AssemblyInfo.cs
-│   │
-│   ├── Core/
-│   │   ├── EngineIO/           # Engine.IO v4 protocol
-│   │   │   ├── EngineIOClient.cs
-│   │   │   ├── EngineMessage.cs
-│   │   │   ├── HandshakeInfo.cs
-│   │   │   ├── HeartbeatController.cs
-│   │   │   └── PingRttTracker.cs
-│   │   │
-│   │   ├── SocketIO/           # Socket.IO client layer
-│   │   │   ├── SocketIOClient.cs
-│   │   │   ├── ConnectionState.cs    ← connection lifecycle enum
-│   │   │   ├── SocketError.cs        ← typed error struct + ErrorType enum
-│   │   │   ├── NamespaceManager.cs
-│   │   │   ├── NamespaceSocket.cs
-│   │   │   ├── EventRegistry.cs
-│   │   │   ├── AckRegistry.cs
-│   │   │   ├── AckEntry.cs
-│   │   │   ├── ReconnectController.cs
-│   │   │   └── ReconnectConfig.cs
-│   │   │
-│   │   ├── Protocol/           # Packet parsing
-│   │   │   ├── SocketPacket.cs
-│   │   │   ├── SocketPacketParser.cs
-│   │   │   └── SocketPacketType.cs
-│   │   │
-│   │   └── Pooling/            # GC optimization
-│   │       ├── ListPool.cs
-│   │       └── ObjectPool.cs
-│   │
-│   ├── Debug/                  # Instrumentation
-│   │   ├── ProfilerMarkers.cs
-│   │   ├── SocketIOProfilerCounters.cs
-│   │   ├── SocketIOThroughputTracker.cs
-│   │   ├── SocketIOTrace.cs
-│   │   ├── TraceConfig.cs
-│   │   ├── TraceLevel.cs
-│   │   ├── TraceCategory.cs
-│   │   ├── TraceEvent.cs
-│   │   ├── ITraceSink.cs
-│   │   └── UnityDebugTraceSink.cs
-│   │
-│   ├── Serialization/          # Binary handling
-│   │   ├── BinaryPacketAssembler.cs
-│   │   ├── BinaryPacketBuilder.cs
-│   │   └── BinaryPacketBuilderPool.cs
-│   │
-│   ├── Transport/              # Platform abstraction
-│   │   ├── ITransport.cs
-│   │   ├── TransportFactory.cs
-│   │   ├── WebSocketTransport.cs
-│   │   ├── WebSocket.cs
-│   │   ├── WebGLWebSocketTransport.cs
-│   │   └── WebGLSocketBridge.cs
-│   │
-│   ├── UnityIntegration/       # Unity lifecycle
-│   │   ├── ITickable.cs
-│   │   ├── UnityTickDriver.cs
-│   │   └── UnityMainThreadDispatcher.cs
-│   │
-│   ├── Plugins/WebGL/
-│   │   └── SocketIOWebGL.jslib
-│   └── link.xml                    ← IL2CPP stripping preservation
+├── Documentation~/             # Package documentation
+│   ├── ARCHITECTURE.md
+│   ├── BINARY_EVENTS.md
+│   ├── DEBUGGING_GUIDE.md
+│   ├── GETTING_STARTED.md
+│   ├── MIRROR_INTEGRATION.md
+│   ├── NETWORK_TROUBLESHOOTING.md
+│   ├── RECONNECT_BEHAVIOR.md
+│   └── WEBGL_NOTES.md
 │
-├── Editor/                     # Editor-only code
-│   ├── SocketIOUnity.Editor.asmdef
-│   ├── ProtocolEdgeCaseTests.cs
-│   └── SocketIONetworkHud.cs
+├── TestServer~/                # Node.js test servers
+├── TestProject~/               # Standalone Unity test project
 │
-├── Tests/                      # Automated tests
-│   ├── Runtime/
-│   │   ├── BugRegressionTests.cs
-│   │   ├── ReconnectConfigTests.cs
-│   │   ├── LobbyStateIntegrationTests.cs
-│   │   └── SocketIOUnity.Tests.asmdef
-│   └── EditMode/               # Stress tests
-│       ├── StressTests.cs
-│       └── SocketIOUnity.Tests.Stress.asmdef
-│
-├── Samples~/                   # UPM importable samples
-│   ├── BasicChat/
-│   │   ├── BasicChatUI.cs
-│   │   ├── BasicChatScene.unity
-│   │   └── README.md
-│   ├── PlayerSync/             # Real-time multiplayer demo
-│   │   ├── README.md
-│   │   ├── PlayerSyncScene.unity
-│   │   └── Scripts/
-│   ├── Lobby/                  # Multiplayer lobby system
-│   │   ├── README.md
-│   │   ├── LobbyScene.unity
-│   │   ├── Scripts/
-│   │   └── Prefab/
-│   ├── LiveDemo/               # End-to-end lobby → match demo
-│   │   ├── README.md
-│   │   ├── LiveDemo.unity
-│   │   └── Scripts/
-│   ├── Diagnostics/            # Runtime diagnostics overlay
-│   │   └── SocketIODiagnosticsOverlay.cs
-│   ├── SocketIOManager.cs      # ShowDiagnostics toggle
-│   ├── BinaryEventTest.cs
-│   ├── MainThreadDispatcherTest.cs
-│   ├── NamespaceAuthTest.cs
-│   ├── TraceDemo.cs
-│   └── WebGLTestController.cs
-│
-└── Documentation~/             # Package documentation
-    ├── ARCHITECTURE.md
-    ├── BINARY_EVENTS.md
-    ├── DEBUGGING_GUIDE.md
-    ├── GETTING_STARTED.md
-    ├── RECONNECT_BEHAVIOR.md
-    └── WEBGL_NOTES.md
+└── package/                    # UPM package root
+    ├── package.json            # UPM manifest
+    │
+    ├── Runtime/                # Runtime code (included in builds)
+    │   ├── SocketIOUnity.asmdef
+    │   ├── AssemblyInfo.cs
+    │   │
+    │   ├── Core/
+    │   │   ├── EngineIO/           # Engine.IO v4 protocol
+    │   │   │   ├── EngineIOClient.cs
+    │   │   │   ├── EngineMessage.cs
+    │   │   │   ├── HandshakeInfo.cs
+    │   │   │   ├── HeartbeatController.cs
+    │   │   │   └── PingRttTracker.cs
+    │   │   │
+    │   │   ├── SocketIO/           # Socket.IO client layer
+    │   │   │   ├── SocketIOClient.cs
+    │   │   │   ├── ConnectionState.cs    ← connection lifecycle enum
+    │   │   │   ├── SocketError.cs        ← typed error struct + ErrorType enum
+    │   │   │   ├── NamespaceManager.cs
+    │   │   │   ├── NamespaceSocket.cs
+    │   │   │   ├── EventRegistry.cs
+    │   │   │   ├── AckRegistry.cs
+    │   │   │   ├── AckEntry.cs
+    │   │   │   ├── ReconnectController.cs
+    │   │   │   └── ReconnectConfig.cs
+    │   │   │
+    │   │   ├── Protocol/           # Packet parsing
+    │   │   │   ├── SocketPacket.cs
+    │   │   │   ├── SocketPacketParser.cs
+    │   │   │   └── SocketPacketType.cs
+    │   │   │
+    │   │   └── Pooling/            # GC optimization
+    │   │       ├── ListPool.cs
+    │   │       └── ObjectPool.cs
+    │   │
+    │   ├── Debug/                  # Instrumentation
+    │   │   ├── ProfilerMarkers.cs
+    │   │   ├── SocketIOProfilerCounters.cs
+    │   │   ├── SocketIOThroughputTracker.cs
+    │   │   ├── SocketIOTrace.cs
+    │   │   ├── TraceConfig.cs
+    │   │   ├── TraceLevel.cs
+    │   │   ├── TraceCategory.cs
+    │   │   ├── TraceEvent.cs
+    │   │   ├── ITraceSink.cs
+    │   │   └── UnityDebugTraceSink.cs
+    │   │
+    │   ├── Serialization/          # Binary handling
+    │   │   ├── BinaryPacketAssembler.cs
+    │   │   ├── BinaryPacketBuilder.cs
+    │   │   └── BinaryPacketBuilderPool.cs
+    │   │
+    │   ├── Transport/              # Platform abstraction
+    │   │   ├── ITransport.cs
+    │   │   ├── TransportFactory.cs
+    │   │   ├── WebSocketTransport.cs
+    │   │   ├── WebSocket.cs
+    │   │   ├── WebGLWebSocketTransport.cs
+    │   │   └── WebGLSocketBridge.cs
+    │   │
+    │   ├── UnityIntegration/       # Unity lifecycle
+    │   │   ├── ITickable.cs
+    │   │   ├── UnityTickDriver.cs
+    │   │   └── UnityMainThreadDispatcher.cs
+    │   │
+    │   ├── Plugins/WebGL/
+    │   │   └── SocketIOWebGL.jslib
+    │   └── link.xml                    ← IL2CPP stripping preservation
+    │
+    ├── Editor/                     # Editor-only code
+    │   ├── SocketIOUnity.Editor.asmdef
+    │   ├── ProtocolEdgeCaseTests.cs
+    │   └── SocketIONetworkHud.cs
+    │
+    ├── Tests/                      # Automated tests
+    │   ├── Runtime/
+    │   │   ├── BugRegressionTests.cs
+    │   │   ├── ReconnectConfigTests.cs
+    │   │   ├── LobbyStateIntegrationTests.cs
+    │   │   └── SocketIOUnity.Tests.asmdef
+    │   └── EditMode/               # Stress tests
+    │       ├── StressTests.cs
+    │       └── SocketIOUnity.Tests.Stress.asmdef
+    │
+    └── Samples~/                   # UPM importable samples
+        ├── BasicChat/
+        │   ├── BasicChatUI.cs
+        │   ├── BasicChatScene.unity
+        │   └── README.md
+        ├── PlayerSync/             # Real-time multiplayer demo
+        │   ├── README.md
+        │   ├── PlayerSyncScene.unity
+        │   └── Scripts/
+        ├── Lobby/                  # Multiplayer lobby system
+        │   ├── README.md
+        │   ├── LobbyScene.unity
+        │   ├── Scripts/
+        │   └── Prefab/
+        ├── LiveDemo/               # End-to-end lobby → match demo
+        │   ├── README.md
+        │   ├── LiveDemo.unity
+        │   └── Scripts/
+        ├── Diagnostics/            # Runtime diagnostics overlay
+        │   └── SocketIODiagnosticsOverlay.cs
+        ├── SocketIOManager.cs      # ShowDiagnostics toggle
+        ├── BinaryEventTest.cs
+        ├── MainThreadDispatcherTest.cs
+        ├── NamespaceAuthTest.cs
+        ├── TraceDemo.cs
+        └── WebGLTestController.cs
 ```
 
 > **Note**: `Samples~/` contains UPM-style samples importable via Package Manager.

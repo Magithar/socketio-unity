@@ -35,7 +35,7 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 **1. Install via Unity Package Manager** (`Window > Package Manager` → `+` → `Add package from git URL`):
 
 ```
-https://github.com/Magithar/socketio-unity.git
+https://github.com/Magithar/socketio-unity.git?path=/package
 ```
 
 **2. Connect and send events:**
@@ -100,11 +100,11 @@ Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. 
 
 1. Open Unity's Package Manager (`Window > Package Manager`)
 2. Click `+` → `Add package from git URL`
-3. Enter: `https://github.com/Magithar/socketio-unity.git`
+3. Enter: `https://github.com/Magithar/socketio-unity.git?path=/package`
 
 ### Option 2: Manual
 
-Download or clone this repository and copy it into your project's `Packages/` directory (or add via `Add package from disk` → `package.json`).
+Download or clone this repository and copy the `package/` subdirectory into your project's `Packages/` directory (or add via `Add package from disk` → select `package/package.json`).
 
 ## Dependencies
 
@@ -272,7 +272,7 @@ socket.On("chat", OnChatMessage);
 socket.Connect("ws://localhost:3002");
 ```
 
-[Video](https://youtu.be/7dU89B9O50c) · [Full docs](Samples~/BasicChat/README.md) · Import via Package Manager → Samples → "Basic Chat"
+[Video](https://youtu.be/7dU89B9O50c) · [Full docs](package/Samples~/BasicChat/README.md) · Import via Package Manager → Samples → "Basic Chat"
 
 ### PlayerSync
 
@@ -286,7 +286,7 @@ ns.On("existing_players", (string json) => { /* spawn remote players */ });
 ns.Emit("player_move", JsonConvert.SerializeObject(movePacket));
 ```
 
-[Video](https://www.youtube.com/watch?v=pdLP2jB7iEE) · [Full docs](Samples~/PlayerSync/README.md) · Import via Package Manager → Samples → "Player Sync"
+[Video](https://www.youtube.com/watch?v=pdLP2jB7iEE) · [Full docs](package/Samples~/PlayerSync/README.md) · Import via Package Manager → Samples → "Player Sync"
 
 ### Lobby
 
@@ -298,7 +298,7 @@ npm run start:lobby   # http://localhost:3001
 
 Features: room creation, join-by-code, persistent identity across reconnects, session token auth, 10-second grace window, automatic host promotion.
 
-[Full docs](Samples~/Lobby/README.md) · Import via Package Manager → Samples → "Lobby"
+[Full docs](package/Samples~/Lobby/README.md) · Import via Package Manager → Samples → "Lobby"
 
 ### LiveDemo
 
@@ -313,7 +313,7 @@ npm run start:lobby        # Terminal 1 — :3001
 npm run start:playersync   # Terminal 2 — :3003
 ```
 
-[Full docs](Samples~/LiveDemo/README.md)
+[Full docs](package/Samples~/LiveDemo/README.md)
 
 ---
 

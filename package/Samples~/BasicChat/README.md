@@ -220,5 +220,5 @@ Ready for multiplayer? Check out the **PlayerSync** sample for production-grade 
 ## 📚 Further Reading
 
 - [Socket.IO Protocol Docs](https://socket.io/docs/v4/)
-- [Package README](../../README.md)
-- [API_STABILITY.md](../../API_STABILITY.md) - Version guarantees
+- [Package README](../../../README.md)
+- [API_STABILITY.md](../../../API_STABILITY.md) - Version guarantees
