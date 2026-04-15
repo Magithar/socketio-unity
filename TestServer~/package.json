@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "Development test servers for SocketIOUnity",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node mirror-server.js",
+    "dev": "nodemon mirror-server.js",
+    "start:basic": "node server.js",
+    "dev:basic": "nodemon server.js",
     "start:basicchat": "node basicchat-server.js",
     "dev:basicchat": "nodemon basicchat-server.js",
     "start:lobby": "node lobby-server.js",

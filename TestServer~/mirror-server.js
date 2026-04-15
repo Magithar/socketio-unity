@@ -57,7 +57,8 @@ const io         = new Server(httpServer, {
 // Config
 // ---------------------------------------------------------------------------
 
-const PORT               = 3002;
+const PORT               = parseInt(process.env.PORT, 10) || 3002;
+const TEST_TOKEN          = process.env.TEST_TOKEN || null;
 const RECONNECT_GRACE_MS = 10_000;
 const ROOM_CODE_CHARS    = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH   = 6;
@@ -367,6 +368,16 @@ function emitToRoom(roomId, event, payload) {
 // HTTP test endpoints
 // Open these in a browser while the game is running to fire events.
 // ---------------------------------------------------------------------------
+
+// Require ?token=... on all /test/* endpoints when TEST_TOKEN is set (prod deploys).
+// When unset (local dev), endpoints are open.
+function requireTestToken(req, res, next) {
+    if (!TEST_TOKEN) return next();
+    if (req.query.token === TEST_TOKEN) return next();
+    return res.status(401).json({ ok: false, error: 'Invalid or missing token' });
+}
+
+app.use('/test', requireTestToken);
 
 // GET /test — active rooms overview
 app.get('/test', (req, res) => {

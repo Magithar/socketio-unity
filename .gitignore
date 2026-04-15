@@ -25,6 +25,10 @@
 *.suo
 *.user
 
+# Node
+/TestServer~/node_modules/
+/TestServer~/package-lock.json
+
 # Claude
 .claude/
 .specstory/
