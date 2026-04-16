@@ -33,7 +33,7 @@ Two Editor/standalone instances in the same lobby room. Host clicks Start Match 
 - Mirror installed (via Package Manager or `.unitypackage`)
 - Lobby sample working — this sample builds on top of it (`Samples/Lobby/`)
 - Node.js 14+ and npm
-- **Build target: Standalone** (Mac/Windows) for Editor testing — WebGL build target prevents the native WebSocket transport from being used in Play mode
+- **Build target: Standalone** (Mac/Windows) recommended for Editor testing — WebGL build target prevents the native WebSocket transport from being used in Play mode. WebGL builds work via SimpleWebTransport for local testing.
 
 New to this project? Start with [BasicChat](../BasicChat/README.md) → [Lobby](../Lobby/README.md) → this sample.
 
@@ -55,6 +55,12 @@ Press Play → Enter name → Create Room → Start Match
 The cyan capsule spawns and responds to WASD input. The server terminal prints connection and identity logs.
 
 For multiplayer: build a standalone, run it alongside the Editor, join the same room with a different name — the host clicks Start Match and both capsules appear.
+
+### How Hosting Works
+
+The lobby host (whoever creates the room) becomes the **Mirror host** — it runs `StartHost()` and acts as the Mirror server. All other clients run `StartClient()` and connect to the host's address. The Editor typically acts as the host; standalone and WebGL builds connect to it as clients.
+
+> WebGL clients connect via SimpleWebTransport (port 7778). Standalone clients connect via KcpTransport (port 7777). Both are routed through MultiplexTransport automatically.
 
 ---
 
@@ -242,6 +248,21 @@ Do **not** attach Mirror's example `Player` script — it expects inspector refs
 
 ---
 
+## NetworkManager Setup
+
+The sample's `NetworkManager` uses **MultiplexTransport** to support both standalone and WebGL clients connecting to the same Mirror host:
+
+| Component | Role |
+|-----------|------|
+| `NetworkManager` | Player Prefab: `MirrorPlayer`, Auto Create Player: on, Spawn Method: Random |
+| `MultiplexTransport` | Routes connections to the correct transport based on protocol |
+| `KcpTransport` | Standalone / Editor — UDP on port 7777 |
+| `SimpleWebTransport` | WebGL — WebSocket fallback on port 7778 |
+
+> Socket.IO WebGL works fully (lobby, matchmaking, backend events). Mirror WebGL support via SimpleWebTransport is functional for local testing but all Mirror networking currently runs locally only.
+
+---
+
 ## Inspector Wiring (MirrorGameOrchestrator)
 
 | Field | Assign |
@@ -259,18 +280,16 @@ Do **not** attach Mirror's example `Player` script — it expects inspector refs
 
 ```
 MirrorIntegrationScene
-  DemoManager
-    LobbyManager
-      LobbyNetworkManager component
-      LobbyStateStore component
-      LobbyUIController component
-      GameEventBridge component
-    LobbyLayer
-      Canvas           ← lobby UI, active at start
-    GameLayer          ← inactive at start; activated by MirrorGameOrchestrator
-      NetworkManager   ← Mirror NetworkManager + KCP Transport + MirrorPlayer prefab
-      Floor
-    MirrorGameOrchestrator
+  DemoManager                  ← GameEventBridge component lives here
+    LobbyManager               ← LobbyNetworkManager + LobbyStateStore + LobbyUIController
+  UI                           ← EventSystem
+  LobbyLayer                   ← lobby UI, active at start
+    Canvas
+  GameLayer                    ← inactive at start; activated by MirrorGameOrchestrator
+    NetworkManager             ← Mirror NetworkManager + MultiplexTransport (KCP + SimpleWebTransport) + MirrorPlayer prefab
+    Floor
+  MirrorGameOrchestrator
+  Directional Light
   Main Camera
 ```
 
@@ -341,22 +360,21 @@ Mirror's built-in example scripts (`Assets/Mirror/Examples/`) expect inspector r
 
 ## Verified Working
 
-Tested with two instances (Unity Editor + standalone build) on the same machine:
+Tested with the Editor as Mirror host and various client formats on the same machine:
 
-| Step | Result |
-|------|--------|
-| Both clients connect to `/lobby` | ✓ |
-| Second client joins via room code | ✓ |
-| Host clicks Start Match | ✓ |
-| Both instances enter game layer | ✓ |
-| Mirror host starts, client connects to `localhost` | ✓ |
-| Both capsules spawned (red = local, blue = remote) | ✓ |
-| Lobby display name shown above each player | ✓ |
-| `PlayerIdentityBridge` registers `netId ↔ playerId` for both | ✓ |
-| WASD movement synced via `NetworkTransform` (unreliable) | ✓ |
-| Each player controlled independently | ✓ |
+| Step | Editor + Standalone | Editor + WebGL |
+|------|---------------------|----------------|
+| Both clients connect to `/lobby` | ✓ | ✓ |
+| Client joins via room code | ✓ | ✓ |
+| Host clicks Start Match | ✓ | ✓ |
+| Both instances enter game layer | ✓ | ✓ |
+| Mirror host starts, client connects | ✓ (KCP :7777) | ✓ (SimpleWeb :7778) |
+| Both capsules spawned (red = local, blue = remote) | ✓ | ✓ |
+| Lobby display name shown above each player | ✓ | ✓ |
+| `PlayerIdentityBridge` registers `netId ↔ playerId` | ✓ | ✓ |
+| WASD movement synced via `NetworkTransform` | ✓ | ✓ |
 
-For cross-machine testing, pass the host's LAN IP in `start_match` — see `hostAddress` contract above.
+> All Mirror networking currently runs locally only (localhost / LAN). For cross-machine testing, pass the host's LAN IP in `start_match` — see `hostAddress` contract above.
 
 ---
 
@@ -371,10 +389,12 @@ For cross-machine testing, pass the host's LAN IP in `start_match` — see `host
 
 ## Known Limitations
 
+- **Mirror runs locally only** — all Mirror networking (KCP / SimpleWebTransport) is local/LAN for now; remote deployment requires additional infrastructure
+- **WebGL: Socket.IO works, Mirror is local** — lobby, matchmaking, and backend events work fully in WebGL; Mirror's SimpleWebTransport is included for local WebGL testing but is not production-verified for remote connections
 - P2P host mode requires NAT traversal infrastructure — not included
 - No host migration for the Mirror layer; if the Mirror host disconnects, all clients must return to lobby and restart
 - `GameEventBridge` event handlers (`score_update`, `player_killed`) log to console — wire them to your game's HUD/components
-- `hostAddress` is not sent by default in `StartMatch` — localhost fallback is used in Editor/dev builds
+- `hostAddress` is auto-detected via `LobbyUIController.GetLocalHostAddress()` (first non-loopback IPv4, or `"localhost"` if none found) — override via the `Host Address Override` inspector field on `LobbyUIController` for cross-machine testing
 
 ---
 

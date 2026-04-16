@@ -117,9 +117,10 @@ You've got the basics. Here's where to go next:
 | Sync player positions across clients | [PlayerSync sample](../package/Samples~/PlayerSync/README.md) |
 | Build a multiplayer lobby with rooms | [Lobby sample](../package/Samples~/Lobby/README.md) |
 | See lobby + match flow end-to-end | [LiveDemo sample](../package/Samples~/LiveDemo/README.md) |
+| Integrate Socket.IO with Mirror | [Mirror Integration sample](../package/Samples~/MirrorIntegration/README.md) |
 | See connection state / RTT in-game | Enable `SocketIOManager.Instance.ShowDiagnostics = true` |
 | Run on WebGL / browser | [WebGL Notes](WEBGL_NOTES.md) |
-| Understand the full API | [README API Guide](../README.md#-usage-current-api) |
+| Understand the full API | [README API Guide](../README.md#usage) |
 | Debug network traffic | [Debugging Guide](DEBUGGING_GUIDE.md) |
 | Understand reconnection | [Reconnect Behavior](RECONNECT_BEHAVIOR.md) |
 
@@ -135,6 +136,8 @@ PlayerSync — real-time position sync, namespaces, reconnect
 Lobby — rooms, host migration, session identity, reconnect recovery
     ↓
 LiveDemo — end-to-end lobby → match flow in a single scene
+    ↓
+Mirror Integration — hybrid Socket.IO + Mirror architecture (requires Mirror)
 ```
 
 Each sample builds on the previous one. Read the sample READMEs — they explain the architecture, not just the setup.

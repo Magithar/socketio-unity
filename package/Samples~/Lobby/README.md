@@ -75,6 +75,32 @@ graph TD
 | **RoomState** | Data model for the full room snapshot |
 | **LobbyPlayer** | Data model for a single player entry |
 
+### LobbyNetworkManager Public API
+
+| Method / Property | Description |
+|---|---|
+| `Socket` | `SocketIOClient` reference — used by Mirror Integration's `GameEventBridge` to call `.Of("/game")` |
+| `CreateRoom(string name)` | Emit `create_room`; ack sets `LocalPlayerId` + `SessionToken` |
+| `JoinRoom(string roomId, string name)` | Emit `join_room` |
+| `LeaveRoom()` | Emit `leave_room`; resets store |
+| `SetReady(bool ready)` | Emit `player_ready` |
+| `StartMatch(string sceneName, string hostAddress)` | Host only. Emits `start_match { sceneName, hostAddress }` — `hostAddress` is auto-detected by `LobbyUIController` or set via the `Host Address Override` inspector field |
+| `ReconnectSession(playerId, roomId, sessionToken)` | Restore a session within the 10-second grace window |
+| `Reconnect()` | Re-establish the socket connection (does not restore session) |
+
+### LobbyStateStore Events
+
+| Event | Signature | Fires when |
+|---|---|---|
+| `OnConnected` | `Action` | `/lobby` namespace connects |
+| `OnDisconnected` | `Action` | Root socket state → `Disconnected` |
+| `OnRoomStateChanged` | `Action<RoomState>` | Authoritative room snapshot received |
+| `OnPlayerJoined` | `Action<LobbyPlayer>` | New player detected in room state diff |
+| `OnPlayerLeft` | `Action<string>` | Player absent from room state diff (playerId) |
+| `OnPlayerRemoved` | `Action<string, string, string>` | Server explicitly removes player (playerId, name, reason) |
+| `OnError` | `Action<SocketError>` | Socket or auth error |
+| `OnMatchStarted` | `Action<string, string>` | Match confirmed by backend (sceneName, hostAddress) |
+
 ---
 
 ## Reconnect Flow
@@ -107,11 +133,11 @@ graph TD
 | `reconnect_player` | Client → Server (ack) | Restore a session within grace window; sends `{ playerId, roomId, sessionToken }`; ack: `{ ok, roomId, playerId }` |
 | `leave_room` | Client → Server (ack) | Intentional exit; no grace period |
 | `player_ready` | Client → Server | Toggle or set ready state |
-| `start_match` | Client → Server | Host only; emits `match_started` to room |
+| `start_match` | Client → Server | Host only; emits `match_started` to room; `{ sceneName, hostAddress }` |
 | `player_identity` | Server → Client | Sent before ACK on create/join; `{ playerId, sessionToken }` — guarantees client knows its ID before `room_state` arrives |
 | `room_state` | Server → Client | Full authoritative room snapshot |
 | `player_removed` | Server → Client | Player permanently removed; `{ playerId, name, reason }` where reason is `"left"` or `"reconnect_timeout"` |
-| `match_started` | Server → Client | Host started the match; `{ sceneName }` |
+| `match_started` | Server → Client | Host started the match; `{ sceneName, hostAddress }` — `hostAddress` is nullable, used by Mirror Integration for P2P host mode |
 
 ---
 
@@ -245,13 +271,13 @@ Save as `lobby-server.js` and run with `node lobby-server.js` (or `npm run start
  *   join_room         { roomId, name }        → ack { ok, roomId, playerId, sessionToken }
  *   reconnect_player  { playerId, roomId, sessionToken } → ack { ok, roomId, playerId }
  *   player_ready      { ready }
- *   start_match       { sceneName? }
+ *   start_match       { sceneName?, hostAddress? }
  *   leave_room        {}                      → ack { ok }
  *
  * Events (server → client):
  *   player_identity   { playerId, sessionToken }  (emitted before ACK on create/join)
  *   room_state        JSON snapshot of full room
- *   match_started     { sceneName }
+ *   match_started     { sceneName, hostAddress }
  *   player_removed    { playerId, name, reason }  reason: "left" | "reconnect_timeout"
  *
  * DEVELOPMENT SERVER ONLY — no auth, rate-limiting, or abuse protection.
@@ -590,10 +616,10 @@ lobby.on('connection', socket => {
         const room = rooms.get(roomId);
         if (!room || room.hostId !== playerId) return;
 
-        const { sceneName = null } = parsePayload(data);
+        const { sceneName = null, hostAddress = null } = parsePayload(data);
         const host = room.players.get(playerId);
-        lobbyLog(host?.traceId, roomId, playerId, `🎮 match started scene=${sceneName}`);
-        io.of('/lobby').to(roomId).emit('match_started', JSON.stringify({ sceneName }));
+        lobbyLog(host?.traceId, roomId, playerId, `🎮 match started scene=${sceneName} hostAddress=${hostAddress}`);
+        io.of('/lobby').to(roomId).emit('match_started', JSON.stringify({ sceneName, hostAddress }));
     });
 
     // ------------------------------------------------------------------
@@ -712,6 +738,8 @@ Select the **LobbyManagers** GameObject and configure **LobbyUIController**:
 | Connection Status Text | ConnectionStatusText |
 | Reconnect Panel | ReconnectPanel |
 | Reconnect Button | ReconnectButton |
+| Match Scene Name | Scene to load on match start (empty = no scene load) |
+| Host Address Override | Manual Mirror host address; leave empty to auto-detect LAN IP |
 
 ### ScrollView Setup
 
@@ -741,3 +769,5 @@ Select the **LobbyManagers** GameObject and configure **LobbyUIController**:
 ## Prerequisites
 
 New to Socket.IO Unity? Start with [BasicChat](../BasicChat/README.md), then [PlayerSync](../PlayerSync/README.md). This sample builds on those concepts and adds acknowledgement callbacks, namespace-based multi-server architecture, manual reconnection flow, and stateful room management.
+
+**Next steps:** See the [LiveDemo sample](../LiveDemo/README.md) to combine Lobby + PlayerSync into one scene, or the [Mirror Integration sample](../MirrorIntegration/README.md) to pair Socket.IO matchmaking with Mirror in-scene networking.

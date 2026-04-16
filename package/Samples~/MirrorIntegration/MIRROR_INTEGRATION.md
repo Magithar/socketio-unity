@@ -23,7 +23,7 @@ This guide assumes familiarity with both libraries individually. If you are new 
 
 Mirror syncs simulation state between peers, but the backend remains **authoritative for all game outcomes** (scores, kills, round end). Mirror never validates — it only synchronizes.
 
-These systems do not compete. A session that uses both has exactly one WebSocket to the backend (Socket.IO) and one Mirror transport (KCP, Telepathy, Steamworks, etc.). They share a single integration point: the moment a match is confirmed by the backend.
+These systems do not compete. A session that uses both has exactly one WebSocket to the backend (Socket.IO) and one Mirror transport. The sample uses `MultiplexTransport` with KcpTransport (standalone/Editor) and SimpleWebTransport (WebGL) so both platforms can connect to the same host. They share a single integration point: the moment a match is confirmed by the backend.
 
 ---
 
@@ -76,7 +76,7 @@ Match ends → ReturnToLobby()
 | Host migration | Yes | — | Lobby server owns `hostId`, not Mirror |
 | Reconnect recovery | Yes | — | `ReconnectConfig`, `SessionToken`, grace window |
 | Anti-cheat / server validation | Yes | — | Only the Node.js backend can be trusted |
-| WebGL browser support | Yes | Partial | socketio-unity fully supports WebGL; Mirror WebGL is limited |
+| WebGL browser support | Yes | Partial | socketio-unity fully supports WebGL; Mirror via SimpleWebTransport works locally but is not production-verified for remote |
 
 ---
 
@@ -91,6 +91,9 @@ The backend has no reliable way to obtain the host's routable IP:
 - Host self-reporting can be spoofed
 
 > ⚠️ P2P host mode requires NAT traversal or relay infrastructure and is not recommended for production without additional networking layers (e.g. Steam Networking, Epic Online Services, or a dedicated TURN relay).
+
+**Current sample: local host mode.**
+The sample uses P2P host mode for simplicity — the lobby host (room creator) runs `StartHost()`, other players run `StartClient()`. In practice this means the Unity Editor acts as the Mirror server and standalone/WebGL clients connect to it on `localhost`. All Mirror networking runs locally for now.
 
 ---
 
@@ -124,7 +127,7 @@ Responsibilities:
 Uses `FindObjectOfType<LobbyStateStore>()` — Mirror spawned prefabs cannot hold inspector references to scene objects.
 
 ### `BillboardCanvas.cs` (from PlayerSync sample)
-Attach to the Canvas child of the player prefab. Rotates the world-space canvas to face `Camera.main` every `LateUpdate`, keeping the name label readable from any camera angle. Reused directly from `../PlayerSync/Scripts/BillboardCanvas.cs` — no copy needed.
+Attach to the Canvas child of the player prefab. Rotates the world-space canvas to face `Camera.main` every `LateUpdate`, keeping the name label readable from any camera angle. Included as a copy of `../PlayerSync/Scripts/BillboardCanvas.cs` so the sample is self-contained.
 
 ### `GameEventBridge.cs`
 `MonoBehaviour` — attach to a persistent manager in the game scene.  

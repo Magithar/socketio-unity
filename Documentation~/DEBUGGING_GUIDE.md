@@ -28,7 +28,7 @@ TraceConfig.Level = TraceLevel.Verbose;
 
 ## Diagnostics Overlay
 
-The `SocketIODiagnosticsOverlay` component (in `package/Samples~/Diagnostics/`) renders a runtime UI panel — no Profiler window needed.
+The `SocketIODiagnosticsOverlay` component (in `package/Samples~/BasicChat/`) renders a runtime UI panel — no Profiler window needed.
 
 ### Enable
 
@@ -373,6 +373,7 @@ npm start                  # Binary/auth test server on port 3000
 npm run start:playersync   # PlayerSync server on port 3003
 npm run start:lobby        # Lobby server on port 3001
 npm run start:livedemo     # Combined lobby + playersync on port 3000
+npm run start:mirror       # Lobby + /game namespace for Mirror integration on port 3002
 ```
 
 ### Available Namespaces

@@ -171,7 +171,8 @@ Once you understand this sample, explore:
 - **Namespaces** (`socket.Of("/custom")`) for logical separation
 - **Binary events** for sending images/files
 - **Acknowledgments** for request-response patterns
-- **Room-based multiplayer** patterns (see future samples)
+- **Room-based multiplayer** — see the [Lobby sample](../Lobby/README.md)
+- **Mirror integration** — hybrid Socket.IO + Mirror architecture in the [Mirror Integration sample](../MirrorIntegration/README.md)
 
 ### 🎮 Advanced Sample: PlayerSync
 

@@ -172,3 +172,5 @@ This sample combines the Lobby and PlayerSync samples. Familiarize yourself with
 3. [Lobby](../Lobby/README.md) — room management, reconnection, host migration
 
 The LiveDemo adds the orchestration layer that ties them together.
+
+**Next step:** If you need in-scene transform/physics sync via Mirror alongside the Socket.IO backend, see the [Mirror Integration sample](../MirrorIntegration/README.md).

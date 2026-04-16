@@ -88,8 +88,6 @@ socketio-unity/                 # Repo root
 │   ├── BINARY_EVENTS.md
 │   ├── DEBUGGING_GUIDE.md
 │   ├── GETTING_STARTED.md
-│   ├── MIRROR_INTEGRATION.md
-│   ├── NETWORK_TROUBLESHOOTING.md
 │   ├── RECONNECT_BEHAVIOR.md
 │   └── WEBGL_NOTES.md
 │
@@ -185,6 +183,8 @@ socketio-unity/                 # Repo root
         ├── BasicChat/
         │   ├── BasicChatUI.cs
         │   ├── BasicChatScene.unity
+        │   ├── SocketIOManager.cs              # Singleton + ShowDiagnostics toggle
+        │   ├── SocketIODiagnosticsOverlay.cs   # Runtime diagnostics panel
         │   └── README.md
         ├── PlayerSync/             # Real-time multiplayer demo
         │   ├── README.md
@@ -199,9 +199,12 @@ socketio-unity/                 # Repo root
         │   ├── README.md
         │   ├── LiveDemo.unity
         │   └── Scripts/
-        ├── Diagnostics/            # Runtime diagnostics overlay
-        │   └── SocketIODiagnosticsOverlay.cs
-        ├── SocketIOManager.cs      # ShowDiagnostics toggle
+        ├── MirrorIntegration/      # Socket.IO + Mirror hybrid architecture
+        │   ├── README.md
+        │   ├── MIRROR_INTEGRATION.md
+        │   ├── MirrorIntegrationScene.unity
+        │   ├── Scripts/
+        │   └── Prefab/
         ├── BinaryEventTest.cs
         ├── MainThreadDispatcherTest.cs
         ├── NamespaceAuthTest.cs
@@ -239,7 +242,7 @@ socketio-unity/                 # Repo root
 - **Acknowledgements** — Timeout-protected request/response
 - **Auth handshakes** — Per-namespace authentication
 
-### Debug Layer (`Debug/` + `Samples~/Diagnostics/`)
+### Debug Layer (`Debug/` + `Samples~/BasicChat/`)
 
 - **Diagnostics overlay** — `SocketIODiagnosticsOverlay` runtime UI panel; toggle via `SocketIOManager.Instance.ShowDiagnostics = true`
 - **Packet tracing** — `SocketIOTrace` with configurable levels

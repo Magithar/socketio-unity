@@ -847,6 +847,14 @@ void Update()
 - ✅ **WebGL compatibility** - automatic transport detection, browser-tested
 - ✅ **CORS support** - sample server includes proper CORS configuration
 
+## Next Steps
+
+| I want to... | Go here |
+|---|---|
+| Add rooms, host migration, session identity | [Lobby sample](../Lobby/README.md) |
+| See lobby + match flow end-to-end | [LiveDemo sample](../LiveDemo/README.md) |
+| Add Mirror for in-scene transform/physics sync | [Mirror Integration sample](../MirrorIntegration/README.md) |
+
 ## Future Production Enhancements
 
 - Server-authoritative movement validation

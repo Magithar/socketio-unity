@@ -330,7 +330,7 @@ npm run start:mirror   # Port 3002 — lobby + /game namespace
 
 Features: lobby-to-match handoff via `match_started` event, WASD player movement synced via Mirror `NetworkTransform`, `GameIdentityRegistry` bridging Mirror `netId` to Socket.IO `playerId`, `GameEventBridge` for backend events (`score_update`, `player_killed`) routed to Mirror objects, graceful shutdown emitting `leave_room` before stopping Mirror, HTTP endpoints to fire game events from a browser during testing.
 
-Requires Mirror (installed via Package Manager) and the Lobby sample imported first. **Build target must be Standalone** — WebGL build target prevents the native WebSocket transport in Play mode.
+Requires Mirror (installed via Package Manager) and the Lobby sample imported first. **Standalone build target recommended** for Editor testing. WebGL builds work via Mirror's SimpleWebTransport for local testing.
 
 [Sample docs](package/Samples~/MirrorIntegration/README.md) · [Architecture guide](package/Samples~/MirrorIntegration/MIRROR_INTEGRATION.md) · Import via Package Manager → Samples → "Mirror Integration"
 
@@ -466,6 +466,7 @@ npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integ
 | `ProtocolEdgeCaseTests.cs` | Editor tool | Protocol parsing edge cases |
 | `BugRegressionTests.cs` | Runtime NUnit | Binary assembler, ACK overflow, JSON degradation |
 | `ReconnectConfigTests.cs` | Runtime NUnit | Defensive copy, factory presets |
+| `ConnectionStateTests.cs` | Runtime NUnit | State transitions, OnStateChanged, namespace reconnect |
 | `LobbyStateIntegrationTests.cs` | Runtime NUnit | State invariants, namespace timing |
 | `StressTests.cs` | EditMode NUnit | 1K events, 10MB binary, 100 ACKs, 50 reconnects |
 
