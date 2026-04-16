@@ -58,9 +58,15 @@ For multiplayer: build a standalone, run it alongside the Editor, join the same 
 
 ### How Hosting Works
 
-The lobby host (whoever creates the room) becomes the **Mirror host** — it runs `StartHost()` and acts as the Mirror server. All other clients run `StartClient()` and connect to the host's address. The Editor typically acts as the host; standalone and WebGL builds connect to it as clients.
+The **Unity Editor acts as the Mirror host** — it runs `StartHost()` and is both server and player. All other clients (standalone builds, WebGL builds) run `StartClient()` and connect to the Editor. The Editor must be running for any client to play.
 
-> WebGL clients connect via SimpleWebTransport (port 7778). Standalone clients connect via KcpTransport (port 7777). Both are routed through MultiplexTransport automatically.
+This setup **only works locally** (same machine or LAN). Remote deployment requires dedicated server infrastructure not included in this sample.
+
+| | Editor (host) | Standalone / WebGL (client) |
+|---|---|---|
+| Mirror role | `StartHost()` — server + player | `StartClient(hostAddress)` |
+| Transport | KcpTransport (:7777) | KCP (:7777) or SimpleWebTransport (:7778) |
+| Must be running? | **Yes — always** | Connects to the Editor |
 
 ---
 

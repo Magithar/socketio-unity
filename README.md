@@ -322,15 +322,13 @@ npm run start:playersync   # Terminal 2 — :3003
 
 ### Mirror Integration
 
-Hybrid architecture sample — Socket.IO owns matchmaking, session identity, and server-authoritative events; Mirror owns in-scene transform/physics sync between peers. The two systems run in parallel and never cross their boundaries.
+Hybrid architecture — Socket.IO handles matchmaking and backend events, Mirror handles in-scene transform sync. Editor hosts, standalone/WebGL clients connect. Local only.
 
 ```bash
 npm run start:mirror   # Port 3002 — lobby + /game namespace
 ```
 
-Features: lobby-to-match handoff via `match_started` event, WASD player movement synced via Mirror `NetworkTransform`, `GameIdentityRegistry` bridging Mirror `netId` to Socket.IO `playerId`, `GameEventBridge` for backend events (`score_update`, `player_killed`) routed to Mirror objects, graceful shutdown emitting `leave_room` before stopping Mirror, HTTP endpoints to fire game events from a browser during testing.
-
-Requires Mirror (installed via Package Manager) and the Lobby sample imported first. **Standalone build target recommended** for Editor testing. WebGL builds work via Mirror's SimpleWebTransport for local testing.
+Requires Mirror and the Lobby sample. Standalone build target recommended; WebGL works via SimpleWebTransport for local testing.
 
 [Sample docs](package/Samples~/MirrorIntegration/README.md) · [Architecture guide](package/Samples~/MirrorIntegration/MIRROR_INTEGRATION.md) · Import via Package Manager → Samples → "Mirror Integration"
 
