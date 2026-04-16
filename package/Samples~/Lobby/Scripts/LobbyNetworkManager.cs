@@ -189,10 +189,10 @@ public class LobbyNetworkManager : MonoBehaviour
         _lobby.Emit("player_ready", new { ready });
     }
 
-    public void StartMatch(string sceneName = null)
+    public void StartMatch(string sceneName = null, string hostAddress = null)
     {
         if (!store.IsConnected || !store.IsHost) return;
-        _lobby.Emit("start_match", new { sceneName });
+        _lobby.Emit("start_match", new { sceneName, hostAddress });
     }
 
     /// <summary>

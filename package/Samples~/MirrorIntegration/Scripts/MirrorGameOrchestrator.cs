@@ -35,21 +35,21 @@ public class MirrorGameOrchestrator : MonoBehaviour
     private void Awake()
     {
         if (lobbyLayer != null) lobbyLayer.SetActive(true);
-        if (gameLayer  != null) gameLayer.SetActive(false);
+        if (gameLayer != null) gameLayer.SetActive(false);
     }
 
     private void OnEnable()
     {
         if (store == null) return;
-        store.OnMatchStarted  += HandleMatchStarted;
-        store.OnDisconnected  += HandleLobbyDisconnected;
+        store.OnMatchStarted += HandleMatchStarted;
+        store.OnDisconnected += HandleLobbyDisconnected;
     }
 
     private void OnDisable()
     {
         if (store == null) return;
-        store.OnMatchStarted  -= HandleMatchStarted;
-        store.OnDisconnected  -= HandleLobbyDisconnected;
+        store.OnMatchStarted -= HandleMatchStarted;
+        store.OnDisconnected -= HandleLobbyDisconnected;
     }
 
     // ---------------------------------------------------------------

@@ -24,6 +24,8 @@ public class LobbyUIController : MonoBehaviour
     [SerializeField] private LobbyStateStore store;
     /// <summary>Scene to load when match starts. Leave empty to skip scene load.</summary>
     [SerializeField] private string matchSceneName = "GameScene";
+    [Tooltip("Override for the Mirror host address. Leave empty to auto-detect this machine's LAN IPv4.")]
+    [SerializeField] private string hostAddressOverride = "";
 
     // ---- Lobby selection panel ----
     [Header("Lobby Selection Panel")]
@@ -420,7 +422,30 @@ public class LobbyUIController : MonoBehaviour
     private void OnStartMatchClicked()
     {
         if (!store.IsHost) return;
-        networkManager.StartMatch(matchSceneName);
+        string addr = !string.IsNullOrWhiteSpace(hostAddressOverride)
+            ? hostAddressOverride.Trim()
+            : GetLocalHostAddress();
+        Debug.Log($"[Lobby] Starting match with hostAddress={addr}");
+        networkManager.StartMatch(matchSceneName, addr);
+    }
+
+    /// <summary>
+    /// Returns the address WebGL clients should dial to reach this host's Mirror server.
+    /// Same-machine testing uses "localhost"; LAN testing needs the first non-loopback IPv4.
+    /// </summary>
+    private static string GetLocalHostAddress()
+    {
+        try
+        {
+            foreach (var ip in System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName()))
+            {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+                    !System.Net.IPAddress.IsLoopback(ip))
+                    return ip.ToString();
+            }
+        }
+        catch { /* fall through to localhost */ }
+        return "localhost";
     }
 
     private void HandleMatchStarted(string sceneName, string hostAddress)
