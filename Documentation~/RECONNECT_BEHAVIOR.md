@@ -1,12 +1,13 @@
 # Reconnect Behavior
 
-> How SocketIOUnity handles connection loss and automatic recovery
+> How SocketIOUnity handles connection loss and automatic recovery.
 
 ---
 
 ## Overview
 
 The `ReconnectController` provides automatic reconnection with:
+
 - **Exponential backoff** to avoid server overload
 - **Single-loop guarantee** to prevent duplicate attempts
 - **Lifecycle awareness** to respect intentional disconnects
@@ -17,21 +18,21 @@ The `ReconnectController` provides automatic reconnection with:
 
 ### ✅ Automatic Reconnect
 
-| Scenario | Trigger |
-|----------|---------|
-| Server closes connection | Transport `OnClose` event |
-| Ping timeout | No server ping within `pingInterval + pingTimeout` |
-| Network loss | WebSocket error followed by close |
-| Transport error | `OnError` event from transport layer |
+| Scenario                 | Trigger                                            |
+| ------------------------ | -------------------------------------------------- |
+| Server closes connection | Transport `OnClose` event                          |
+| Ping timeout             | No server ping within `pingInterval + pingTimeout` |
+| Network loss             | WebSocket error followed by close                  |
+| Transport error          | `OnError` event from transport layer               |
 
 ### ❌ No Reconnect
 
-| Scenario | Reason |
-|----------|--------|
-| `Disconnect()` called | Intentional disconnect flag set |
-| `Shutdown()` called | Clean application exit |
-| Application quitting | Unity `OnApplicationQuit` detected |
-| Already reconnecting | Idempotent guard prevents restart loop |
+| Scenario              | Reason                                 |
+| --------------------- | -------------------------------------- |
+| `Disconnect()` called | Intentional disconnect flag set        |
+| `Shutdown()` called   | Clean application exit                 |
+| Application quitting  | Unity `OnApplicationQuit` detected     |
+| Already reconnecting  | Idempotent guard prevents restart loop |
 
 ---
 
@@ -39,14 +40,14 @@ The `ReconnectController` provides automatic reconnection with:
 
 Delays follow exponential backoff, configurable via `ReconnectConfig`. Default values match v1.0.x behavior:
 
-| Attempt | Default Delay |
-|---------|---------------|
-| 1 | 1 second |
-| 2 | 2 seconds |
-| 3 | 4 seconds |
-| 4 | 8 seconds |
-| 5 | 16 seconds |
-| 6+ | 30 seconds (cap) |
+| Attempt | Default Delay    |
+| ------- | ---------------- |
+| 1       | 1 second         |
+| 2       | 2 seconds        |
+| 3       | 4 seconds        |
+| 4       | 8 seconds        |
+| 5       | 16 seconds       |
+| 6+      | 30 seconds (cap) |
 
 ### Formula
 
@@ -228,9 +229,20 @@ public void Tick()
 
 ## Edge Cases
 
-| Case | Behavior |
-|------|----------|
-| Rapid disconnect/reconnect | Only one reconnect loop active |
-| Auth failure on namespace | Namespace emits `connect_error`, no retry |
-| Server restart | Client reconnects when server is back |
-| Network blip | Fast recovery (first attempt after 1s) |
+| Case                       | Behavior                                  |
+| -------------------------- | ----------------------------------------- |
+| Rapid disconnect/reconnect | Only one reconnect loop active            |
+| Auth failure on namespace  | Namespace emits `connect_error`, no retry |
+| Server restart             | Client reconnects when server is back     |
+| Network blip               | Fast recovery (first attempt after 1s)    |
+
+---
+
+## Related Documentation
+
+| I want to... | Go here |
+|---|---|
+| See reconnection in a real sample | [PlayerSync sample](../package/Samples~/PlayerSync/README.md) — configurable `ReconnectConfig` in Inspector |
+| Understand the lobby reconnect grace window | [Lobby sample](../package/Samples~/Lobby/README.md) — 10-second server-side grace period + session token restore |
+| See reconnection alongside Mirror networking | [Mirror Integration sample](../package/Samples~/MirrorIntegration/README.md) — graceful shutdown order matters |
+| Debug reconnection issues | [Debugging Guide](DEBUGGING_GUIDE.md) — trace logging for reconnect attempts |
