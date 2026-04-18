@@ -96,13 +96,11 @@ public class MirrorGameOrchestrator : MonoBehaviour
                 break;
 
             case ServerMode.DedicatedKCP:
-                StartDedicatedClient<KcpTransport>(hostAddress, kcpPort,
-                    (t, port) => t.Port = (ushort)port);
+                StartDedicatedClient(hostAddress, kcpPort, "KcpTransport", "Port");
                 break;
 
             case ServerMode.DedicatedWebSocket:
-                StartDedicatedClient<SimpleWebTransport>(hostAddress, wsPort,
-                    (t, port) => t.clientPort = (ushort)port);
+                StartDedicatedClient(hostAddress, wsPort, "SimpleWebTransport", "clientPort");
                 break;
         }
     }
@@ -133,8 +131,9 @@ public class MirrorGameOrchestrator : MonoBehaviour
         mirrorNetworkManager.StartClient();
     }
 
-    private void StartDedicatedClient<T>(string hostAddress, int port, System.Action<T, int> applyPort)
-        where T : Transport
+    // Uses reflection to set the transport port so this sample compiles regardless
+    // of which optional Mirror transport packages (kcp2k, SimpleWebTransport) are installed.
+    private void StartDedicatedClient(string hostAddress, int port, string transportTypeName, string portFieldName)
     {
         if (string.IsNullOrEmpty(hostAddress))
         {
@@ -145,10 +144,19 @@ public class MirrorGameOrchestrator : MonoBehaviour
 
         mirrorNetworkManager.networkAddress = hostAddress;
 
-        if (port > 0 && mirrorNetworkManager.transport is T typed)
-            applyPort(typed, port);
-        else if (port > 0)
-            Debug.LogWarning($"[MirrorOrchestrator] {serverMode} — transport is not {typeof(T).Name}; using inspector port.");
+        if (port > 0)
+        {
+            var transport = mirrorNetworkManager.transport;
+            if (transport != null && transport.GetType().Name == transportTypeName)
+            {
+                var field = transport.GetType().GetField(portFieldName);
+                field?.SetValue(transport, (ushort)port);
+            }
+            else if (transport != null)
+            {
+                Debug.LogWarning($"[MirrorOrchestrator] {serverMode} — transport is not {transportTypeName}; using inspector port.");
+            }
+        }
 
         Debug.Log($"[MirrorOrchestrator] {serverMode} — connecting to {hostAddress}:{port}");
         mirrorNetworkManager.StartClient();
