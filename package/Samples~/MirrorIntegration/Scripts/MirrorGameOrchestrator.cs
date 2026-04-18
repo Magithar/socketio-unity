@@ -100,7 +100,7 @@ public class MirrorGameOrchestrator : MonoBehaviour
                 break;
 
             case ServerMode.DedicatedWebSocket:
-                StartDedicatedClient(hostAddress, wsPort, "SimpleWebTransport", "clientPort");
+                StartDedicatedClient(hostAddress, wsPort, "SimpleWebTransport", "Port");
                 break;
         }
     }
@@ -149,8 +149,12 @@ public class MirrorGameOrchestrator : MonoBehaviour
             var target = FindTransport(mirrorNetworkManager.transport, transportTypeName);
             if (target != null)
             {
-                var field = target.GetType().GetField(portFieldName);
-                field?.SetValue(target, (ushort)port);
+                var type = target.GetType();
+                var field    = type.GetField(portFieldName);
+                var property = type.GetProperty(portFieldName);
+                if (field != null)    field.SetValue(target, (ushort)port);
+                else if (property != null) property.SetValue(target, (ushort)port);
+                else Debug.LogWarning($"[MirrorOrchestrator] {serverMode} — port member '{portFieldName}' not found on {transportTypeName}.");
             }
             else
             {
