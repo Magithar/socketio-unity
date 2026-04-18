@@ -95,8 +95,11 @@ public class LobbyNetworkManager : MonoBehaviour
             if (string.IsNullOrWhiteSpace(hostAddress) || hostAddress == "undefined" || hostAddress == "null")
                 hostAddress = null;
 
-            Debug.Log($"🎮 Match started! scene={sceneName ?? "(none)"} hostAddress={hostAddress ?? "(none)"}");
-            store.FireMatchStarted(sceneName, hostAddress);
+            int kcpPort = obj["kcpPort"]?.Value<int>() ?? 0;
+            int wsPort  = obj["wsPort"]?.Value<int>()  ?? 0;
+
+            Debug.Log($"🎮 Match started! scene={sceneName ?? "(none)"} hostAddress={hostAddress ?? "(none)"} kcpPort={kcpPort} wsPort={wsPort}");
+            store.FireMatchStarted(sceneName, hostAddress, kcpPort, wsPort);
         });
 
         _lobby.On("room_state", (string json) =>

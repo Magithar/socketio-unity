@@ -1,8 +1,8 @@
 # Mirror + Socket.IO Integration Sample
 
-A working example of the hybrid multiplayer architecture: **Socket.IO** owns matchmaking, session identity, and server-authoritative game events; **Mirror** owns in-scene transform/physics sync between peers.
+A working example of the hybrid multiplayer architecture: **Socket.IO** owns matchmaking, session identity, and server-authoritative game events; **Mirror** owns in-scene transform/physics sync between players.
 
-The two systems run in parallel and never cross their boundaries — Socket.IO is the backend brain, Mirror is the gameplay layer.
+The two systems run in parallel and never cross their boundaries — Socket.IO is the backend brain, Mirror is the gameplay muscle.
 
 ---
 
@@ -18,10 +18,9 @@ Two Editor/standalone instances in the same lobby room. Host clicks Start Match 
 - WASD player movement synced via `NetworkTransform` (unreliable channel)
 - `GameIdentityRegistry` bridges Mirror `netId` to Socket.IO `playerId` — routes backend events to the correct spawned object
 - `PlayerIdentityBridge` registers each player's identity on spawn via Mirror `[Command]`, syncs the lobby display name to all clients, and drives the name label above each player
-- `MirrorPlayerController` — local player input and player color only; red = you, blue = others (matches PlayerSync)
+- `MirrorPlayerController` — local player input and player color only; red = you, blue = others
 - `GameEventBridge` subscribes to `/game` namespace events (`score_update`, `player_killed`) and resolves them to Mirror objects. Subscribed only after `match_started` — never during lobby phase
-- `MirrorGameOrchestrator` enforces the mandatory startup/teardown order
-- Dedicated server mode recommended; P2P host mode documented as experimental
+- `MirrorGameOrchestrator` enforces the mandatory startup/teardown order with an inspector **ServerMode** dropdown — no code changes needed to switch between P2P and dedicated server
 - Graceful shutdown — emits `leave_room` before stopping Mirror so the server skips its 10-second reconnect grace timer
 - Dual guard against duplicate `match_started` events: `_inGame` flag + Mirror state check
 - Local test server (`mirror-server.js`) with HTTP endpoints to fire game events from a browser
@@ -33,7 +32,7 @@ Two Editor/standalone instances in the same lobby room. Host clicks Start Match 
 - Mirror installed (via Package Manager or `.unitypackage`)
 - Lobby sample working — this sample builds on top of it (`Samples/Lobby/`)
 - Node.js 14+ and npm
-- **Build target: Standalone** (Mac/Windows) recommended for Editor testing — WebGL build target prevents the native WebSocket transport from being used in Play mode. WebGL builds work via SimpleWebTransport for local testing.
+- **Build target: Standalone** (Mac/Windows) recommended for Editor testing — WebGL build target prevents the native KCP transport from being used in Play mode
 
 New to this project? Start with [BasicChat](../BasicChat/README.md) → [Lobby](../Lobby/README.md) → this sample.
 
@@ -56,17 +55,31 @@ The cyan capsule spawns and responds to WASD input. The server terminal prints c
 
 For multiplayer: build a standalone, run it alongside the Editor, join the same room with a different name — the host clicks Start Match and both capsules appear.
 
-### How Hosting Works
+---
 
-The **Unity Editor acts as the Mirror host** — it runs `StartHost()` and is both server and player. All other clients (standalone builds, WebGL builds) run `StartClient()` and connect to the Editor. The Editor must be running for any client to play.
+## ServerMode — Inspector Dropdown
 
-This setup **only works locally** (same machine or LAN). Remote deployment requires dedicated server infrastructure not included in this sample.
+`MirrorGameOrchestrator` has a **ServerMode** dropdown that controls how Mirror connects when a match starts. Set it once in the inspector — no code changes needed.
 
-| | Editor (host) | Standalone / WebGL (client) |
+| Mode | Who hosts Mirror | Use case |
 |---|---|---|
-| Mirror role | `StartHost()` — server + player | `StartClient(hostAddress)` |
-| Transport | KcpTransport (:7777) | KCP (:7777) or SimpleWebTransport (:7778) |
-| Must be running? | **Yes — always** | Connects to the Editor |
+| `PeerToPeer` | Room creator runs `StartHost()`, others run `StartClient()` on the host's LAN IP | Local / LAN testing |
+| `DedicatedKCP` | Everyone runs `StartClient()` on `hostAddress:kcpPort` from the server | Dedicated server, native PC/Mac builds |
+| `DedicatedWebSocket` | Everyone runs `StartClient()` on `hostAddress:wsPort` from the server | Dedicated server, WebGL (browser) builds |
+
+**How the server supplies the address and ports:**
+
+When `MIRROR_SERVER_ADDRESS`, `MIRROR_KCP_PORT`, and `MIRROR_WS_PORT` are set as environment variables on the lobby server (Render), `mirror-server.js` automatically injects them into `match_started` — no client changes required. In `PeerToPeer` mode the env vars are absent and the host's LAN IP is passed through instead.
+
+```json
+// Dedicated mode — server injects these
+{ "sceneName": "GameScene", "hostAddress": "host.edgegap.net", "kcpPort": 32367, "wsPort": 31869 }
+
+// PeerToPeer mode — host's LAN IP, ports are null
+{ "sceneName": "GameScene", "hostAddress": "192.168.1.10", "kcpPort": null, "wsPort": null }
+```
+
+In `DedicatedKCP` / `DedicatedWebSocket` mode, if `kcpPort` / `wsPort` is `0` or absent, the transport uses whatever port is set in the inspector (the default). This means local testing with `DedicatedKCP` still works without env vars — just point the transport at `localhost:7777` as usual.
 
 ---
 
@@ -92,11 +105,10 @@ The LAN IP is printed on startup — use it as `hostAddress` when testing P2P ac
 
 ```mermaid
 sequenceDiagram
-    participant BE as Node.js Backend
-    participant C1 as Client (Host)
-    participant C2 as Client (Peer)
-    participant MH as Mirror Host
-    participant MC as Mirror Client
+    participant BE as Node.js Backend (Render)
+    participant C1 as Client 1
+    parameter C2 as Client 2
+    participant DS as Mirror Server (Edgegap / local)
 
     rect rgb(30, 40, 60)
         Note over BE,C2: Lobby Phase — Socket.IO only
@@ -111,33 +123,34 @@ sequenceDiagram
     rect rgb(40, 55, 40)
         Note over BE,C2: Match Start — handoff to Mirror
         C1->>BE: start_match { sceneName, hostAddress }
-        BE-->>C1: match_started { sceneName, hostAddress }
-        BE-->>C2: match_started { sceneName, hostAddress }
+        BE-->>C1: match_started { sceneName, hostAddress, kcpPort, wsPort }
+        BE-->>C2: match_started { sceneName, hostAddress, kcpPort, wsPort }
         Note over C1: MirrorGameOrchestrator.HandleMatchStarted
         Note over C2: MirrorGameOrchestrator.HandleMatchStarted
-        C1->>MH: StartHost()
-        C2->>MC: StartClient(hostAddress)
-        MH-->>C1: OnStartLocalPlayer → PlayerIdentityBridge
-        MC-->>C2: OnStartLocalPlayer → PlayerIdentityBridge
-        C1->>MH: CmdRegisterIdentity(playerId) + CmdSetDisplayName(name)
-        C2->>MH: CmdRegisterIdentity(playerId) + CmdSetDisplayName(name)
-        Note over MH: GameIdentityRegistry: netId ↔ playerId (both players)
-        MH-->>MC: SyncVar socketPlayerId, _displayName
+        C1->>DS: StartClient(hostAddress:kcpPort) [DedicatedKCP]
+        C2->>DS: StartClient(hostAddress:kcpPort) [DedicatedKCP]
+        DS-->>C1: OnStartLocalPlayer → PlayerIdentityBridge
+        DS-->>C2: OnStartLocalPlayer → PlayerIdentityBridge
+        C1->>DS: CmdRegisterIdentity(playerId) + CmdSetDisplayName(name)
+        C2->>DS: CmdRegisterIdentity(playerId) + CmdSetDisplayName(name)
+        Note over DS: GameIdentityRegistry: netId ↔ playerId (both players)
+        DS-->>C2: SyncVar socketPlayerId, _displayName
         Note over C1,C2: Name label visible above each capsule
     end
 
     rect rgb(55, 35, 35)
-        Note over BE,MC: Game Phase — both layers active in parallel
-        MH->>MC: NetworkTransform (unreliable) — position each frame
+        Note over BE,DS: Game Phase — both layers active in parallel
+        DS->>C1: NetworkTransform (unreliable) — position each frame
+        DS->>C2: NetworkTransform (unreliable) — position each frame
         BE-->>C1: /game: score_update { playerId, score }
         BE-->>C2: /game: score_update { playerId, score }
         Note over C1,C2: GameEventBridge → GameIdentityRegistry → Mirror object
     end
 
     rect rgb(40, 40, 55)
-        Note over BE,MC: Teardown — mandatory order
-        C1->>MH: StopHost()
-        C2->>MC: StopClient()
+        Note over BE,DS: Teardown — mandatory order
+        C1->>DS: StopClient()
+        C2->>DS: StopClient()
         Note over C1,C2: GameEventBridge.Cleanup() — Off() all /game handlers
         Note over C1,C2: GameIdentityRegistry.Clear()
         C1->>BE: leave_room
@@ -155,29 +168,32 @@ Client connects → /lobby namespace
 Server emits player_identity { playerId, sessionToken }
 Client creates or joins a room
 Host emits start_match { sceneName, hostAddress }
-Server broadcasts match_started { sceneName, hostAddress }
-──────────────────────────────────────────────────────────
+Server broadcasts match_started { sceneName, hostAddress, kcpPort, wsPort }
+──────────────────────────────────────────────────────────────────────────
 MirrorGameOrchestrator.HandleMatchStarted fires
   → GameEventBridge.Subscribe()          ← /game handlers registered now
-  → Host:   mirrorNetworkManager.StartHost()
-  → Client: mirrorNetworkManager.StartClient(hostAddress)
+  → ServerMode.PeerToPeer:
+      Host:   mirrorNetworkManager.StartHost()
+      Client: mirrorNetworkManager.StartClient(hostAddress)
+  → ServerMode.DedicatedKCP:
+      All:    KcpTransport.Port = kcpPort (if > 0)
+              mirrorNetworkManager.StartClient(hostAddress)
+  → ServerMode.DedicatedWebSocket:
+      All:    SimpleWebTransport.clientPort = wsPort (if > 0)
+              mirrorNetworkManager.StartClient(hostAddress)
   → Both layers active in parallel
-──────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────
 Mirror: NetworkTransform (unreliable) syncs position each frame
 Socket.IO: /game namespace receives score_update, player_killed
   → GameEventBridge resolves playerId → netId via GameIdentityRegistry
   → Finds the Mirror object and applies the event
-──────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────
 Match ends → ReturnToLobby()
   1. StopHost() or StopClient()
   2. GameEventBridge.Cleanup()       ← Off() all /game handlers
   3. GameIdentityRegistry.Clear()    ← clear netId ↔ playerId mappings
   4. LeaveRoom()                     ← server skips 10s grace window
 ```
-
----
-
-For the decision table and dedicated server vs P2P guidance, see [MIRROR_INTEGRATION.md](MIRROR_INTEGRATION.md).
 
 ---
 
@@ -215,7 +231,7 @@ Uses `FindObjectOfType` because Mirror-spawned prefabs cannot hold inspector ref
 
 `NetworkBehaviour` — attach to the Mirror player prefab alongside `NetworkTransform`.
 
-Processes WASD input only when `isLocalPlayer` — remote players are driven by `NetworkTransform` replication, never by local input. Sets player color: **red** for your own player, **blue** for all others (matches PlayerSync). Clamps movement to the floor bounds. No name label logic — that belongs to `PlayerIdentityBridge`.
+Processes WASD input only when `isLocalPlayer` — remote players are driven by `NetworkTransform` replication, never by local input. Sets player color: **red** for your own player, **blue** for all others. Clamps movement to the floor bounds.
 
 ```
 NetworkTransform channel: Unreliable
@@ -233,7 +249,15 @@ NetworkTransform channel: Unreliable
 
 `MonoBehaviour` — replaces `GameOrchestrator` for Mirror-enabled scenes.
 
-Starts Mirror only after `store.OnMatchStarted` fires. Calls `gameEventBridge.Subscribe()` before `StartHost/Client` — socket is guaranteed initialized at that point. Enforces the mandatory teardown order in `ReturnToLobby()`. Wire all fields via inspector — no singletons.
+Starts Mirror only after `store.OnMatchStarted` fires. The **ServerMode** inspector dropdown controls how Mirror connects:
+
+- `PeerToPeer` — room creator runs `StartHost()`, others connect to their LAN IP
+- `DedicatedKCP` — all clients connect to `hostAddress:kcpPort` (native builds, UDP)
+- `DedicatedWebSocket` — all clients connect to `hostAddress:wsPort` (WebGL builds, WebSocket)
+
+In `DedicatedKCP` and `DedicatedWebSocket` modes, the port is applied to the transport before `StartClient()`. If the port arrives as `0` (P2P or local dev without env vars), the transport's inspector-configured port is used unchanged.
+
+Enforces the mandatory teardown order in `ReturnToLobby()`. Wire all fields via inspector — no singletons.
 
 ---
 
@@ -256,16 +280,16 @@ Do **not** attach Mirror's example `Player` script — it expects inspector refs
 
 ## NetworkManager Setup
 
-The sample's `NetworkManager` uses **MultiplexTransport** to support both standalone and WebGL clients connecting to the same Mirror host:
+The sample's `NetworkManager` uses **MultiplexTransport** to support both standalone and WebGL clients:
 
 | Component | Role |
 |-----------|------|
 | `NetworkManager` | Player Prefab: `MirrorPlayer`, Auto Create Player: on, Spawn Method: Random |
 | `MultiplexTransport` | Routes connections to the correct transport based on protocol |
-| `KcpTransport` | Standalone / Editor — UDP on port 7777 |
-| `SimpleWebTransport` | WebGL — WebSocket fallback on port 7778 |
+| `KcpTransport` | Standalone / Editor — UDP, default port 7777 |
+| `SimpleWebTransport` | WebGL — WebSocket, default port 7778 |
 
-> Socket.IO WebGL works fully (lobby, matchmaking, backend events). Mirror WebGL support via SimpleWebTransport is functional for local testing but all Mirror networking currently runs locally only.
+> In `DedicatedKCP` / `DedicatedWebSocket` mode, `MirrorGameOrchestrator` overrides the transport port at runtime with the value from `match_started`. The inspector port is only used if the server sends `0` (local testing without env vars).
 
 ---
 
@@ -277,6 +301,7 @@ The sample's `NetworkManager` uses **MultiplexTransport** to support both standa
 | `lobbyNetworkManager` | `LobbyNetworkManager` component |
 | `mirrorNetworkManager` | Mirror `NetworkManager` component |
 | `gameEventBridge` | `GameEventBridge` component |
+| `serverMode` | `PeerToPeer` / `DedicatedKCP` / `DedicatedWebSocket` |
 | `lobbyLayer` | Root GameObject of lobby UI |
 | `gameLayer` | Root GameObject of game world |
 
@@ -330,20 +355,21 @@ Reversing steps 1 and 4 is the most common mistake: if you call `Shutdown()` bef
 
 | Event | Direction | Payload | Notes |
 |-------|-----------|---------|-------|
-| `start_match` | Client → Server | `{ sceneName, hostAddress }` | Host only |
-| `match_started` | Server → Client | `{ sceneName, hostAddress }` | Triggers Mirror start |
+| `start_match` | Client → Server | `{ sceneName, hostAddress }` | Host only; `hostAddress` = LAN IP in P2P mode |
+| `match_started` | Server → Client | `{ sceneName, hostAddress, kcpPort, wsPort }` | Triggers Mirror start; ports are `null` in P2P mode |
 | `score_update` | Server → Client (on `/game`) | `{ playerId, score }` | Handled by `GameEventBridge` |
 | `player_killed` | Server → Client (on `/game`) | `{ victimId }` | Resolved to Mirror object via `GameIdentityRegistry` |
 | `round_end` | Server → Client (on `/game`) | `{ winnerId }` | Custom — add handler to `GameEventBridge` |
 | `leave_room` | Client → Server | `{}` | Emitted in `ReturnToLobby()` |
 
-### `hostAddress` Contract
+### `match_started` Payload Contract
 
-`hostAddress` in `match_started` is **nullable**. For non-Mirror flows (Lobby-only, PlayerSync), the field can be omitted — subscribers must null-check before use.
+`hostAddress` is always present (nullable). `kcpPort` and `wsPort` are `null` in P2P mode and populated only when the lobby server has `MIRROR_SERVER_ADDRESS` env vars set (dedicated server mode).
 
-`MirrorGameOrchestrator` handles the null case:
-- In `UNITY_EDITOR` / `DEVELOPMENT_BUILD`: falls back to `"localhost"` with a warning
-- In production: logs an error and calls `ReturnToLobby()`
+`MirrorGameOrchestrator` handles missing values:
+- Port is `0` / `null` → transport uses its inspector-configured default
+- `hostAddress` is null in `PeerToPeer` mode: falls back to `"localhost"` in Editor/dev builds; returns to lobby in production
+- `hostAddress` is null in `DedicatedKCP` / `DedicatedWebSocket` mode: always returns to lobby with an error log
 
 ---
 
@@ -353,54 +379,53 @@ For pitfalls common to all Mirror + Socket.IO integrations (startup order, shutd
 
 Sample-specific pitfalls:
 
-**1. Build target set to WebGL while testing in the Editor**  
+**1. Build target set to WebGL while testing in the Editor**
 `TransportFactoryHelper.CreateDefault()` uses `#if UNITY_WEBGL && !UNITY_EDITOR`, so the native transport is always selected in the Editor — but switch to Standalone anyway to avoid unrelated platform-specific compilation differences.
 
-**2. `GameEventBridge.Subscribe()` called too early**  
+**2. `GameEventBridge.Subscribe()` called too early**
 Do not subscribe to `/game` in `Start()` — `LobbyNetworkManager.Start()` may not have run yet and `Socket` will be null. Always call `Subscribe()` from `HandleMatchStarted` after the socket is confirmed connected.
 
-**3. Mirror example `Player` script left on prefab**  
+**3. Mirror example `Player` script left on prefab**
 Mirror's built-in example scripts (`Assets/Mirror/Examples/`) expect inspector references that aren't wired in this project. Remove any example scripts from the `MirrorPlayer` prefab — only `PlayerIdentityBridge` and `MirrorPlayerController` are needed.
+
+**4. ServerMode set to `DedicatedKCP` but transport is `SimpleWebTransport`**
+`MirrorGameOrchestrator` casts the transport to apply the port. If the transport type doesn't match the selected mode, the cast silently fails and the inspector port is used unchanged — the connection may still work if the default port matches. Check the warning log: `"transport is not KcpTransport; using inspector port"`.
+
+**5. Forgetting to set env vars on Render for dedicated mode**
+If `MIRROR_SERVER_ADDRESS` is not set, the server treats every match as P2P and emits `kcpPort: null`. Clients in `DedicatedKCP` mode will attempt to connect with the inspector port. Set the three env vars on Render and redeploy to activate dedicated server mode.
 
 ---
 
 ## Verified Working
 
-Tested with the Editor as Mirror host and various client formats on the same machine:
-
-| Step | Editor + Standalone | Editor + WebGL |
-|------|---------------------|----------------|
+| Step | PeerToPeer (Editor + Standalone) | DedicatedKCP (Edgegap) |
+|------|----------------------------------|------------------------|
 | Both clients connect to `/lobby` | ✓ | ✓ |
 | Client joins via room code | ✓ | ✓ |
 | Host clicks Start Match | ✓ | ✓ |
 | Both instances enter game layer | ✓ | ✓ |
-| Mirror host starts, client connects | ✓ (KCP :7777) | ✓ (SimpleWeb :7778) |
-| Both capsules spawned (red = local, blue = remote) | ✓ | ✓ |
+| Mirror connects | ✓ KCP :7777 (local) | ✓ KCP :edgegap-port |
+| Both capsules spawned | ✓ | ✓ |
 | Lobby display name shown above each player | ✓ | ✓ |
-| `PlayerIdentityBridge` registers `netId ↔ playerId` | ✓ | ✓ |
 | WASD movement synced via `NetworkTransform` | ✓ | ✓ |
-
-> All Mirror networking currently runs locally only (localhost / LAN). For cross-machine testing, pass the host's LAN IP in `start_match` — see `hostAddress` contract above.
 
 ---
 
 ## Next Steps
 
 - Wire `score_update` / `player_killed` in `GameEventBridge` to actual HUD/game logic
-- Send `hostAddress` (LAN IP) in `start_match` for cross-machine multiplayer
 - Add a Leave Game button that calls `MirrorGameOrchestrator.ReturnToLobby()`
 - Add `NetworkRigidbody` or `NetworkAnimator` for physics/animation sync
+- For WebGL production builds, set `ServerMode` to `DedicatedWebSocket` and ensure `MIRROR_WS_PORT` is set on Render
 
 ---
 
 ## Known Limitations
 
-- **Mirror runs locally only** — all Mirror networking (KCP / SimpleWebTransport) is local/LAN for now; remote deployment requires additional infrastructure
-- **WebGL: Socket.IO works, Mirror is local** — lobby, matchmaking, and backend events work fully in WebGL; Mirror's SimpleWebTransport is included for local WebGL testing but is not production-verified for remote connections
-- P2P host mode requires NAT traversal infrastructure — not included
-- No host migration for the Mirror layer; if the Mirror host disconnects, all clients must return to lobby and restart
-- `GameEventBridge` event handlers (`score_update`, `player_killed`) log to console — wire them to your game's HUD/components
-- `hostAddress` is auto-detected via `LobbyUIController.GetLocalHostAddress()` (first non-loopback IPv4, or `"localhost"` if none found) — override via the `Host Address Override` inspector field on `LobbyUIController` for cross-machine testing
+- **No host migration** — if the Mirror host disconnects (P2P mode), all clients must return to lobby and restart
+- **`GameEventBridge` handlers log to console** — wire them to your game's HUD/components
+- **P2P host mode requires NAT traversal** — not included; use a dedicated server for cross-machine play beyond LAN
+- **WebGL + Mirror** — `DedicatedWebSocket` mode works with SimpleWebTransport; WebGL Mirror is not production-verified for high-frequency physics sync
 
 ---
 

@@ -60,6 +60,10 @@ const io         = new Server(httpServer, {
 const PORT               = parseInt(process.env.PORT, 10) || 3002;
 const TEST_TOKEN          = process.env.TEST_TOKEN || null;
 const RECONNECT_GRACE_MS = 10_000;
+
+const MIRROR_SERVER_ADDRESS = process.env.MIRROR_SERVER_ADDRESS || null;
+const MIRROR_KCP_PORT       = parseInt(process.env.MIRROR_KCP_PORT, 10) || null;
+const MIRROR_WS_PORT        = parseInt(process.env.MIRROR_WS_PORT,  10) || null;
 const ROOM_CODE_CHARS    = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH   = 6;
 
@@ -291,11 +295,17 @@ lobby.on('connection', socket => {
         const room = rooms.get(roomId);
         if (!room || room.hostId !== playerId) return;
 
-        const { sceneName = null, hostAddress = null } = parsePayload(data);
+        const { sceneName = null, hostAddress: clientHostAddress = null } = parsePayload(data);
+
+        // Dedicated server env vars take priority over client-provided P2P address.
+        const hostAddress = MIRROR_SERVER_ADDRESS || clientHostAddress;
+        const kcpPort     = MIRROR_SERVER_ADDRESS ? MIRROR_KCP_PORT : null;
+        const wsPort      = MIRROR_SERVER_ADDRESS ? MIRROR_WS_PORT  : null;
+
         const host = room.players.get(playerId);
         lobbyLog(host?.traceId, roomId, playerId,
-            `🎮 match started scene=${sceneName ?? '(none)'} hostAddress=${hostAddress ?? '(none)'}`);
-        io.of('/lobby').to(roomId).emit('match_started', JSON.stringify({ sceneName, hostAddress }));
+            `🎮 match started scene=${sceneName ?? '(none)'} hostAddress=${hostAddress ?? '(none)'} kcpPort=${kcpPort ?? '(none)'} wsPort=${wsPort ?? '(none)'}`);
+        io.of('/lobby').to(roomId).emit('match_started', JSON.stringify({ sceneName, hostAddress, kcpPort, wsPort }));
     });
 
     socket.on('leave_room', (data, ack) => {

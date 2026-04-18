@@ -42,7 +42,7 @@ public class LobbyStateStore : MonoBehaviour
     /// sceneName: the scene to load (may be null).
     /// hostAddress: the Mirror server address to connect to (null for non-Mirror flows — always null-check before use).
     /// </summary>
-    public event Action<string, string> OnMatchStarted;
+    public event Action<string, string, int, int> OnMatchStarted; // sceneName, hostAddress, kcpPort, wsPort
 
     // =========================================================
     // Write API — called only by LobbyNetworkManager
@@ -104,7 +104,8 @@ public class LobbyStateStore : MonoBehaviour
 
     public void FireError(SocketIOUnity.Runtime.SocketError error) => OnError?.Invoke(error);
 
-    public void FireMatchStarted(string sceneName, string hostAddress) => OnMatchStarted?.Invoke(sceneName, hostAddress);
+    public void FireMatchStarted(string sceneName, string hostAddress, int kcpPort = 0, int wsPort = 0) =>
+        OnMatchStarted?.Invoke(sceneName, hostAddress, kcpPort, wsPort);
 
     /// <summary>Clear local state on leave or disconnect.</summary>
     public void Reset()
