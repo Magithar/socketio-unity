@@ -32,6 +32,7 @@ Two Editor/standalone instances in the same lobby room. Host clicks Start Match 
 - Mirror installed (via Package Manager or `.unitypackage`)
 - Lobby sample working — this sample builds on top of it (`Samples/Lobby/`)
 - Node.js 14+ and npm
+- **Server repo:** [socketio-unity-mirror-server](https://github.com/Magithar/socketio-unity-mirror-server) — clone alongside this project for the `mirror-server.js` backend
 - **Build target: Standalone** (Mac/Windows) recommended for Editor testing — WebGL build target prevents the native KCP transport from being used in Play mode
 
 New to this project? Start with [BasicChat](../BasicChat/README.md) → [Lobby](../Lobby/README.md) → this sample.
@@ -40,13 +41,18 @@ New to this project? Start with [BasicChat](../BasicChat/README.md) → [Lobby](
 
 ## Quick Start
 
+**1. Start the backend** (requires [socketio-unity-mirror-server](https://github.com/Magithar/socketio-unity-mirror-server) cloned separately):
+
 ```bash
+cd path/to/socketio-unity-mirror-server
 npm install
 npm run start:mirror   # or: npm run dev:mirror (auto-restart)
 ```
 
+**2. Open Unity:**
+
 ```
-Open MirrorIntegrationScene in Unity
+Open MirrorIntegrationScene
 Set Build Target to Standalone (File → Build Settings → Mac OS X / Windows → Switch Platform)
 Press Play → Enter name → Create Room → Start Match
 ```
@@ -107,7 +113,7 @@ The LAN IP is printed on startup — use it as `hostAddress` when testing P2P ac
 sequenceDiagram
     participant BE as Node.js Backend (Render)
     participant C1 as Client 1
-    parameter C2 as Client 2
+    participant C2 as Client 2
     participant DS as Mirror Server (Edgegap / local)
 
     rect rgb(30, 40, 60)
@@ -163,37 +169,37 @@ For the full architectural rationale and design principles, see [MIRROR_INTEGRAT
 
 ### Session Timeline
 
-```
-Client connects → /lobby namespace
-Server emits player_identity { playerId, sessionToken }
-Client creates or joins a room
-Host emits start_match { sceneName, hostAddress }
-Server broadcasts match_started { sceneName, hostAddress, kcpPort, wsPort }
-──────────────────────────────────────────────────────────────────────────
-MirrorGameOrchestrator.HandleMatchStarted fires
-  → GameEventBridge.Subscribe()          ← /game handlers registered now
-  → ServerMode.PeerToPeer:
-      Host:   mirrorNetworkManager.StartHost()
-      Client: mirrorNetworkManager.StartClient(hostAddress)
-  → ServerMode.DedicatedKCP:
-      All:    KcpTransport.Port = kcpPort (if > 0, via reflection)
-              mirrorNetworkManager.StartClient(hostAddress)
-  → ServerMode.DedicatedWebSocket:
-      All:    SimpleWebTransport.Port = wsPort (if > 0, via reflection)
-              mirrorNetworkManager.StartClient(hostAddress)
-  → Both layers active in parallel
-──────────────────────────────────────────────────────────────────────────
-Mirror: NetworkTransform (unreliable) syncs position each frame
-Socket.IO: /game namespace receives score_update, player_killed
-  → GameEventBridge resolves playerId → netId via GameIdentityRegistry
-  → Finds the Mirror object and applies the event
-──────────────────────────────────────────────────────────────────────────
-Match ends → ReturnToLobby()
-  1. StopHost() or StopClient()
-  2. GameEventBridge.Cleanup()       ← Off() all /game handlers
-  3. GameIdentityRegistry.Clear()    ← clear netId ↔ playerId mappings
-  4. LeaveRoom()                     ← server skips 10s grace window
-```
+#### 1. Lobby
+
+1. Client connects to the `/lobby` namespace.
+2. Server emits `player_identity { playerId, sessionToken }`.
+3. Client creates or joins a room.
+4. Host emits `start_match { sceneName, hostAddress }`.
+5. Server broadcasts `match_started { sceneName, hostAddress, kcpPort, wsPort }` to all room members.
+
+#### 2. Match Start — `MirrorGameOrchestrator.HandleMatchStarted`
+
+`GameEventBridge.Subscribe()` runs first, registering all `/game` event handlers before Mirror connects. Then the server mode determines how Mirror starts:
+
+| Mode | What happens |
+|---|---|
+| `PeerToPeer` | Host calls `StartHost()`. Clients call `StartClient(hostAddress)`. |
+| `DedicatedKCP` | All clients set `KcpTransport.Port = kcpPort` (if > 0, via reflection), then call `StartClient(hostAddress)`. |
+| `DedicatedWebSocket` | All clients set `SimpleWebTransport.Port = wsPort` (if > 0, via reflection), then call `StartClient(hostAddress)`. |
+
+Both the Mirror and Socket.IO layers are active in parallel once connected.
+
+#### 3. In-Game
+
+- **Mirror** — `NetworkTransform` (unreliable channel) syncs player position every frame.
+- **Socket.IO** — the `/game` namespace delivers authoritative events (`score_update`, `player_killed`, etc.). `GameEventBridge` resolves the `playerId` → `netId` via `GameIdentityRegistry`, finds the corresponding Mirror object, and applies the event.
+
+#### 4. Teardown — `ReturnToLobby()`
+
+1. `StopHost()` or `StopClient()` — shuts down the Mirror connection.
+2. `GameEventBridge.Cleanup()` — unsubscribes all `/game` handlers.
+3. `GameIdentityRegistry.Clear()` — clears the `netId ↔ playerId` map.
+4. `LeaveRoom()` — signals the lobby server to skip the 10 s grace window.
 
 ---
 
