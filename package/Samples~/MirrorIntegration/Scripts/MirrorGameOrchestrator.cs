@@ -146,20 +146,38 @@ public class MirrorGameOrchestrator : MonoBehaviour
 
         if (port > 0)
         {
-            var transport = mirrorNetworkManager.transport;
-            if (transport != null && transport.GetType().Name == transportTypeName)
+            var target = FindTransport(mirrorNetworkManager.transport, transportTypeName);
+            if (target != null)
             {
-                var field = transport.GetType().GetField(portFieldName);
-                field?.SetValue(transport, (ushort)port);
+                var field = target.GetType().GetField(portFieldName);
+                field?.SetValue(target, (ushort)port);
             }
-            else if (transport != null)
+            else
             {
-                Debug.LogWarning($"[MirrorOrchestrator] {serverMode} — transport is not {transportTypeName}; using inspector port.");
+                Debug.LogWarning($"[MirrorOrchestrator] {serverMode} — {transportTypeName} not found in transport hierarchy; using inspector port.");
             }
         }
 
         Debug.Log($"[MirrorOrchestrator] {serverMode} — connecting to {hostAddress}:{port}");
         mirrorNetworkManager.StartClient();
+    }
+
+    // Walks the transport tree: returns t itself if it matches, or searches
+    // MultiplexTransport children so Multiplex + KCP/SWT setups work correctly.
+    private static Transport FindTransport(Transport t, string typeName)
+    {
+        if (t == null) return null;
+        if (t.GetType().Name == typeName) return t;
+
+        var transportsField = t.GetType().GetField("transports");
+        if (transportsField?.GetValue(t) is Transport[] children)
+            foreach (var child in children)
+            {
+                var found = FindTransport(child, typeName);
+                if (found != null) return found;
+            }
+
+        return null;
     }
 
     private void HandleLobbyDisconnected()
