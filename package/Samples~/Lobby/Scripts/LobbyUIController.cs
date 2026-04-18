@@ -448,7 +448,7 @@ public class LobbyUIController : MonoBehaviour
         return "localhost";
     }
 
-    private void HandleMatchStarted(string sceneName, string hostAddress)
+    private void HandleMatchStarted(string sceneName, string hostAddress, int kcpPort, int wsPort)
     {
         Debug.Log($"[Lobby] Match started → loading scene: {sceneName}");
         if (!string.IsNullOrEmpty(sceneName))
