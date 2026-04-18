@@ -48,7 +48,10 @@ Server broadcasts match_started { sceneName, hostAddress, kcpPort, wsPort }
 ────────────────────────────────────────────────────────────────────────────
 MirrorGameOrchestrator.HandleMatchStarted fires
   → GameEventBridge.Subscribe()
-  → ServerMode drives Mirror connection (see ServerMode section below)
+  → ServerMode drives Mirror connection:
+      DedicatedKCP:       KcpTransport.Port = kcpPort (reflection, walks MultiplexTransport children)
+      DedicatedWebSocket: SimpleWebTransport.Port = wsPort (same)
+      PeerToPeer:         host → StartHost(), others → StartClient(hostAddress)
   → Both layers active in parallel
 ────────────────────────────────────────────────────────────────────────────
 Mirror: NetworkTransform syncs position/physics each frame
@@ -172,8 +175,8 @@ Always caches `Action<string>` handler references and calls `Off()` in `Cleanup(
 Starts Mirror only after `store.OnMatchStarted` fires. The `ServerMode` inspector dropdown controls how Mirror connects:
 
 - `PeerToPeer` — host calls `StartHost()`, others call `StartClient(hostAddress)`
-- `DedicatedKCP` — all clients call `StartClient(hostAddress)` with `KcpTransport.Port` set from `kcpPort`
-- `DedicatedWebSocket` — all clients call `StartClient(hostAddress)` with `SimpleWebTransport.clientPort` set from `wsPort`
+- `DedicatedKCP` — all clients call `StartClient(hostAddress)` with `KcpTransport.Port` set from `kcpPort` (via property reflection, walks `MultiplexTransport` children)
+- `DedicatedWebSocket` — all clients call `StartClient(hostAddress)` with `SimpleWebTransport.Port` set from `wsPort` (same)
 
 Enforces the mandatory teardown order in `ReturnToLobby()`. Wire all fields via inspector — no singletons.
 
@@ -284,7 +287,7 @@ They are independent numbers measuring different network paths.
 If `StartClient()` fails (bad IP, NAT, relay timeout), Mirror fires `OnClientDisconnect`. Wire that event to call `ReturnToLobby()` so the player returns to the lobby instead of seeing a blank game screen.
 
 **9. `ServerMode` / transport type mismatch**
-`DedicatedKCP` casts the transport to `KcpTransport` to set the port. If the active transport is `SimpleWebTransport` (or vice versa), the cast silently fails and the inspector port is used. Check the warning log: `"transport is not KcpTransport; using inspector port"`. Ensure the transport wired to `NetworkManager` matches the selected `ServerMode`.
+`MirrorGameOrchestrator` uses reflection to walk the transport tree (including `MultiplexTransport` children) and find the right transport by type name. If `KcpTransport` / `SimpleWebTransport` is not present anywhere in the hierarchy, the inspector port is used unchanged. Check the warning log: `"KcpTransport not found in transport hierarchy; using inspector port"`. Ensure the `MultiplexTransport` on `NetworkManager` has both transports wired.
 
 **10. Missing env vars on the deployed lobby server**
 If `MIRROR_SERVER_ADDRESS` is not set on Render, `match_started` emits `kcpPort: null`. Clients in `DedicatedKCP` mode fall back to the transport's inspector port and attempt to connect to whatever `hostAddress` the host sent (their LAN IP in P2P). Set all three env vars and redeploy to enable dedicated server mode.

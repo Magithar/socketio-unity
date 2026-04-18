@@ -176,10 +176,10 @@ MirrorGameOrchestrator.HandleMatchStarted fires
       Host:   mirrorNetworkManager.StartHost()
       Client: mirrorNetworkManager.StartClient(hostAddress)
   → ServerMode.DedicatedKCP:
-      All:    KcpTransport.Port = kcpPort (if > 0)
+      All:    KcpTransport.Port = kcpPort (if > 0, via reflection)
               mirrorNetworkManager.StartClient(hostAddress)
   → ServerMode.DedicatedWebSocket:
-      All:    SimpleWebTransport.clientPort = wsPort (if > 0)
+      All:    SimpleWebTransport.Port = wsPort (if > 0, via reflection)
               mirrorNetworkManager.StartClient(hostAddress)
   → Both layers active in parallel
 ──────────────────────────────────────────────────────────────────────────
@@ -389,7 +389,7 @@ Do not subscribe to `/game` in `Start()` — `LobbyNetworkManager.Start()` may n
 Mirror's built-in example scripts (`Assets/Mirror/Examples/`) expect inspector references that aren't wired in this project. Remove any example scripts from the `MirrorPlayer` prefab — only `PlayerIdentityBridge` and `MirrorPlayerController` are needed.
 
 **4. ServerMode set to `DedicatedKCP` but transport is `SimpleWebTransport`**
-`MirrorGameOrchestrator` casts the transport to apply the port. If the transport type doesn't match the selected mode, the cast silently fails and the inspector port is used unchanged — the connection may still work if the default port matches. Check the warning log: `"transport is not KcpTransport; using inspector port"`.
+`MirrorGameOrchestrator` walks the transport tree (including `MultiplexTransport` children) via reflection to find and set the port. If the named transport (`KcpTransport` / `SimpleWebTransport`) is not found in the hierarchy, the inspector port is used unchanged. Check the warning log: `"KcpTransport not found in transport hierarchy; using inspector port"`.
 
 **5. Forgetting to set env vars on Render for dedicated mode**
 If `MIRROR_SERVER_ADDRESS` is not set, the server treats every match as P2P and emits `kcpPort: null`. Clients in `DedicatedKCP` mode will attempt to connect with the inspector port. Set the three env vars on Render and redeploy to activate dedicated server mode.

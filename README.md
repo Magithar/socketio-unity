@@ -322,15 +322,17 @@ npm run start:playersync   # Terminal 2 — :3003
 
 ### Mirror Integration
 
-Hybrid architecture — Socket.IO handles matchmaking and backend events, Mirror handles in-scene transform sync. Editor hosts, standalone/WebGL clients connect. Local only.
+Hybrid architecture — Socket.IO handles matchmaking and backend events, Mirror handles in-scene transform sync. Supports three modes via an inspector dropdown: **PeerToPeer** (LAN/local), **DedicatedKCP** (native clients via Edgegap), **DedicatedWebSocket** (WebGL clients).
 
 ```bash
 npm run start:mirror   # Port 3002 — lobby + /game namespace
 ```
 
-Requires Mirror and the Lobby sample. Standalone build target recommended; WebGL works via SimpleWebTransport for local testing.
+Requires Mirror and the Lobby sample. Standalone build target recommended.
 
-[Sample docs](package/Samples~/MirrorIntegration/README.md) · [Architecture guide](package/Samples~/MirrorIntegration/MIRROR_INTEGRATION.md) · Import via Package Manager → Samples → "Mirror Integration"
+The dedicated server binary is in a companion repo: [socketio-unity-mirror-server](https://github.com/Magithar/socketio-unity-mirror-server) — Linux headless Unity build deployed to Edgegap, with CI/CD via GitHub Actions.
+
+[Sample docs](package/Samples~/MirrorIntegration/README.md) · [Architecture guide](package/Samples~/MirrorIntegration/MIRROR_INTEGRATION.md) · [Dedicated server repo](https://github.com/Magithar/socketio-unity-mirror-server) · Import via Package Manager → Samples → "Mirror Integration"
 
 ---
 
