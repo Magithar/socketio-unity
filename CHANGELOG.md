@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **MirrorIntegration README** — rewrote Session Timeline from a dense code block into four headed subsections (Lobby, Match Start, In-Game, Teardown) with a server-mode comparison table; fixed mermaid diagram `parameter` → `participant` typo; added server repo link to Prerequisites; clarified Quick Start npm commands to reference the separate [socketio-unity-mirror-server](https://github.com/Magithar/socketio-unity-mirror-server) repo
+
 ## [1.4.0] - 2026-04-16
 
 ### Added
