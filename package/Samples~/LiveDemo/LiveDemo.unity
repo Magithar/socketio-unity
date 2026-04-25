@@ -1031,7 +1031,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c97a43b6517844710b739d74726f10bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  editorServerUrl: http://localhost:3003
+  editorServerUrl: https://socketio-unity.onrender.com
   productionServerUrl: https://socketio-unity.onrender.com
   localPlayerTransform: {fileID: 1395233081}
   controller: {fileID: 1395233080}
