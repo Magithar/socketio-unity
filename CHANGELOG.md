@@ -7,9 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-04-25
+
+### Breaking Changes
+
+- **`LobbyStateStore.OnMatchStarted`** *(Lobby / MirrorIntegration samples only)* — event delegate type changed from `Action<string, string>` to `Action<string, string, int, int>`; if you copied `LobbyUIController`, `GameOrchestrator`, or `MirrorGameOrchestrator` from v1.4.0 and subscribed to this event, add `int kcpPort, int wsPort` parameters to your handler. The core Socket.IO client is unaffected.
+
+### Added
+
+- **`ServerMode` enum** (`PeerToPeer`, `DedicatedKCP`, `DedicatedWebSocket`) — inspector dropdown on `MirrorGameOrchestrator` controls how clients connect after `match_started`; replaces the single P2P-only code path
+- **Dedicated server support in `MirrorGameOrchestrator`** — `DedicatedKCP` mode connects all clients to `hostAddress:kcpPort` (native builds); `DedicatedWebSocket` mode uses `hostAddress:wsPort` (WebGL); transport port is set via reflection so the sample compiles without hard dependencies on kcp2k or SimpleWebTransport packages
+- **`FindTransport` helper** — walks `MultiplexTransport` children to locate the correct transport by type name, so Multiplex + KCP/SWT setups are handled correctly
+- **`kcpPort` / `wsPort` in `match_started` payload** — `mirror-server.js` now reads `MIRROR_SERVER_ADDRESS`, `MIRROR_KCP_PORT`, `MIRROR_WS_PORT` env vars; dedicated-server values take priority over the client-provided P2P host address; both ports are forwarded in the `match_started` event to all room members
+
 ### Changed
 
+- **`LobbyStateStore.FireMatchStarted`** — gains optional `kcpPort`/`wsPort` params (default 0) for callers that don't use dedicated-server ports
+- **`LobbyNetworkManager`** — parses `kcpPort` and `wsPort` from the `match_started` JSON payload and passes them through to `FireMatchStarted`
+- **README** — Mirror Integration section updated to describe all three server modes and link to the companion dedicated-server repo ([socketio-unity-mirror-server](https://github.com/Magithar/socketio-unity-mirror-server))
 - **MirrorIntegration README** — rewrote Session Timeline from a dense code block into four headed subsections (Lobby, Match Start, In-Game, Teardown) with a server-mode comparison table; fixed mermaid diagram `parameter` → `participant` typo; added server repo link to Prerequisites; clarified Quick Start npm commands to reference the separate [socketio-unity-mirror-server](https://github.com/Magithar/socketio-unity-mirror-server) repo
+
+### Fixed
+
+- **`SimpleWebTransport` port reflection** — corrected field name lookup and added a property fallback so `DedicatedWebSocket` mode correctly overrides the port even when the transport exposes it as a property rather than a field
+- **`MultiplexTransport` port injection** — `FindTransport` now searches the `transports` array on `MultiplexTransport` so the correct child transport is found and its port overridden, rather than silently falling back to the inspector value
 
 ## [1.4.0] - 2026-04-16
 
@@ -418,7 +439,8 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Magithar/socketio-unity/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Magithar/socketio-unity/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/Magithar/socketio-unity/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Magithar/socketio-unity/compare/v1.2.0...v1.3.0
