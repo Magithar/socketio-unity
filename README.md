@@ -9,7 +9,7 @@
 WebGL-ready. Production-tested. Zero paid dependencies.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.4.0-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.5.0-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![Mirror Compatible](https://img.shields.io/badge/Mirror-Compatible-black)](package/Samples~/MirrorIntegration/README.md)
@@ -113,17 +113,11 @@ Download or clone this repository and copy the `package/` subdirectory into your
 | Package | Source | Purpose |
 |---|---|---|
 | **Newtonsoft.Json** | `com.unity.nuget.newtonsoft-json` | JSON serialization (built into Unity 2020.1+) |
-| **NativeWebSocket** | [endel/NativeWebSocket](https://github.com/endel/NativeWebSocket) | WebSocket transport |
 | **Mirror** *(optional)* | [MirrorNetworking/Mirror](https://github.com/MirrorNetworking/Mirror) | Required only for the Mirror Integration sample |
-
-Install NativeWebSocket via Package Manager git URL:
-```
-https://github.com/endel/NativeWebSocket.git#upm
-```
 
 Mirror is not required for the core package or any other sample. Install it only if you intend to use the Mirror Integration sample — via Package Manager git URL or the `.unitypackage` from the [Mirror releases page](https://github.com/MirrorNetworking/Mirror/releases).
 
-> This project includes a modified `WebSocket.cs` from NativeWebSocket with domain reload safety fixes. See [NOTICE.md](NOTICE.md).
+> WebSocket transport is built-in — a modified `WebSocket.cs` derived from NativeWebSocket is embedded directly in the package. Do **not** install NativeWebSocket separately; doing so will cause duplicate class conflicts. See [NOTICE.md](NOTICE.md).
 
 ---
 
