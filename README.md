@@ -4,9 +4,9 @@
 
 # socketio-unity
 
-**Real-time multiplayer infrastructure for Unity** — lobby systems, player synchronization, and live backend communication, all over Socket.IO v4.
-
-WebGL-ready. Production-tested. Zero paid dependencies.
+**The open-source real-time backbone for Unity multiplayer.**
+Full Socket.IO v4 — namespaces, binary, ACKs, reconnect with backoff — **verified in the browser**, MIT-licensed, zero paid dependencies.
+Use it as your **backend & matchmaking layer** — standalone, or alongside **Mirror / Netcode** for in-scene sync.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-v1.6.0-blue)](https://github.com/Magithar/socketio-unity/releases)
@@ -66,20 +66,24 @@ Open the **Basic Chat** sample and press Play. → [Full guide](#basic-chat)
 
 Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. This is a clean-room, open-source alternative built from the public protocol spec.
 
-| | socketio-unity | Typical Unity Asset |
-|---|---|---|
-| Open source (MIT) | **Yes** | Often closed-source |
-| Socket.IO v4 full protocol | **Yes** | Partial / outdated |
-| WebGL | **Verified** | Often broken |
-| Binary payloads | **Yes** | Limited |
-| Namespace multiplexing | **Yes** | Sometimes missing |
-| ACK callbacks with timeout | **Yes** | Partial |
-| Reconnect with backoff + jitter | **Yes** | Basic or hardcoded |
-| Unity Profiler integration | **Yes** | No |
-| CI-tested on every commit | **Yes** | Rare |
-| Mirror integration sample | **Yes** | No |
+### Where it fits
 
-**What you can build:** multiplayer lobbies, real-time player sync, WebGL browser multiplayer, chat/notification systems, mobile multiplayer, or a signaling layer for Mirror/Netcode.
+socketio-unity is a **backend/transport client**, not a netcode engine. It's ideal for:
+- **Lobbies, matchmaking, and server-authoritative events** over your own Socket.IO backend
+- **WebGL browser multiplayer**, where most Unity WebSocket options break
+- A **signaling + backend layer for Mirror or Netcode** — Socket.IO handles matchmaking and backend events; Mirror/Netcode handle in-scene sync. See the [Mirror Integration sample](package/Samples~/MirrorIntegration/README.md).
+
+| | **socketio-unity** | Paid Asset Store client | Roll your own (NativeWebSocket) | Managed BaaS (Photon / Nakama / PlayFab) |
+|---|---|---|---|---|
+| License / cost | **MIT, free, auditable** | Paid, usually closed-source | Free (your engineering time) | Free tier → CCU/MAU pricing |
+| Socket.IO v4 protocol | **Full** (namespaces, binary, ACK timeouts) | Partial / outdated | You implement & maintain it | N/A — their proprietary protocol |
+| WebGL | **Verified** — [live browser demo](https://magithar.github.io/socketio-unity/) | Often broken | You debug the jslib bridge | Varies |
+| Backend ownership | **Any Node/Socket.IO server you control** | Any | Any | Vendor-hosted, lock-in |
+| Reconnect / host migration | **Built-in** (backoff + jitter, session identity) | Basic / hardcoded | Build it yourself | Managed |
+| Works *with* Mirror / Netcode | **Yes — as the signaling/backend layer** | Rarely | Maybe | Overlaps / replaces them |
+| Tested | **76 tests in CI every commit** | Rare | Your call | Vendor's |
+
+> **You own the backend, you own the code, and it works in the browser.** socketio-unity is the piece that talks to *your* Socket.IO server — not a netcode engine, and not a hosted service you rent.
 
 ---
 
