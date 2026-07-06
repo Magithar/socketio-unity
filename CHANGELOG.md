@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`) run on every push/PR alongside the EditMode suites. 69 tests total (34 EditMode + 35 PlayMode) now gate every commit; these runtime suites were previously invisible to CI.
+- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`) run on every push/PR alongside the EditMode suites. 70 tests total (34 EditMode + 36 PlayMode) now gate every commit; these runtime suites were previously invisible to CI.
 
 ### Fixed
 
