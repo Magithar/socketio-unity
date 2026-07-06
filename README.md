@@ -28,6 +28,24 @@ socketio-unity is a **backend/transport client**, not a netcode engine. It's ide
 
 ---
 
+## Why socketio-unity?
+
+Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. This is a clean-room, open-source alternative built from the public protocol spec.
+
+| | **socketio-unity** | Paid Asset Store client | Roll your own (NativeWebSocket) | Managed BaaS (Photon / Nakama / PlayFab) |
+|---|---|---|---|---|
+| License / cost | **MIT, free, auditable** | Paid, usually closed-source | Free (your engineering time) | Free tier → CCU/MAU pricing |
+| Socket.IO v4 protocol | **Full** (namespaces, binary, ACK timeouts) | Partial / outdated | You implement & maintain it | N/A — their proprietary protocol |
+| WebGL | **Verified** — [live browser demo](https://magithar.github.io/socketio-unity/) | Often broken | You debug the jslib bridge | Varies |
+| Backend ownership | **Any Node/Socket.IO server you control** | Any | Any | Vendor-hosted, lock-in |
+| Reconnect / host migration | **Built-in** (backoff + jitter, session identity) | Basic / hardcoded | Build it yourself | Managed |
+| Works *with* Mirror / Netcode | **Yes — as the signaling/backend layer** | Rarely | Maybe | Overlaps / replaces them |
+| Tested | **76 tests in CI every commit** | Rare | Your call | Vendor's |
+
+> **You own the backend, you own the code, and it works in the browser.** socketio-unity is the piece that talks to *your* Socket.IO server — not a netcode engine, and not a hosted service you rent.
+
+---
+
 | | |
 |---|---|
 | **Get Started** | [Getting Started](Documentation~/GETTING_STARTED.md) · [Quick Start](#quick-start) · [Installation](#installation) · [Dependencies](#dependencies) |
@@ -68,24 +86,6 @@ cd TestServer~ && npm install && npm run start:basicchat
 ```
 
 Open the **Basic Chat** sample and press Play. → [Full guide](#basic-chat)
-
----
-
-## Why socketio-unity?
-
-Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. This is a clean-room, open-source alternative built from the public protocol spec.
-
-| | **socketio-unity** | Paid Asset Store client | Roll your own (NativeWebSocket) | Managed BaaS (Photon / Nakama / PlayFab) |
-|---|---|---|---|---|
-| License / cost | **MIT, free, auditable** | Paid, usually closed-source | Free (your engineering time) | Free tier → CCU/MAU pricing |
-| Socket.IO v4 protocol | **Full** (namespaces, binary, ACK timeouts) | Partial / outdated | You implement & maintain it | N/A — their proprietary protocol |
-| WebGL | **Verified** — [live browser demo](https://magithar.github.io/socketio-unity/) | Often broken | You debug the jslib bridge | Varies |
-| Backend ownership | **Any Node/Socket.IO server you control** | Any | Any | Vendor-hosted, lock-in |
-| Reconnect / host migration | **Built-in** (backoff + jitter, session identity) | Basic / hardcoded | Build it yourself | Managed |
-| Works *with* Mirror / Netcode | **Yes — as the signaling/backend layer** | Rarely | Maybe | Overlaps / replaces them |
-| Tested | **76 tests in CI every commit** | Rare | Your call | Vendor's |
-
-> **You own the backend, you own the code, and it works in the browser.** socketio-unity is the piece that talks to *your* Socket.IO server — not a netcode engine, and not a hosted service you rent.
 
 ---
 
