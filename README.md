@@ -11,13 +11,15 @@ Use it as your **backend & matchmaking layer** — standalone, or alongside **Mi
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-v1.6.0-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
-[![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
+[![WebGL Verified](https://img.shields.io/badge/WebGL-Verified-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![Mirror Compatible](https://img.shields.io/badge/Mirror-Compatible-black)](package/Samples~/MirrorIntegration/README.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 ---
+
+### Where it fits
 
 socketio-unity is a **backend/transport client**, not a netcode engine. It's ideal for:
 - **Lobbies, matchmaking, and server-authoritative events** over your own Socket.IO backend
