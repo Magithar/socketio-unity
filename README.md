@@ -9,7 +9,7 @@
 WebGL-ready. Production-tested. Zero paid dependencies.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.5.0-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.6.0-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Supported](https://img.shields.io/badge/WebGL-Supported-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![Mirror Compatible](https://img.shields.io/badge/Mirror-Compatible-black)](package/Samples~/MirrorIntegration/README.md)

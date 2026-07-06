@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-06
+
+**Reliability & test-infrastructure release.** Makes CI an honest gate (the full EditMode + PlayMode suite now runs on every commit), fixes two server-input hardening issues surfaced by the security audit, and adds a connection-establishment timeout. No breaking API changes.
+
 ### Added
 
 - **Connection-establishment timeout** — `ReconnectConfig.connectTimeoutMs` (default 10000ms) aborts an initial `Connect()` with `OnError(ErrorType.Timeout)` if the Engine.IO OPEN packet is not received in time, instead of hanging in `Connecting` forever when a server accepts the socket but never completes the handshake. Applies to the user-initiated `Connect()` only (reconnect attempts use `ReconnectController`'s own backoff); set to 0 to disable. Additive, non-breaking. Covered by new `ConnectionStateTests` and `ReconnectConfigTests` cases.
@@ -457,7 +461,8 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/Magithar/socketio-unity/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Magithar/socketio-unity/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Magithar/socketio-unity/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/Magithar/socketio-unity/compare/v1.3.0...v1.3.1
