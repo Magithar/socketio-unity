@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`) run on every push/PR alongside the EditMode suites. 72 tests total (34 EditMode + 38 PlayMode) now gate every commit; these runtime suites were previously invisible to CI.
+- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`, `WebGLBridgeRoutingTests`) run on every push/PR alongside the EditMode suites. These runtime suites were previously invisible to CI.
+- **Hardened WebGL text-message routing** (security audit finding #2) — `WebGLSocketBridge.JSOnText` now splits the `"<socketId>:<message>"` frame deterministically at the first colon (the socket id is a colon-free GUID, so the message body may contain any number of colons) and drops unroutable messages with a warning. Replaces a fragile "first colon, index < 40" heuristic with a silent last-active-socket fallback. Covered by new `WebGLBridgeRoutingTests` (JS↔C# marshalling still requires a manual WebGL build to verify).
 
 ### Fixed
 

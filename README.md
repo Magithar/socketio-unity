@@ -388,7 +388,7 @@ Minimum Unity version: **2020.1** (set in `package.json`; required by the built-
 
 ## Production Readiness
 
-Stable public API (frozen for v1.x), **72 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — 22 protocol edge-case cases plus connection-state, lobby-state, reconnect, and regression suites — WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
+Stable public API (frozen for v1.x), **76 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — 22 protocol edge-case cases plus connection-state, lobby-state, reconnect, WebGL routing, and regression suites — WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
 
 ## WebGL
 
@@ -463,12 +463,13 @@ npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integ
 | `ConnectionStateTests.cs` | PlayMode NUnit | State transitions, OnStateChanged, namespace reconnect | ✅ |
 | `LobbyStateIntegrationTests.cs` | PlayMode NUnit | State invariants, namespace timing | ✅ |
 | `BugRegressionTests.cs` | PlayMode NUnit | Binary assembler, ACK overflow, JSON degradation | ✅ |
-| `ReconnectConfigTests.cs` | PlayMode NUnit | Defensive copy, factory presets | ✅ |
+| `ReconnectConfigTests.cs` | PlayMode NUnit | Defensive copy, factory presets, connect timeout default | ✅ |
+| `WebGLBridgeRoutingTests.cs` | PlayMode NUnit | WebGL text-message socket-id routing (colon-safe) | ✅ |
 | `ProtocolEdgeCaseTests.cs` | Editor menu item | Same parser cases, manual run (superseded by `ProtocolParserTests`) | — |
 
 ### CI
 
-GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 72 tests) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
+GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 76 tests) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
 
 ---
 

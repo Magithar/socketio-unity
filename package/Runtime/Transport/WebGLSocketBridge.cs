@@ -88,30 +88,36 @@ namespace SocketIOUnity.Transport
         }
 
         /// <summary>
-        /// Called from JavaScript when text message received.
-        /// Format: "socketId:message" or just "message" (uses last active socket)
+        /// Called from JavaScript when a text message is received.
+        ///
+        /// Framing contract (see SocketIOWebGL.jslib): the payload is always
+        /// "&lt;socketId&gt;:&lt;message&gt;", where socketId is a GUID. Because a GUID never
+        /// contains ':', the FIRST ':' is unambiguously the separator — the message body may
+        /// contain any number of colons (JSON, URLs, timestamps) without affecting routing.
+        ///
+        /// This replaces an earlier "first colon, index &lt; 40" heuristic with a silent
+        /// last-active-socket fallback, which scanned the message body and could mis-split or
+        /// silently drop payloads.
         /// </summary>
         public void JSOnText(string payload)
         {
-            // Check if payload contains socket ID prefix
-            var colonIndex = payload.IndexOf(':');
-            string socketId;
-            string message;
+            if (string.IsNullOrEmpty(payload))
+                return;
 
-            if (colonIndex > 0 && colonIndex < 40) // GUID is 36 chars
+            int sep = payload.IndexOf(':');
+            if (sep <= 0)
             {
-                socketId = payload.Substring(0, colonIndex);
-                message = payload.Substring(colonIndex + 1);
-            }
-            else
-            {
-                // Fallback to last active socket
-                socketId = _lastActiveSocketId;
-                message = payload;
+                Debug.LogWarning("[WebGLSocketBridge] JSOnText payload missing socket-id prefix — dropped");
+                return;
             }
 
-            if (!string.IsNullOrEmpty(socketId) && _textHandlers.TryGetValue(socketId, out var handler))
+            string socketId = payload.Substring(0, sep);
+            string message = payload.Substring(sep + 1);
+
+            if (_textHandlers.TryGetValue(socketId, out var handler))
                 handler?.Invoke(message);
+            else
+                Debug.LogWarning($"[WebGLSocketBridge] JSOnText for unknown socket id '{socketId}' — dropped");
         }
 
         /// <summary>
