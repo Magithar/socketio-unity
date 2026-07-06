@@ -23,11 +23,11 @@ WebGL-ready. Production-tested. Zero paid dependencies.
 |---|---|
 | **Get Started** | [Getting Started](Documentation~/GETTING_STARTED.md) · [Quick Start](#quick-start) · [Installation](#installation) · [Dependencies](#dependencies) |
 | **Demo** | [Live Demo](https://magithar.github.io/socketio-unity/) · [Videos](#demo) |
-| **Learn** | [API Guide](#usage) · [Architecture](#architecture) · [API Stability](API_STABILITY.md) |
+| **Learn** | [API Guide](#usage) · [Architecture](#architecture) · [API Stability](API_STABILITY.md) · [Flows](Documentation~/flows.md) · [Permissions & Trust](Documentation~/permissions.md) · [Config Variables](Documentation~/variables.md) |
 | **Samples** | [Basic Chat](#basic-chat) · [PlayerSync](#playersync) · [Lobby](#lobby) · [LiveDemo](#livedemo) · [Mirror Integration](#mirror-integration) |
 | **Platform** | [Platforms](#supported-platforms) · [WebGL](#webgl) · [Production Readiness](#production-readiness) |
 | **Tools** | [Diagnostics Overlay](#diagnostics-overlay) · [Profiler](#unity-profiler-integration) · [Packet Tracing](#packet-tracing) · [Testing](#development--testing) |
-| **Project** | [Changelog](CHANGELOG.md) · [Contributing](#contributing) · [License](#license) |
+| **Project** | [Changelog](CHANGELOG.md) · [Migrations](MIGRATIONS.md) · [Security](SECURITY.md) · [Contributing](#contributing) · [License](#license) |
 
 ---
 

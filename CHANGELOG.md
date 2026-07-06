@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Docs
 
 - Corrected the minimum Unity version in the README from "2019.4 LTS" to **2020.1**, matching `package.json` (the built-in Newtonsoft.Json dependency requires 2020.1).
+- Added `SECURITY.md` (private disclosure policy, supported-version table, and a summary of the 2026-06-27 audit) and `MIGRATIONS.md` (consolidated v1.x breaking-change guide).
+- Surfaced the `flows.md`, `permissions.md`, and `variables.md` docs plus `SECURITY.md` / `MIGRATIONS.md` in the README navigation table; moved loose release-note files into `Documentation~/releases/` to declutter the repo root.
+- Documented the WebGL `_free` / `SendMessage` synchrony assumption in `SocketIOWebGL.jslib` (security audit finding #3, low).
 
 ## [1.5.0] - 2026-04-25
 

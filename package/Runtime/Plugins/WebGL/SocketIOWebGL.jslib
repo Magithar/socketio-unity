@@ -201,7 +201,13 @@ mergeInto(LibraryManager.library, {
         var bytes = new Uint8Array(e.data);
         var ptr = _malloc(bytes.length);
         HEAPU8.set(bytes, ptr);
-        // Include socket ID for routing
+        // Include socket ID for routing.
+        // SAFETY: _free(ptr) below is only correct because Unity's SendMessage is
+        // synchronous — JSOnBinary runs to completion (Marshal.Copy reads the heap)
+        // before SendMessage returns and we free the buffer. This holds on Unity
+        // 2020.1–6000.x (IL2CPP WebGL). If a future Unity runtime makes SendMessage
+        // asynchronous, this becomes a use-after-free and the copy must move JS-side
+        // (e.g. pass the bytes as base64) instead of freeing here. See security audit #3.
         SendMessage("WebGLSocketBridge", "JSOnBinary", id + "," + ptr + "," + bytes.length);
         _free(ptr);
       }
