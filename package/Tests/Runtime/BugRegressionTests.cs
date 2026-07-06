@@ -109,12 +109,15 @@ namespace SocketIOUnity.Tests
             bool complete = assembler.AddBinary(new byte[] { 1, 2, 3 });
             Assert.IsTrue(complete, "Single-attachment packet should complete after one frame");
 
-            // Act & Assert — Build() must not throw despite the malformed placeholder
-            Assert.DoesNotThrow(() =>
-            {
-                var (_, _, eventName, _, _) = assembler.Build();
-                Assert.AreEqual("event", eventName, "Event name should still be recoverable");
-            });
+            // Act & Assert — Build() runs ReplacePlaceholders, where the null-deref occurred.
+            // Build() returns a tuple containing JArray; invoke it via reflection so the
+            // Newtonsoft.Json type stays out of this test assembly (matching the StressTests
+            // convention). Reflection wraps a thrown NRE in TargetInvocationException, so
+            // DoesNotThrow still fails if the guard regresses.
+            var build = typeof(BinaryPacketAssembler).GetMethod("Build");
+            Assert.IsNotNull(build, "Build() should be reflectable");
+            Assert.DoesNotThrow(() => build.Invoke(assembler, null),
+                "Build() must not throw when a binary placeholder omits its 'num' key");
         }
 
         /// <summary>

@@ -2,8 +2,7 @@
     "name": "SocketIOUnity.Tests",
     "rootNamespace": "SocketIOUnity.Tests",
     "references": [
-        "SocketIOUnity",
-        "Unity.Newtonsoft.Json"
+        "SocketIOUnity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
