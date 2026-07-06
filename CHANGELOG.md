@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Connection-establishment timeout** — `ReconnectConfig.connectTimeoutMs` (default 10000ms) aborts an initial `Connect()` with `OnError(ErrorType.Timeout)` if the Engine.IO OPEN packet is not received in time, instead of hanging in `Connecting` forever when a server accepts the socket but never completes the handshake. Applies to the user-initiated `Connect()` only (reconnect attempts use `ReconnectController`'s own backoff); set to 0 to disable. Additive, non-breaking. Covered by new `ConnectionStateTests` and `ReconnectConfigTests` cases.
 - **`ProtocolParserTests` (EditMode NUnit)** — the protocol parser edge cases previously only runnable via the `SocketIO → Run Protocol Edge Tests` menu item now run in CI as 22 NUnit test cases covering empty/null input, packet type validation, ACK ID overflow, binary attachment framing, namespace parsing, deferred JSON validation, and disconnect packets. The original `Editor/ProtocolEdgeCaseTests.cs` menu item is retained for manual convenience.
 
 ### Changed
 
-- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`) run on every push/PR alongside the EditMode suites. 70 tests total (34 EditMode + 36 PlayMode) now gate every commit; these runtime suites were previously invisible to CI.
+- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`) run on every push/PR alongside the EditMode suites. 72 tests total (34 EditMode + 38 PlayMode) now gate every commit; these runtime suites were previously invisible to CI.
 
 ### Fixed
 

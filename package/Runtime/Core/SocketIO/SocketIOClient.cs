@@ -189,7 +189,9 @@ namespace SocketIOUnity.Runtime
             _lastUrl = url;
             _intentionalDisconnect = false;
             SetState(ConnectionState.Connecting);
-            _engine.Connect(url);
+            // Connect-establishment timeout applies to the user-initiated attempt only.
+            // Reconnect attempts (AttemptReconnect) rely on ReconnectController's own backoff.
+            _engine.Connect(url, _reconnectConfig.connectTimeoutMs);
         }
 
         public void Disconnect()

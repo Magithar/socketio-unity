@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 using Newtonsoft.Json;
 using SocketIOUnity.Debugging;
 using SocketIOUnity.Transport;
@@ -15,6 +16,12 @@ namespace SocketIOUnity.EngineProtocol
 
         private bool _isConnected;
         private HandshakeInfo _handshake;
+
+        // Connection-establishment timeout: armed on Connect() when a positive timeout is
+        // supplied, disarmed once the Engine.IO OPEN packet arrives (or on teardown). Guards
+        // against a server that accepts the socket but never completes the handshake.
+        private bool _connectTimerActive;
+        private float _connectDeadline;
 
         public bool IsConnected => _isConnected;
         public string SessionId => _handshake?.sid;
@@ -41,12 +48,19 @@ namespace SocketIOUnity.EngineProtocol
         // Public API
         // --------------------------------------------------
 
-        public void Connect(string baseUrl)
+        public void Connect(string baseUrl, int connectTimeoutMs = 0)
         {
             if (_isConnected)
                 return;
 
             UnityTickDriver.Register(this); // re-register in case Cleanup() unregistered us
+
+            if (connectTimeoutMs > 0)
+            {
+                _connectTimerActive = true;
+                _connectDeadline = Time.time + connectTimeoutMs / 1000f;
+            }
+
             var url = BuildEngineIOUrl(baseUrl);
             _transport.Connect(url);
         }
@@ -74,7 +88,22 @@ namespace SocketIOUnity.EngineProtocol
         public void Tick()
         {
             _transport.Dispatch();
+            TickConnectTimeout();
             _heartbeat.Tick();
+        }
+
+        private void TickConnectTimeout()
+        {
+            if (!_connectTimerActive)
+                return;
+
+            if (Time.time > _connectDeadline)
+            {
+                _connectTimerActive = false;
+                SocketIOTrace.Error(TraceCategory.EngineIO, "Connection establishment timed out (no Engine.IO OPEN packet)");
+                OnError?.Invoke(new SocketError(ErrorType.Timeout, "Connection establishment timed out"));
+                Disconnect();
+            }
         }
 
         // --------------------------------------------------
@@ -190,6 +219,9 @@ namespace SocketIOUnity.EngineProtocol
 
         private void HandleOpen(string payload)
         {
+            // OPEN received — the handshake completed, so disarm the connect timeout.
+            _connectTimerActive = false;
+
             try
             {
                 _handshake = JsonConvert.DeserializeObject<HandshakeInfo>(payload);
@@ -247,6 +279,7 @@ namespace SocketIOUnity.EngineProtocol
         {
             UnityTickDriver.Unregister(this);
             _isConnected = false;
+            _connectTimerActive = false;
             _heartbeat.Stop();
             _handshake = null;
         }

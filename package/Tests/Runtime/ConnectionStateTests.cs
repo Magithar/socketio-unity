@@ -389,5 +389,54 @@ namespace SocketIOUnity.Tests
             Assert.IsTrue(lobbyConnected,
                 "/lobby should be re-connected after a full reconnect cycle");
         }
+
+        // --------------------------------------------------
+        // Connection-establishment timeout (v1.6.0)
+        // --------------------------------------------------
+
+        // Reflection helper: reach the internal EngineIOClient and force its connect
+        // deadline into the past, then drive one engine tick. StubTransport never sends
+        // OPEN, and Time.time does not advance within a synchronous test, so this is the
+        // only way to exercise the timeout deterministically.
+        private static void ForceEngineConnectDeadlineElapsedAndTick(SocketIOClient socket)
+        {
+            var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var engine = typeof(SocketIOClient).GetField("_engine", flags).GetValue(socket);
+            engine.GetType().GetField("_connectDeadline", flags).SetValue(engine, -1f);
+            engine.GetType().GetMethod("Tick").Invoke(engine, null);
+        }
+
+        [Test]
+        public void ConnectTimeout_FiresOnError_WhenOpenNeverArrives()
+        {
+            var socket = BuildSocket();
+            SocketError? captured = null;
+            socket.OnError += e => captured = e;
+
+            // StubTransport.Connect() is a no-op, so the server never sends OPEN.
+            socket.Connect("ws://localhost:3000");
+
+            ForceEngineConnectDeadlineElapsedAndTick(socket);
+
+            Assert.IsTrue(captured.HasValue, "OnError should fire when the connect timeout elapses");
+            Assert.AreEqual(ErrorType.Timeout, captured.Value.Type,
+                "Connect timeout must surface as ErrorType.Timeout");
+        }
+
+        [Test]
+        public void ConnectTimeout_DoesNotFire_AfterHandshakeCompletes()
+        {
+            var socket = BuildSocket();
+            bool errored = false;
+            socket.OnError += _ => errored = true;
+
+            socket.Connect("ws://localhost:3000");
+            CompleteConnection(socket); // engine OPEN disarms the connect timer
+
+            ForceEngineConnectDeadlineElapsedAndTick(socket);
+
+            Assert.IsFalse(errored, "Connect timeout must not fire once the handshake has completed");
+            Assert.AreEqual(ConnectionState.Connected, socket.State);
+        }
     }
 }

@@ -233,11 +233,12 @@ void OnDestroy()
 ```csharp
 socket.ReconnectConfig = new ReconnectConfig
 {
-    initialDelay  = 1f,
-    multiplier    = 2f,
-    maxDelay      = 30f,
-    maxAttempts   = -1,      // unlimited
-    jitterPercent = 0.1f,    // prevents thundering herd
+    initialDelay     = 1f,
+    multiplier       = 2f,
+    maxDelay         = 30f,
+    maxAttempts      = -1,      // unlimited
+    jitterPercent    = 0.1f,    // prevents thundering herd
+    connectTimeoutMs = 10000,   // abort Connect() with OnError(Timeout) if no OPEN in 10s (0 = off)
 };
 ```
 
@@ -387,7 +388,7 @@ Minimum Unity version: **2020.1** (set in `package.json`; required by the built-
 
 ## Production Readiness
 
-Stable public API (frozen for v1.x), **70 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — 22 protocol edge-case cases plus connection-state, lobby-state, reconnect, and regression suites — WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
+Stable public API (frozen for v1.x), **72 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — 22 protocol edge-case cases plus connection-state, lobby-state, reconnect, and regression suites — WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
 
 ## WebGL
 
@@ -467,7 +468,7 @@ npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integ
 
 ### CI
 
-GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 70 tests) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
+GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 72 tests) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
 
 ---
 

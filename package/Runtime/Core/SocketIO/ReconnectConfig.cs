@@ -29,6 +29,9 @@ namespace SocketIOUnity.Runtime
         [Range(0f, 0.5f)]
         public float jitterPercent = 0f;
 
+        [Tooltip("Milliseconds to wait for the Engine.IO OPEN packet before aborting an initial Connect() with a Timeout error. Applies to Connect() only, not reconnect attempts. 0 disables.")]
+        public int connectTimeoutMs = 10000;
+
         /// <summary>
         /// Default constructor with standard exponential backoff configuration.
         /// </summary>
@@ -48,6 +51,7 @@ namespace SocketIOUnity.Runtime
             maxAttempts = source.maxAttempts;
             autoReconnect = source.autoReconnect;
             jitterPercent = source.jitterPercent;
+            connectTimeoutMs = source.connectTimeoutMs;
         }
 
         /// <summary>

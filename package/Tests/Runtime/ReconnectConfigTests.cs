@@ -48,7 +48,8 @@ namespace SocketIOUnity.Tests
                 maxDelay = 60f,
                 maxAttempts = 10,
                 autoReconnect = false,
-                jitterPercent = 0.2f
+                jitterPercent = 0.2f,
+                connectTimeoutMs = 5000
             };
 
             // Act
@@ -57,6 +58,7 @@ namespace SocketIOUnity.Tests
             // Mutate original
             original.initialDelay = 999f;
             original.multiplier = 999f;
+            original.connectTimeoutMs = 999;
 
             // Assert
             Assert.AreEqual(2f, copy.initialDelay, "Copy should be independent");
@@ -65,6 +67,7 @@ namespace SocketIOUnity.Tests
             Assert.AreEqual(10, copy.maxAttempts);
             Assert.AreEqual(false, copy.autoReconnect);
             Assert.AreEqual(0.2f, copy.jitterPercent, 0.001f);
+            Assert.AreEqual(5000, copy.connectTimeoutMs, "connectTimeoutMs should be copied independently");
 
             Debug.Log("✅ Copy constructor creates independent copy");
         }
@@ -112,6 +115,7 @@ namespace SocketIOUnity.Tests
             Assert.AreEqual(30f, config.maxDelay, "Default max delay should be 30s");
             Assert.AreEqual(-1, config.maxAttempts, "Default max attempts should be unlimited");
             Assert.AreEqual(0f, config.jitterPercent, "Default jitter should be 0 (disabled)");
+            Assert.AreEqual(10000, config.connectTimeoutMs, "Default connect timeout should be 10s");
 
             Debug.Log("✅ Default config matches v1.0.x behavior (backward compatible)");
         }
