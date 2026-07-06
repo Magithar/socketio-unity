@@ -6,7 +6,16 @@ const PORT = 3000;
 // ======================================================
 // HTTP SERVER (REQUIRED FOR UNITY / NATIVE WS)
 // ======================================================
-const httpServer = http.createServer();
+const httpServer = http.createServer((req, res) => {
+  if (req.method === "POST" && req.url === "/push-webgl") {
+    io.of("/webgl").emit("message", { url: "https://x:8080", test: "colon-payload" });
+    res.writeHead(200);
+    res.end("pushed\n");
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
 
 const io = new Server(httpServer, {
   cors: {
