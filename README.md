@@ -19,6 +19,13 @@ Use it as your **backend & matchmaking layer** — standalone, or alongside **Mi
 
 ---
 
+socketio-unity is a **backend/transport client**, not a netcode engine. It's ideal for:
+- **Lobbies, matchmaking, and server-authoritative events** over your own Socket.IO backend
+- **WebGL browser multiplayer**, where most Unity WebSocket options break
+- A **signaling + backend layer for Mirror or Netcode** — Socket.IO handles matchmaking and backend events; Mirror/Netcode handle in-scene sync. See the [Mirror Integration sample](package/Samples~/MirrorIntegration/README.md).
+
+---
+
 | | |
 |---|---|
 | **Get Started** | [Getting Started](Documentation~/GETTING_STARTED.md) · [Quick Start](#quick-start) · [Installation](#installation) · [Dependencies](#dependencies) |
@@ -65,13 +72,6 @@ Open the **Basic Chat** sample and press Play. → [Full guide](#basic-chat)
 ## Why socketio-unity?
 
 Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. This is a clean-room, open-source alternative built from the public protocol spec.
-
-### Where it fits
-
-socketio-unity is a **backend/transport client**, not a netcode engine. It's ideal for:
-- **Lobbies, matchmaking, and server-authoritative events** over your own Socket.IO backend
-- **WebGL browser multiplayer**, where most Unity WebSocket options break
-- A **signaling + backend layer for Mirror or Netcode** — Socket.IO handles matchmaking and backend events; Mirror/Netcode handle in-scene sync. See the [Mirror Integration sample](package/Samples~/MirrorIntegration/README.md).
 
 | | **socketio-unity** | Paid Asset Store client | Roll your own (NativeWebSocket) | Managed BaaS (Photon / Nakama / PlayFab) |
 |---|---|---|---|---|
