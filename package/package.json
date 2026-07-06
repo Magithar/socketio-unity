@@ -48,6 +48,11 @@
             "displayName": "Mirror Integration",
             "description": "Hybrid architecture combining Socket.IO backend with Mirror in-scene networking. Requires Mirror (via UPM) and the Lobby sample to be imported first.",
             "path": "Samples~/MirrorIntegration"
+        },
+        {
+            "displayName": "WebGL Smoke Test",
+            "description": "Manual WebGL verification scene for F3 routing fix. Connect, send colon-containing payloads, and verify dual-namespace routing in a browser build.",
+            "path": "Samples~/WebGLSmokeTest"
         }
     ]
 }
