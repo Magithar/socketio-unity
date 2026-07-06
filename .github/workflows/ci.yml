@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: EditMode Tests
+    name: EditMode + PlayMode Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,7 @@ jobs:
           restore-keys: |
             Library-2022.3.62f2-${{ runner.os }}-
 
-      - name: Run EditMode Tests
+      - name: Run EditMode + PlayMode Tests
         uses: game-ci/unity-test-runner@v4.3.1
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -34,7 +34,7 @@ jobs:
         with:
           projectPath: TestProject~
           unityVersion: 2022.3.62f2
-          testMode: editmode
+          testMode: all
           artifactsPath: artifacts
           coverageOptions: ''
 
