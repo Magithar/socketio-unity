@@ -98,7 +98,18 @@ namespace SocketIOUnity.Serialization
                 obj.TryGetValue("_placeholder", out var ph) &&
                 ph.Value<bool>())
             {
-                int idx = obj["num"].Value<int>();
+                // "num" is required by the Socket.IO binary spec. A server that omits it
+                // (or sends a non-integer) must not crash the assembler — skip the malformed
+                // placeholder rather than dereferencing a null token. See security audit finding #1.
+                if (!obj.TryGetValue("num", out var numToken) ||
+                    numToken.Type != JTokenType.Integer)
+                {
+                    SocketIOTrace.Error(TraceCategory.Binary,
+                        "Binary placeholder missing or non-integer 'num' key — skipping");
+                    return;
+                }
+
+                int idx = numToken.Value<int>();
                 if (idx >= 0 && idx < _buffers.Count)
                     token.Replace(new JValue(_buffers[idx]));
                 return;

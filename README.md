@@ -383,11 +383,11 @@ Full architecture docs: [ARCHITECTURE.md](Documentation~/ARCHITECTURE.md)
 | Socket.IO v3.x / v2.x | No |
 | Engine.IO long-polling | No (intentional) |
 
-Minimum Unity version: 2019.4 LTS (core), 2020.1+ (built-in Newtonsoft.Json), 2020.2+ (Profiler Counters).
+Minimum Unity version: **2020.1** (set in `package.json`; required by the built-in Newtonsoft.Json dependency). Profiler Counters require 2020.2+.
 
 ## Production Readiness
 
-Stable public API (frozen for v1.x), CI-validated on Unity 2022.3 LTS, 38+ protocol edge-case tests, bug regression tests, WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
+Stable public API (frozen for v1.x), **69 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — 22 protocol edge-case cases plus connection-state, lobby-state, reconnect, and regression suites — WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
 
 ## WebGL
 
@@ -455,18 +455,19 @@ npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integ
 
 ### Test Suite
 
-| Test | Type | Covers |
-|---|---|---|
-| `ProtocolEdgeCaseTests.cs` | Editor tool | Protocol parsing edge cases |
-| `BugRegressionTests.cs` | Runtime NUnit | Binary assembler, ACK overflow, JSON degradation |
-| `ReconnectConfigTests.cs` | Runtime NUnit | Defensive copy, factory presets |
-| `ConnectionStateTests.cs` | Runtime NUnit | State transitions, OnStateChanged, namespace reconnect |
-| `LobbyStateIntegrationTests.cs` | Runtime NUnit | State invariants, namespace timing |
-| `StressTests.cs` | EditMode NUnit | 1K events, 10MB binary, 100 ACKs, 50 reconnects |
+| Test | Type | Covers | In CI |
+|---|---|---|---|
+| `ProtocolParserTests.cs` | EditMode NUnit | Protocol parsing edge cases (22 cases) | ✅ |
+| `StressTests.cs` | EditMode NUnit | 1K events, 10MB binary, 100 ACKs, 50 reconnects | ✅ |
+| `ConnectionStateTests.cs` | PlayMode NUnit | State transitions, OnStateChanged, namespace reconnect | ✅ |
+| `LobbyStateIntegrationTests.cs` | PlayMode NUnit | State invariants, namespace timing | ✅ |
+| `BugRegressionTests.cs` | PlayMode NUnit | Binary assembler, ACK overflow, JSON degradation | ✅ |
+| `ReconnectConfigTests.cs` | PlayMode NUnit | Defensive copy, factory presets | ✅ |
+| `ProtocolEdgeCaseTests.cs` | Editor menu item | Same parser cases, manual run (superseded by `ProtocolParserTests`) | — |
 
 ### CI
 
-GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs EditMode tests against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
+GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 69 tests) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
 
 ---
 

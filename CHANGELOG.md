@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`ProtocolParserTests` (EditMode NUnit)** — the protocol parser edge cases previously only runnable via the `SocketIO → Run Protocol Edge Tests` menu item now run in CI as 22 NUnit test cases covering empty/null input, packet type validation, ACK ID overflow, binary attachment framing, namespace parsing, deferred JSON validation, and disconnect packets. The original `Editor/ProtocolEdgeCaseTests.cs` menu item is retained for manual convenience.
+
+### Changed
+
+- **CI now runs the full test suite** — `ci.yml` switched from `testMode: editmode` to `testMode: all`, so the PlayMode runtime tests (`ConnectionStateTests`, `LobbyStateIntegrationTests`, `BugRegressionTests`, `ReconnectConfigTests`) run on every push/PR alongside the EditMode suites. 69 tests total (34 EditMode + 35 PlayMode) now gate every commit; these runtime suites were previously invisible to CI.
+
+### Fixed
+
+- **Binary placeholder null-dereference** (security audit finding #1) — `BinaryPacketAssembler.ReplacePlaceholders` no longer throws `NullReferenceException` when a server binary event's `{"_placeholder":true}` object omits the required `"num"` key (or sends a non-integer); the malformed placeholder is now skipped. `SocketIOClient.HandleEngineBinary` also gains a try-catch that routes binary assembly errors to `OnError`, mirroring the existing protection on `HandleEngineMessage`. Prevents per-frame exception spam on Desktop and silent binary-event loss on WebGL from a malformed server packet. Covered by a new `BugRegressionTests` case.
+
+### Docs
+
+- Corrected the minimum Unity version in the README from "2019.4 LTS" to **2020.1**, matching `package.json` (the built-in Newtonsoft.Json dependency requires 2020.1).
+
 ## [1.5.0] - 2026-04-25
 
 ### Breaking Changes

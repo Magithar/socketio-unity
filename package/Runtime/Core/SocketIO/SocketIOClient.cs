@@ -424,29 +424,42 @@ namespace SocketIOUnity.Runtime
 
             SocketIOTrace.Verbose(TraceCategory.Binary, $"Binary attachment received: {data.Length} bytes");
 
-            if (_binaryAssembler.AddBinary(data))
+            try
             {
-                var (type, ackId, eventName, args, ns) = _binaryAssembler.Build();
-
-                if (!_namespaces.TryGet(ns, out var nsSocket))
-                    nsSocket = _defaultNamespace;
-
-                if (type == SocketProtocol.SocketPacketType.BinaryAck)
+                if (_binaryAssembler.AddBinary(data))
                 {
-                    // Route BinaryAck to acknowledgment handler
-                    if (ackId.HasValue)
+                    var (type, ackId, eventName, args, ns) = _binaryAssembler.Build();
+
+                    if (!_namespaces.TryGet(ns, out var nsSocket))
+                        nsSocket = _defaultNamespace;
+
+                    if (type == SocketProtocol.SocketPacketType.BinaryAck)
                     {
-                        SocketIOTrace.Protocol(TraceCategory.Ack, $"Binary ACK received id={ackId.Value}");
-                        var payload = args.Count > 0 ? args[0]?.ToString() : null;
-                        nsSocket.HandleAck(ackId.Value, payload);
+                        // Route BinaryAck to acknowledgment handler
+                        if (ackId.HasValue)
+                        {
+                            SocketIOTrace.Protocol(TraceCategory.Ack, $"Binary ACK received id={ackId.Value}");
+                            var payload = args.Count > 0 ? args[0]?.ToString() : null;
+                            nsSocket.HandleAck(ackId.Value, payload);
+                        }
+                    }
+                    else
+                    {
+                        // Route BinaryEvent to event handler
+                        SocketIOTrace.Protocol(TraceCategory.Binary, $"Binary event complete: '{eventName}' with {args.Count} args");
+                        nsSocket.HandleBinaryEvent(eventName, args);
                     }
                 }
-                else
-                {
-                    // Route BinaryEvent to event handler
-                    SocketIOTrace.Protocol(TraceCategory.Binary, $"Binary event complete: '{eventName}' with {args.Count} args");
-                    nsSocket.HandleBinaryEvent(eventName, args);
-                }
+            }
+            catch (Exception ex)
+            {
+                // Safety net — a malformed server binary payload must not propagate through
+                // the tick loop (per-frame exception spam on Desktop, silent loss on WebGL).
+                // Mirrors the try-catch that already protects HandleEngineMessage. Abort the
+                // in-progress assembly so a bad packet cannot wedge IsWaiting.
+                SocketIOTrace.Error(TraceCategory.Binary, $"Binary assembly error: {ex.Message}");
+                _binaryAssembler.Abort();
+                OnError?.Invoke(new SocketError(ErrorType.Protocol, $"Binary assembly error: {ex.Message}"));
             }
         }
     }

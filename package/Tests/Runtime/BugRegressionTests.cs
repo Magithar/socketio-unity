@@ -86,6 +86,38 @@ namespace SocketIOUnity.Tests
         }
 
         /// <summary>
+        /// Security audit finding #1: BinaryPacketAssembler must not crash when a binary
+        /// event's placeholder object omits the "num" key. Previously ReplacePlaceholders
+        /// dereferenced obj["num"] (null) and threw NullReferenceException, disrupting the
+        /// Unity tick loop on Desktop and silently dropping binary events on WebGL.
+        /// Fixed: the "num" key is validated before use; a malformed placeholder is skipped.
+        /// </summary>
+        [Test]
+        public void BinaryPacketAssembler_PlaceholderMissingNum_DoesNotThrow()
+        {
+            // Arrange — a binary event whose placeholder has no "num" key
+            var assembler = new BinaryPacketAssembler();
+            var packet = new SocketPacket(
+                type: SocketPacketType.BinaryEvent,
+                ns: "/",
+                ackId: null,
+                jsonPayload: "[\"event\",{\"_placeholder\":true}]",  // missing "num"
+                attachments: 1
+            );
+
+            assembler.Start(packet);
+            bool complete = assembler.AddBinary(new byte[] { 1, 2, 3 });
+            Assert.IsTrue(complete, "Single-attachment packet should complete after one frame");
+
+            // Act & Assert — Build() must not throw despite the malformed placeholder
+            Assert.DoesNotThrow(() =>
+            {
+                var (_, _, eventName, _, _) = assembler.Build();
+                Assert.AreEqual("event", eventName, "Event name should still be recoverable");
+            });
+        }
+
+        /// <summary>
         /// Bug #4: AckRegistry should handle integer overflow gracefully
         /// Previously: _nextId would overflow to negative after 2 billion increments
         /// Fixed: Wraps around to 1 (skips 0 and negatives)
