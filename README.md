@@ -392,7 +392,9 @@ Minimum Unity version: **2020.1** (set in `package.json`; required by the built-
 
 ## Production Readiness
 
-Stable public API (frozen for v1.x), **76 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — 22 protocol edge-case cases plus connection-state, lobby-state, reconnect, WebGL routing, and regression suites — WebGL and mobile verified, configurable reconnect, zero GC allocations in hot paths, main-thread safe, domain reload safe, `IDisposable` resource management.
+The public API is stable and frozen for v1.x. **76 automated tests (EditMode + PlayMode) run in CI on Unity 2022.3 LTS every commit** — covering 22 protocol edge cases, connection-state, lobby-state, reconnect, WebGL routing, and regression suites.
+
+Zero GC allocations in hot paths, main-thread safe, domain reload safe, configurable reconnect, `IDisposable` resource management. WebGL and mobile verified.
 
 ## WebGL
 

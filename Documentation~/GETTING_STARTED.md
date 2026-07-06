@@ -108,6 +108,15 @@ The key APIs — `Connect`, `Emit`, `On`, `Off` — are the same across all plat
 
 ---
 
+## Security Notes
+
+**Auth tokens in production**
+- Auth payloads (passed via `socket.Of("/ns", authObject)`) are sent as plaintext in the Socket.IO CONNECT packet
+- Always use `wss://` in production when auth contains session tokens or sensitive identity data
+- See [permissions.md](permissions.md) for the full auth model
+
+---
+
 ## Next Steps
 
 You've got the basics. Here's where to go next:
@@ -123,6 +132,9 @@ You've got the basics. Here's where to go next:
 | Understand the full API | [README API Guide](../README.md#usage) |
 | Debug network traffic | [Debugging Guide](DEBUGGING_GUIDE.md) |
 | Understand reconnection | [Reconnect Behavior](RECONNECT_BEHAVIOR.md) |
+| Understand connection and event flows | [Flows](flows.md) |
+| Auth model and production security | [Permissions & Trust](permissions.md) |
+| Config variables and scripting defines | [Variables](variables.md) |
 
 ---
 

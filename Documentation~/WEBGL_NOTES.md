@@ -41,7 +41,7 @@ graph TD
 
 ### SocketIOWebGL.jslib
 
-JavaScript library merged into WebGL build. Contains **two sets of functions**:
+A JavaScript library merged into the WebGL build. It contains **two sets of functions**:
 
 1. **SocketIO-specific functions** (used by `WebGLWebSocketTransport`):
    - `SocketIO_WebSocket_Create`
@@ -73,7 +73,7 @@ public sealed class WebGLSocketBridge : MonoBehaviour
     public void JSOnOpen(string socketId);
     public void JSOnClose(string socketId);
     public void JSOnError(string socketId);
-    public void JSOnText(string payload);   // Format: "socketId:message"
+    public void JSOnText(string payload);   // Format: "socketId:message"  ⚠️ see routing caveat below
     public void JSOnBinary(string payload); // Format: "socketId,ptr,length"
 }
 ```
@@ -115,6 +115,16 @@ public class WebGLTestController : MonoBehaviour
     // OnGUI for runtime testing UI
 }
 ```
+
+---
+
+### ⚠️ JSOnText routing caveat
+
+`JSOnText` parses the socket ID by splitting on the first `:` found within the first 40 characters. This works correctly when the jslib always prefixes messages as `"<uuid>:message"` (colon at index 36). The risk arises if any code path forwards a message **without** the UUID prefix — in that case, a JSON payload like `{"status":"ok"}` would be **silently misparsed**, treating `{"status"` as the socket ID rather than the message content.
+
+**In single-socket scenarios (typical usage):** messages are routed via `_lastActiveSocketId` fallback, so the misparse is generally harmless. In **multi-socket scenarios**, cross-socket data leakage is possible.
+
+A proper fix (structured 37-char UUID prefix) is tracked in [PRD-v1.6.0-reliability.md](../PRD-v1.6.0-reliability.md) as F3.
 
 ---
 
@@ -308,6 +318,7 @@ _socket.OnConnected += () =>
 
 ## Production Checklist
 
+- [x] Use `wss://` (TLS) for any connection where auth tokens or session data are passed
 - [x] Test binary message receive
 - [x] Test reconnection after disconnect
 - [x] Test namespace authentication

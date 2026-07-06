@@ -57,4 +57,15 @@ All new features should include:
 
 ---
 
+## 🤖 AI Agent Contributors
+
+If you are an AI coding agent working in this repository, read `CLAUDE.md` in the repo root first. It covers:
+
+- Which files are safe to edit and which need care
+- Key architectural invariants that must be preserved across edits
+- CI behavior (full EditMode + PlayMode suite, 76 tests, runs on every push)
+- The public API stability contract for v1.x
+
+---
+
 Thank you for helping keep this project clean, open, and trustworthy.

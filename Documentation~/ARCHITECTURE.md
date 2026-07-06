@@ -4,6 +4,21 @@
 
 ---
 
+## Related Documents
+
+| Doc | What it covers |
+|-----|----------------|
+| [flows.md](flows.md) | Step-by-step journeys: connection, reconnect, auth, emit, receive, binary, heartbeat |
+| [permissions.md](permissions.md) | Auth model, trust boundaries, namespace isolation, production security checklist |
+| [variables.md](variables.md) | Scripting defines, TestServer env vars, ReconnectConfig runtime parameters |
+| [DEBUGGING_GUIDE.md](DEBUGGING_GUIDE.md) | Trace levels, profiler defines, diagnostics overlay usage |
+| [RECONNECT_BEHAVIOR.md](RECONNECT_BEHAVIOR.md) | Backoff config, presets, reconnect lifecycle |
+| [BINARY_EVENTS.md](BINARY_EVENTS.md) | Binary frame protocol, placeholder replacement |
+| [WEBGL_NOTES.md](WEBGL_NOTES.md) | WebGL platform specifics, build instructions |
+| [GETTING_STARTED.md](GETTING_STARTED.md) | Install, quick start, test server setup |
+
+---
+
 ## Component Hierarchy
 
 ### Core
@@ -89,7 +104,10 @@ socketio-unity/                 # Repo root
 │   ├── DEBUGGING_GUIDE.md
 │   ├── GETTING_STARTED.md
 │   ├── RECONNECT_BEHAVIOR.md
-│   └── WEBGL_NOTES.md
+│   ├── WEBGL_NOTES.md
+│   ├── flows.md
+│   ├── permissions.md
+│   └── variables.md
 │
 ├── TestServer~/                # Node.js test servers
 ├── TestProject~/               # Standalone Unity test project
@@ -244,7 +262,7 @@ socketio-unity/                 # Repo root
 
 ### Debug Layer (`Debug/` + `Samples~/BasicChat/`)
 
-- **Diagnostics overlay** — `SocketIODiagnosticsOverlay` runtime UI panel; toggle via `SocketIOManager.Instance.ShowDiagnostics = true`
+- **Diagnostics overlay** — `SocketIODiagnosticsOverlay` runtime UI panel; enable via `SocketIOManager.Instance.ShowDiagnostics = true`
 - **Packet tracing** — `SocketIOTrace` with configurable levels
 - **Profiler markers** — Zero-cost when disabled (`SOCKETIO_PROFILER`)
 - **Profiler counters** — Real-time metrics (`SOCKETIO_PROFILER_COUNTERS`)

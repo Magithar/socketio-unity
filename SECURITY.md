@@ -24,7 +24,7 @@ Include the Unity version, target platform (Editor / Standalone / WebGL / mobile
 
 ## Known Hardening Notes
 
-- **Transport encryption is the developer's responsibility.** Auth payloads passed to `Of("/ns", authObject)` are sent in plaintext in the Socket.IO CONNECT packet. Always use `wss://` in production when auth carries session tokens or identity data. See [Documentation~/GETTING_STARTED.md](Documentation~/GETTING_STARTED.md#common-issues).
+- **Transport encryption is the developer's responsibility.** Auth payloads passed to `Of("/ns", authObject)` are sent in plaintext in the Socket.IO CONNECT packet. Always use `wss://` in production when auth carries session tokens or identity data. See [Documentation~/GETTING_STARTED.md](Documentation~/GETTING_STARTED.md#security-notes).
 - **Server-input hardening.** A full static security audit was performed on 2026-06-27. The two medium findings it surfaced — a binary-placeholder null-dereference and fragile WebGL text-message routing — were fixed in **v1.6.0**. The audit's positive findings (consistent null-returning parser, main-thread dispatcher isolation, ACK overflow handling, no `TypeNameHandling` in deserialization) remain in place.
 
 ## What This Package Cannot Defend Against
