@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-07-08
+
+### Added
+
+- **Benchmark test suite** (`BenchmarkTests.cs`, EditMode) — timed counterpart to `StressTests.cs`. Reports sustained incoming/outgoing event throughput, binary assembly throughput (1MB/10MB), per-message GC allocation, and reconnect-cycle cost via `Debug.Log` in a greppable `BENCHMARK <name> key=value` format, so the numbers show up in the same log `run-tests.sh` already captures (`TestContext.Progress`/`TestContext.Out` are not captured by Unity's batchmode test runner — confirmed by running it). No server-side or browser-client Socket.IO benchmark existed for a Unity client before this — every published Socket.IO benchmark measures the server. Report-only: assertions are generous ceilings meant to catch a catastrophic regression, not to gate on a specific throughput number (CI hardware is too noisy for that). Each benchmark takes 5 samples and reports min/median/max instead of a single Stopwatch reading — a single sample bakes in JIT/GC noise and isn't reproducible enough to publish. Message strings used in the throughput/allocation benchmarks are pre-built outside the timed/measured region so the numbers reflect client dispatch cost, not test-harness string-construction cost. Allocation measurement uses `GC.GetTotalMemory` (force-collect before, no forced collect after) rather than `GC.GetAllocatedBytesForCurrentThread`, which reads back 0 under Unity's Editor Mono runtime. Numbers still reflect whatever machine runs the suite, not a player's typical hardware — for a publishable figure, run it locally on hardware representative of your actual target device, not just CI or a fast dev machine. WebGL transport benchmarking is out of scope for this pass — EditMode tests can't execute the jslib bridge; that needs an in-browser HUD scene, proposed as a follow-up. A live-server RTT benchmark against a real deployed server is also a follow-up: the transport's async connect is designed to run in Play mode (driven by `UnityTickDriver`, which no-ops outside Play mode), so a live benchmark needs to be a Play-mode scene/MonoBehaviour rather than an Edit-mode menu command.
+
 ## [1.7.0] - 2026-07-08
 
 ### Added
@@ -468,7 +474,8 @@ socket.OnError += (SocketError err) => Debug.LogError($"[{err.Type}] {err.Messag
 
 ---
 
-[Unreleased]: https://github.com/Magithar/socketio-unity/compare/v1.6.0...HEAD
+[1.7.1]: https://github.com/Magithar/socketio-unity/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/Magithar/socketio-unity/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Magithar/socketio-unity/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Magithar/socketio-unity/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Magithar/socketio-unity/compare/v1.3.1...v1.4.0
