@@ -114,6 +114,16 @@ static void Enqueue(Action action)
 static bool IsInitialized { get; }
 ```
 
+**Queue Bounding (v1.7.0+):**
+```csharp
+static int MaxQueueLength { get; set; }   // default 10000; <= 0 = unbounded
+static long DroppedActionCount { get; }
+```
+
+When the pending-action queue reaches `MaxQueueLength`, new actions are dropped
+(drop-newest) and counted in `DroppedActionCount` instead of growing memory without
+limit. Both members reset on domain reload.
+
 ---
 
 ## ⚠️ Breaking Change in v1.3.0

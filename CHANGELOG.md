@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.0] - 2026-07-08
+
+### Added
+
+- **Bounded main-thread dispatch queue** — `UnityMainThreadDispatcher` now caps its pending-action queue at `MaxQueueLength` (default 10000). When the cap is reached — a flooding server, or a long main-thread stall while the server keeps sending — new actions are dropped (drop-newest) and counted in the new `DroppedActionCount` property instead of growing memory without limit, with a rate-limited warning logged from the main thread. Set `MaxQueueLength` to 0 or negative to restore the previous unbounded behavior. Closes the trust-boundary gap previously documented as undefendable ("the UnityMainThreadDispatcher action queue is unbounded"). Additive, non-breaking; covered by the new `DispatcherTests` EditMode suite.
 
 ## [1.6.0] - 2026-07-06
 
