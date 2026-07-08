@@ -9,7 +9,7 @@ Full Socket.IO v4 — namespaces, binary, ACKs, reconnect with backoff — **ver
 Use it as your **backend & matchmaking layer** — standalone, or alongside **Mirror / Netcode** for in-scene sync.
 
 [![CI](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml/badge.svg)](https://github.com/Magithar/socketio-unity/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.6.0-blue)](https://github.com/Magithar/socketio-unity/releases)
+[![Release](https://img.shields.io/badge/release-v1.7.1-blue)](https://github.com/Magithar/socketio-unity/releases)
 [![Unity 2020.1+](https://img.shields.io/badge/Unity-2020.1%2B-black?logo=unity&logoColor=white)](https://unity.com)
 [![WebGL Verified](https://img.shields.io/badge/WebGL-Verified-brightgreen)](Documentation~/WEBGL_NOTES.md)
 [![Mirror Compatible](https://img.shields.io/badge/Mirror-Compatible-black)](package/Samples~/MirrorIntegration/README.md)
