@@ -118,13 +118,11 @@ public class WebGLTestController : MonoBehaviour
 
 ---
 
-### ⚠️ JSOnText routing caveat
+### JSOnText routing (fixed in v1.6.0)
 
-`JSOnText` parses the socket ID by splitting on the first `:` found within the first 40 characters. This works correctly when the jslib always prefixes messages as `"<uuid>:message"` (colon at index 36). The risk arises if any code path forwards a message **without** the UUID prefix — in that case, a JSON payload like `{"status":"ok"}` would be **silently misparsed**, treating `{"status"` as the socket ID rather than the message content.
+`JSOnText` splits the `"<socketId>:message"` frame deterministically at the **first** colon (the socket id is a colon-free GUID, so the message body may safely contain any number of colons) and looks the socket id up directly in `_textHandlers`. A message with an unroutable or unknown socket id is dropped with a `Debug.LogWarning`, not silently misparsed or routed to the wrong socket.
 
-**In single-socket scenarios (typical usage):** messages are routed via `_lastActiveSocketId` fallback, so the misparse is generally harmless. In **multi-socket scenarios**, cross-socket data leakage is possible.
-
-A proper fix (structured 37-char UUID prefix) is tracked in [PRD-v1.6.0-reliability.md](../PRD-v1.6.0-reliability.md) as F3.
+This replaced an earlier "first colon, index < 40" heuristic with a silent last-active-socket fallback, which could misroute cross-socket data in multi-socket scenarios — see the CHANGELOG's `[1.6.0]` entry (security audit finding #2) and `WebGLBridgeRoutingTests` for coverage.
 
 ---
 

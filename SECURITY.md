@@ -10,8 +10,8 @@ Security fixes are applied to the latest `1.x` release. Older minor versions are
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.x   | ✅        |
-| < 1.6   | ❌ (upgrade) |
+| 1.7.x   | ✅        |
+| < 1.7   | ❌ (upgrade) |
 
 ## Reporting a Vulnerability
 
@@ -26,9 +26,9 @@ Include the Unity version, target platform (Editor / Standalone / WebGL / mobile
 
 - **Transport encryption is the developer's responsibility.** Auth payloads passed to `Of("/ns", authObject)` are sent in plaintext in the Socket.IO CONNECT packet. Always use `wss://` in production when auth carries session tokens or identity data. See [Documentation~/GETTING_STARTED.md](Documentation~/GETTING_STARTED.md#security-notes).
 - **Server-input hardening.** A full static security audit was performed on 2026-06-27. The two medium findings it surfaced — a binary-placeholder null-dereference and fragile WebGL text-message routing — were fixed in **v1.6.0**. The audit's positive findings (consistent null-returning parser, main-thread dispatcher isolation, ACK overflow handling, no `TypeNameHandling` in deserialization) remain in place.
+- **Bounded main-thread dispatch queue.** As of **v1.7.0**, `UnityMainThreadDispatcher` caps its pending-action queue at `MaxQueueLength` (default 10000, drop-newest overflow, counted in `DroppedActionCount`) — closes the previously undefendable gap below. Set `MaxQueueLength` to 0 or negative to restore the pre-v1.7 unbounded behavior.
 
 ## What This Package Cannot Defend Against
 
 - A malicious or compromised **server** you connect to. Validate server-sent gameplay data in your own code.
-- Unbounded action queues from a pathological server (the main-thread dispatcher queue is unbounded by design).
 - Man-in-the-middle on unencrypted `ws://`. Use `wss://`.

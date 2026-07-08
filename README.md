@@ -40,7 +40,7 @@ Most Unity Socket.IO clients are closed-source, incomplete, or platform-locked. 
 | Backend ownership | **Any Node/Socket.IO server you control** | Any | Any | Vendor-hosted, lock-in |
 | Reconnect / host migration | **Built-in** (backoff + jitter, session identity) | Basic / hardcoded | Build it yourself | Managed |
 | Works *with* Mirror / Netcode | **Yes — as the signaling/backend layer** | Rarely | Maybe | Overlaps / replaces them |
-| Tested | **76 tests in CI every commit** | Rare | Your call | Vendor's |
+| Tested | **87 tests in CI every commit** | Rare | Your call | Vendor's |
 
 > **You own the backend, you own the code, and it works in the browser.** socketio-unity is the piece that talks to *your* Socket.IO server — not a netcode engine, and not a hosted service you rent.
 
@@ -468,6 +468,8 @@ npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integ
 |---|---|---|---|
 | `ProtocolParserTests.cs` | EditMode NUnit | Protocol parsing edge cases (22 cases) | ✅ |
 | `StressTests.cs` | EditMode NUnit | 1K events, 10MB binary, 100 ACKs, 50 reconnects | ✅ |
+| `DispatcherTests.cs` | EditMode NUnit | Bounded dispatch queue, drop-newest overflow, `DroppedActionCount` | ✅ |
+| `BenchmarkTests.cs` | EditMode NUnit | Throughput, binary assembly, GC allocation, reconnect cost — timed, report-only | ✅ |
 | `ConnectionStateTests.cs` | PlayMode NUnit | State transitions, OnStateChanged, namespace reconnect | ✅ |
 | `LobbyStateIntegrationTests.cs` | PlayMode NUnit | State invariants, namespace timing | ✅ |
 | `BugRegressionTests.cs` | PlayMode NUnit | Binary assembler, ACK overflow, JSON degradation | ✅ |
@@ -475,9 +477,11 @@ npm run start:mirror       # Port 3002 (lobby + /game namespace for Mirror integ
 | `WebGLBridgeRoutingTests.cs` | PlayMode NUnit | WebGL text-message socket-id routing (colon-safe) | ✅ |
 | `ProtocolEdgeCaseTests.cs` | Editor menu item | Same parser cases, manual run (superseded by `ProtocolParserTests`) | — |
 
+`BenchmarkTests.cs` reports throughput/allocation numbers via `Debug.Log` in a greppable `BENCHMARK <name> key=value ...` format — run the EditMode suite locally and grep the log for `BENCHMARK` to get numbers for your own hardware. CI's numbers reflect shared runner hardware, not a player's device, so treat them as regression detection, not a figure to quote.
+
 ### CI
 
-GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 76 tests) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
+GitHub Actions with [`game-ci/unity-test-runner`](https://github.com/game-ci/unity-test-runner) on every push/PR to `main`. Runs the full EditMode + PlayMode suite (`testMode: all`, 87 tests: 45 EditMode + 42 PlayMode) against Unity 2022.3 LTS. Requires `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` secrets.
 
 ---
 
